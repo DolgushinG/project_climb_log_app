@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'button/button.dart';
 import 'main.dart';
 
 class Competition {
@@ -242,7 +243,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 color: Colors.blueAccent,
                 image: DecorationImage(
                   image: NetworkImage(
-                      'http://127.0.0.1:8000/storage/images/IMG_0707.jpeg'),
+                      DOMAIN + 'storage/images/IMG_0707.jpeg'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -271,17 +272,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    child: Text('Участвовать', style: TextStyle(color: Colors.white)),
-                  ),
+                  child: MyButtonScreen(),
                 ),
                 SizedBox(width: 8), // Небольшой отступ между кнопками
                 Expanded(
