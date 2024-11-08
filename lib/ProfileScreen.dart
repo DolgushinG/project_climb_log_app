@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+
+import 'main.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -19,12 +22,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Загрузка данных профиля с сервера
   Future<void> fetchProfileData() async {
-    final String token = '123'; // Получите токен, например, из SharedPreferences
+    final String? token = await getToken(); // Используем await для получения токена
 
     final response = await http.get(
       Uri.parse('http://127.0.0.1:8000/api/profile'),
       headers: {
-        'Authorization': 'Bearer $token',
+        'Authorization': 'Bearer $token', // Используем токен в запросе
         'Content-Type': 'application/json',
       },
     );

@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter_html/flutter_html.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class Competition {
   final int id;
   final String title;
   final String description;
+  final String city;
+  final String contact;
   final String poster;
   final String payment_info;
   final String address;
@@ -16,6 +19,8 @@ class Competition {
   Competition({
     required this.id,
     required this.title,
+    required this.city,
+    required this.contact,
     required this.address,
     required this.poster,
     required this.description,
@@ -28,6 +33,8 @@ class Competition {
     return Competition(
       id: json['id'],
       title: json['title'],
+      city: json['city'],
+      contact: json['contact'],
       poster: json['poster'],
       description: json['description'],
       payment_info: json['payment_info'],
@@ -110,12 +117,12 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       body: _isLoading
           ? Center(child: CircularProgressIndicator())
           : TabBarView(
-        controller: _tabController,
-        children: [
-          buildCompetitionList(_currentCompetitions),
-          buildCompetitionList(_completedCompetitions),
-        ],
-      ),
+              controller: _tabController,
+              children: [
+                buildCompetitionList(_currentCompetitions),
+                buildCompetitionList(_completedCompetitions),
+              ],
+            ),
     );
   }
 
@@ -130,14 +137,14 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
             physics: const NeverScrollableScrollPhysics(),
             itemCount: competitions.length,
             itemBuilder: (context, index) {
-
               final Competition competition = competitions[index];
               return Card(
                 margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 child: ListTile(
                   title: Text(competition.title),
                   subtitle: Text(competition.address),
-                  trailing: Text('${competition.start_date.toLocal().toString().split(' ')[0]}'),
+                  trailing: Text(
+                      '${competition.start_date.toLocal().toString().split(' ')[0]}'),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -153,144 +160,212 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   }
 }
 
-class CompetitionDetailScreen extends StatelessWidget {
+class CompetitionDetailScreen extends StatefulWidget {
   final Competition competition;
 
   CompetitionDetailScreen(this.competition);
 
   @override
+  _CompetitionDetailScreenState createState() =>
+      _CompetitionDetailScreenState();
+}
+
+class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
+  int _selectedIndex = 0;
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Детали соревнования'),
+      ),
+      body: _buildContent(),
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.info),
+            label: 'Информация',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.emoji_events),
+            label: 'Результаты',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.bar_chart),
+            label: 'Статистика',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blueAccent,
+        onTap: _onItemTapped,
+      ),
+    );
+  }
+
+  Widget _buildContent() {
+    switch (_selectedIndex) {
+      case 0:
+        return _buildInformationSection();
+      case 1:
+        return _buildResultsSection();
+      case 2:
+        return _buildStatisticsSection();
+      default:
+        return _buildInformationSection();
+    }
+  }
+
+  Widget _buildInformationSection() {
+    return SingleChildScrollView(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              widget.competition.title,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 300,
+              decoration: const BoxDecoration(
+                color: Colors.blueAccent,
+                image: DecorationImage(
+                  image: NetworkImage(
+                      'http://127.0.0.1:8000/storage/images/IMG_0707.jpeg'),
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            CompetitionInfoCard(
+              label: 'Адрес',
+              value: widget.competition.address,
+            ),
+            // Используем SizedBox с шириной double.infinity вместо Expanded
+            Row(
+              children: [
+                Expanded(child:
+                CompetitionInfoCard(
+                  label: 'Город',
+                  value: widget.competition.city,
+                )),
+                SizedBox(width: 8),
+                Expanded(child:
+                CompetitionInfoCard(
+                  label: 'Контакты',
+                  value: widget.competition.contact,
+                ))
+              ],
+            ),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('Участвовать', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+                SizedBox(width: 8), // Небольшой отступ между кнопками
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {},
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: Text('Список участников', style: TextStyle(color: Colors.white)),
+                  ),
+                ),
+              ],
+            )
+          ],
+        ),
+      ),
+    );
+  }
+
+
+  Widget _buildResultsSection() {
     return DefaultTabController(
-      length: 2,
+      length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text('Competition Details'),
-        ),
-        body: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Заголовок соревнования
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Text(
-                  competition.title,
-                  style: const TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-
-              // Постер на весь экран
-              Container(
-                height: 300,
-                decoration: BoxDecoration(
-                  color: Colors.blueAccent,
-                  image: DecorationImage(
-                    image: NetworkImage('http://127.0.0.1:8000/storage/images/IMG_0707.jpeg'),
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              // Информация: адрес, город, контакты
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Address: ${competition.address}',
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'City: Москва', // Пример добавления города
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 6),
-                    Text(
-                      'Contact: +799999999', // Пример добавления контактов
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Табуляция
-              const TabBar(
-                labelColor: Colors.blueAccent,
-                unselectedLabelColor: Colors.grey,
-                tabs: [
-                  Tab(text: 'Описание'),
-                  Tab(text: 'Оплата'),
-                ],
-              ),
-
-              // Вкладки: описание и оплата
-              const SizedBox(height: 8),
-              Container(
-                height: 300, // Добавим ограничение по высоте для TabBarView
-                child: TabBarView(
-                  children: [
-                    // Описание
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: SingleChildScrollView(
-                        child: Column(
-                          children: [
-                            // Кнопки
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: Text('Участвовать'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: Text('Список участников'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: Text('Предварительные результаты'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: Text('Результаты полуфинала'),
-                            ),
-                            ElevatedButton(
-                              onPressed: () {},
-                              child: Text('Результаты финала'),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    // Оплата
-                    Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Text(
-                        competition.payment_info,
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+          automaticallyImplyLeading: false,
+          bottom: const TabBar(
+            labelColor: Colors.blueAccent,
+            unselectedLabelColor: Colors.grey,
+            tabs: [
+              Tab(text: 'Квалификация'),
+              Tab(text: 'Полуфинал'),
+              Tab(text: 'Финал'),
             ],
           ),
         ),
+        body: const TabBarView(
+          children: [
+            Center(child: Text('Qualification Results')),
+            Center(child: Text('Semifinal Results')),
+            Center(child: Text('Final Results')),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatisticsSection() {
+    return Center(
+      child: Text(
+        'Statistics coming soon...',
+        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
       ),
     );
   }
 }
 
+class CompetitionInfoCard extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const CompetitionInfoCard({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: ListTile(
+        title: Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black,
+          ),
+        ),
+        subtitle: Text(
+          value,
+          style: TextStyle(fontSize: 16),
+        ),
+      ),
+    );
+  }
+}
