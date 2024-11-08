@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:flutter_html/flutter_html.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class Competition {
   final int id;

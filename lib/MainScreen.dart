@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
-import 'login.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+
 
 class MainScreen extends StatefulWidget {
   @override
