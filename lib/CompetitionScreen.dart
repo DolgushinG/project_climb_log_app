@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'main.dart';
+
 class Competition {
   final int id;
   final String title;
@@ -65,7 +67,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   Future<void> fetchCompetitions() async {
     final String token = '123'; // Ваш токен авторизации
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/competitions'),
+      Uri.parse(DOMAIN + 'api/competitions'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

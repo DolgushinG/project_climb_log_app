@@ -24,7 +24,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final String? token = await getToken(); // Используем await для получения токена
 
     final response = await http.get(
-      Uri.parse('http://127.0.0.1:8000/api/profile'),
+      Uri.parse(DOMAIN + 'api/profile'),
       headers: {
         'Authorization': 'Bearer $token', // Используем токен в запросе
         'Content-Type': 'application/json',
