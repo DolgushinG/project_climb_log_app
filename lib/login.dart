@@ -26,10 +26,10 @@ class _LoginScreenState extends State<LoginScreen> {
 
     try {
       final response = await http.post(
-        Uri.parse(DOMAIN + 'api/auth/token'),
+        Uri.parse(DOMAIN + '/api/auth/token'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'email': "tester@tester.ru",
+          'email':  "tester@tester.ru",
           'password': 'password',
         }),
       );
@@ -37,6 +37,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final token = responseData['token'];
+        print(token);
         saveToken(token);
         Navigator.pushReplacement(
           context,

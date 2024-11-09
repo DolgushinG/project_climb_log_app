@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
-import 'button/button.dart';
+import 'button/take_part.dart';
 import 'main.dart';
 
 class Competition {
@@ -11,6 +11,7 @@ class Competition {
   final String description;
   final String city;
   final String contact;
+  final bool is_participant;
   final String poster;
   final String payment_info;
   final String address;
@@ -22,6 +23,7 @@ class Competition {
     required this.title,
     required this.city,
     required this.contact,
+    required this.is_participant,
     required this.address,
     required this.poster,
     required this.description,
@@ -35,6 +37,7 @@ class Competition {
       id: json['id'],
       title: json['title'],
       city: json['city'],
+      is_participant: json['is_participant'],
       contact: json['contact'],
       poster: json['poster'],
       description: json['description'],
@@ -66,9 +69,9 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   }
 
   Future<void> fetchCompetitions() async {
-    final String token = '123'; // Ваш токен авторизации
+    final String? token = await getToken(); // Ваш токен авторизации
     final response = await http.get(
-      Uri.parse(DOMAIN + 'api/competitions'),
+      Uri.parse(DOMAIN + '/api/competitions'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -162,7 +165,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
 }
 
 class CompetitionDetailScreen extends StatefulWidget {
-  final Competition competition;
+  late Competition competition; // Локальная переменная состояния
 
   CompetitionDetailScreen(this.competition);
 
@@ -174,6 +177,83 @@ class CompetitionDetailScreen extends StatefulWidget {
 class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   int _selectedIndex = 0;
 
+  late Competition _competitionDetails; // Хранит обновленные данные соревнования
+
+
+
+  // Метод для инициализации состояния
+  Future<void> _fetchInitialParticipationStatus() async {
+    await fetchCompetition();
+    // После того как данные загружены, перерисовываем UI
+    setState(() {});
+  }
+  // Колбек для обновления состояния
+  Future<void> _refreshParticipationStatus() async {
+    await _fetchInitialParticipationStatus();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchInitialParticipationStatus();
+    _competitionDetails = widget.competition; // Инициализируем значением из конструктора
+    fetchCompetition();
+  }
+
+// Обновить детали соревнования
+  Future<void> fetchCompetition() async {
+    final String? token = await getToken();
+    print(DOMAIN + '/api/competitions?event_id=${_competitionDetails.id}'); // Ваш токен авторизации
+    final response = await http.get(
+      Uri.parse(DOMAIN + '/api/competitions?event_id=${_competitionDetails.id}'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      print(data);
+      // Преобразуем JSON в объект `Competition`
+      final Competition updatedCompetition = Competition.fromJson(data);
+      setState(() {
+        _competitionDetails = updatedCompetition; // Обновляем детали соревнования
+      });
+    } else {
+      print(response.body);
+      print('Failed to load competitions');
+    }
+  }
+
+
+  Future<void> _cancelRegistration() async {
+
+    final String? token = await getToken();
+
+    final response = await http.post(
+      Uri.parse('${DOMAIN}/api/event/cancel/take/part'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+      body: json.encode({
+        'event_id': '${_competitionDetails.id}',
+      }),
+    );
+
+    if (response.statusCode == 200) {
+      fetchCompetition();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Регистрация отменена успешно')),
+      );
+    } else {
+      // Ошибка при отмене регистрации
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка при отмене регистрации')),
+      );
+    }
+  }
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -230,7 +310,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.competition.title,
+              _competitionDetails.title,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
@@ -239,11 +319,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             const SizedBox(height: 16),
             Container(
               height: 300,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: Colors.blueAccent,
                 image: DecorationImage(
                   image: NetworkImage(
-                      DOMAIN + 'storage/images/IMG_0707.jpeg'),
+                      '$DOMAIN${_competitionDetails.poster}'),
                   fit: BoxFit.cover,
                 ),
               ),
@@ -251,7 +331,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             const SizedBox(height: 16),
             CompetitionInfoCard(
               label: 'Адрес',
-              value: widget.competition.address,
+              value: _competitionDetails.address,
             ),
             // Используем SizedBox с шириной double.infinity вместо Expanded
             Row(
@@ -259,25 +339,38 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 Expanded(child:
                 CompetitionInfoCard(
                   label: 'Город',
-                  value: widget.competition.city,
+                  value: _competitionDetails.city,
                 )),
                 SizedBox(width: 8),
                 Expanded(child:
                 CompetitionInfoCard(
                   label: 'Контакты',
-                  value: widget.competition.contact,
+                  value: _competitionDetails.contact,
                 ))
               ],
             ),
             Row(
               children: [
+
                 Expanded(
-                  child: MyButtonScreen(),
+                  child: TakePartButtonScreen(
+                    _competitionDetails.id,
+                    _competitionDetails.is_participant,
+                    _refreshParticipationStatus
+                  ),
                 ),
+
                 SizedBox(width: 8), // Небольшой отступ между кнопками
                 Expanded(
                   child: ElevatedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ListParticipantsScreen(eventId: _competitionDetails.id),
+                        ),
+                      );
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue[600],
                       shape: RoundedRectangleBorder(
@@ -289,7 +382,92 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                 ),
               ],
-            )
+            ),
+            if (_competitionDetails.is_participant)
+              Row(
+                children: [
+                  Expanded(
+                    child:  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.green,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => ResultsEntryScreen(eventId: _competitionDetails.id),
+                          ),
+                        );
+                      },
+                      child: const Text(
+                        'Внести результаты',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child:  ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      onPressed: () async {
+                        // Показать диалог с подтверждением
+                        bool? confirm = await showDialog<bool>(
+                          context: context,
+                          builder: (BuildContext context) {
+                            return AlertDialog(
+                              title: Text('Подтверждение отмены регистрации'),
+                              content: Text('Вы уверены, что хотите отменить регистрацию?'),
+                              actions: <Widget>[
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(false); // Отклонить
+                                  },
+                                  child: Text('Отмена'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(true); // Подтвердить
+                                  },
+                                  child: Text('Подтвердить'),
+                                ),
+                              ],
+                            );
+                          },
+                        );
+
+                        if (confirm == true) {
+
+                         _cancelRegistration();
+                         _refreshParticipationStatus();
+
+                        }
+                      },
+                      child: const Text(
+                        'Отменить регистрацию',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14.0,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  ),
+                ],
+              )
           ],
         ),
       ),
