@@ -9,6 +9,8 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import '../login.dart';
+
 class TakePartButtonScreen extends StatefulWidget {
   final int event_id;
   final bool is_participant;
@@ -51,6 +53,16 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           _buttonText = isParticipant ? 'Вы участник' : 'Принять участие';
           success = isParticipant;
         });
+      } else if (response.statusCode == 401 || response.statusCode == 419) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сессии')),
+        );
       } else {
         print(response.body);
         _showNotification('Ошибка при получении статуса', Colors.red);
@@ -92,6 +104,16 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           success = true;
         });
         widget.onParticipationStatusChanged();
+      } else if (response.statusCode == 401 || response.statusCode == 419) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сессии')),
+        );
       } else {
         _handleError(message);
       }

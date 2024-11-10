@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'login.dart';
 import 'main.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -42,6 +43,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
         birthYear = data['birthday']?.toString() ?? 'Birth Year';
         isLoading = false;
       });
+    } else if (response.statusCode == 401 || response.statusCode == 419) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка сессии')),
+      );
     } else {
       print('Failed to load profile data');
       setState(() {

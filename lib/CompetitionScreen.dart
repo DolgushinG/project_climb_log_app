@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/login.dart';
 import 'dart:convert';
 
 import 'button/take_part.dart';
@@ -91,6 +92,17 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
             competitions.where((c) => c.isCompleted).toList();
         _isLoading = false;
       });
+    } else if (response.statusCode == 401 || response.statusCode == 419) {
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка сессии')),
+      );
     } else {
       print('Failed to load competitions');
       setState(() {
@@ -220,6 +232,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       setState(() {
         _competitionDetails = updatedCompetition; // Обновляем детали соревнования
       });
+    } else if (response.statusCode == 401 || response.statusCode == 419) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка сессии')),
+      );
     } else {
       print(response.body);
       print('Failed to load competitions');
@@ -246,6 +268,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       fetchCompetition();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Регистрация отменена успешно')),
+      );
+    } else if (response.statusCode == 401 || response.statusCode == 419) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => LoginScreen(),
+        ),
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Ошибка сессии')),
       );
     } else {
       // Ошибка при отмене регистрации
