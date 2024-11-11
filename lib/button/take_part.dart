@@ -147,7 +147,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   void _resetButtonStateAfterDelay() {
     Future.delayed(Duration(seconds: 3), () {
       setState(() {
-        _isButtonDisabled = widget.is_participant ? true : false;
+        _isButtonDisabled = widget.is_participant;
         _buttonText = widget.is_participant ? "Вы участник" : 'Принять участие';
       });
     });
@@ -202,21 +202,4 @@ class ResultsEntryScreen extends StatelessWidget {
     );
   }
 }
-// Экран список участников
-class ListParticipantsScreen extends StatelessWidget {
-  final int eventId;
 
-  ListParticipantsScreen({required this.eventId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Список участников'),
-      ),
-      body: Center(
-        child: Text('Список участников'),
-      ),
-    );
-  }
-}

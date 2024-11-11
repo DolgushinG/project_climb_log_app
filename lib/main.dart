@@ -7,7 +7,7 @@ void main() {
   runApp(MyApp());
 }
 
-const DOMAIN = "https://stage-dev.climbing-events.ru";
+const DOMAIN = "http://127.0.0.1:8000";
 
 Future<void> saveToken(String token) async {
   SharedPreferences.setMockInitialValues({});

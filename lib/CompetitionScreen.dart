@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/login.dart';
+import 'package:login_app/result_festival.dart';
 import 'dart:convert';
 
 import 'button/take_part.dart';
+import 'list_participants.dart';
 import 'main.dart';
 
 class Competition {
@@ -14,7 +16,8 @@ class Competition {
   final String contact;
   final bool is_participant;
   final String poster;
-  final String payment_info;
+  final String info_payment;
+  final List<Map<String, dynamic>> categories;
   final String address;
   final DateTime start_date;
   final bool isCompleted;
@@ -28,7 +31,8 @@ class Competition {
     required this.address,
     required this.poster,
     required this.description,
-    required this.payment_info,
+    required this.info_payment,
+    required this.categories,
     required this.start_date,
     required this.isCompleted,
   });
@@ -42,7 +46,8 @@ class Competition {
       contact: json['contact'],
       poster: json['poster'],
       description: json['description'],
-      payment_info: json['payment_info'],
+      categories: (json['categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
+      info_payment: json['info_payment'] ?? '',
       address: json['address'],
       start_date: DateTime.parse(json['start_date']),
       isCompleted: json['isCompleted'],
@@ -335,6 +340,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildInformationSection() {
+    String? selectedCategory;
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -381,9 +387,38 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ))
               ],
             ),
+            SizedBox(height: 20),
+            Row(
+              children: [
+                SizedBox(width: 8),
+                Expanded(
+                  child:
+                  DropdownButton<String>(
+                    value: selectedCategory,
+                    onChanged: (String? newValue) {
+                      setState(() {
+                        selectedCategory = newValue;
+                      });
+                    },
+                    items: <String>['', 'Общий зачет', 'Новички']
+                        .map<DropdownMenuItem<String>>((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value.isEmpty ? 'Все категории' : value),
+                      );
+                    }).toList(),
+                    hint: Text('Выберите категорию'),
+                  )
+                ),
+                SizedBox(width: 8),
+              ],
+            ),
+            SizedBox(height: 20),
+
             Row(
               children: [
 
+                SizedBox(width: 8),
                 Expanded(
                   child: TakePartButtonScreen(
                     _competitionDetails.id,
@@ -399,7 +434,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => ListParticipantsScreen(eventId: _competitionDetails.id),
+                          builder: (context) => ParticipantListScreen(_competitionDetails.id, _competitionDetails.categories),
                         ),
                       );
                     },
@@ -513,6 +548,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
+          toolbarHeight: 10.0,
           bottom: const TabBar(
             labelColor: Colors.blueAccent,
             unselectedLabelColor: Colors.grey,
@@ -523,11 +559,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             ],
           ),
         ),
-        body: const TabBarView(
+        body: TabBarView(
           children: [
-            Center(child: Text('Qualification Results')),
-            Center(child: Text('Semifinal Results')),
-            Center(child: Text('Final Results')),
+            Center(child: ResultScreen(eventId: _competitionDetails.id, categories: _competitionDetails.categories)),
+            const Center(child: Text('Semifinal Results')),
+            const Center(child: Text('Final Results')),
           ],
         ),
       ),
