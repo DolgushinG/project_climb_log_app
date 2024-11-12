@@ -53,6 +53,15 @@ class Category {
       fromGrade: json['from_grade'],
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Category && other.category == category;
+  }
+
+  @override
+  int get hashCode => category.hashCode;
 }
 
 Future<List<Participant>> fetchParticipants({
@@ -132,11 +141,12 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
                         setState(() {
                           selectedCategory = newValue;
                         });
+                        _applyFilters(selectedCategory); // Применяем фильтр после выбора
                       },
                       items: categories.map<DropdownMenuItem<Category>>((Category category) {
                         return DropdownMenuItem<Category>(
                           value: category,
-                          child: Text(category.category), // Показываем название категории
+                          child: Text(category.category),
                         );
                       }).toList(),
                       hint: Text('Выберите категорию'),
@@ -144,13 +154,13 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
                   },
                 ),
                 SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _applyFilters(selectedCategory); // Применяем выбранную категорию
-                  },
-                  child: Text('Применить фильтр'),
-                ),
+                // ElevatedButton(
+                //   onPressed: () {
+                //     Navigator.pop(context);
+                //     _applyFilters(selectedCategory); // Применяем выбранную категорию
+                //   },
+                //   child: Text('Применить фильтр'),
+                // ),
               ],
             ),
           ),

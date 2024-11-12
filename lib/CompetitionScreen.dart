@@ -126,12 +126,12 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Competitions'),
+        title: Text('Соревнвоания'),
         bottom: TabBar(
           controller: _tabController,
-          tabs: [
-            Tab(text: 'Current'),
-            Tab(text: 'Completed'),
+          tabs: const [
+            Tab(text: 'Текущие'),
+            Tab(text: 'Завершенные'),
           ],
         ),
       ),
@@ -231,7 +231,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      print(data);
       // Преобразуем JSON в объект `Competition`
       final Competition updatedCompetition = Competition.fromJson(data);
       setState(() {
@@ -248,7 +247,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         SnackBar(content: Text('Ошибка сессии')),
       );
     } else {
-      print(response.body);
       print('Failed to load competitions');
     }
   }
@@ -350,7 +348,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             Text(
               _competitionDetails.title,
               style: const TextStyle(
-                fontSize: 24,
+                fontSize: 20,
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -543,32 +541,92 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
 
   Widget _buildResultsSection() {
-    return DefaultTabController(
-      length: 3,
-      child: Scaffold(
-        appBar: AppBar(
-          automaticallyImplyLeading: false,
-          toolbarHeight: 10.0,
-          bottom: const TabBar(
-            labelColor: Colors.blueAccent,
-            unselectedLabelColor: Colors.grey,
-            tabs: [
-              Tab(text: 'Квалификация'),
-              Tab(text: 'Полуфинал'),
-              Tab(text: 'Финал'),
-            ],
-          ),
-        ),
-        body: TabBarView(
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        title: Text('Результаты'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
           children: [
-            Center(child: ResultScreen(eventId: _competitionDetails.id, categories: _competitionDetails.categories)),
-            const Center(child: Text('Semifinal Results')),
-            const Center(child: Text('Final Results')),
+            _buildResultCard(
+              title: 'Квалификация',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ResultScreen(
+                      eventId: _competitionDetails.id,
+                      categories: _competitionDetails.categories,
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16.0),
+            _buildResultCard(
+              title: 'Полуфинал',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const Center(child: Text('Semifinal Results')),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16.0),
+            _buildResultCard(
+              title: 'Финал',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const Center(child: Text('Final Results')),
+                  ),
+                );
+              },
+            ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildResultCard({required String title, required VoidCallback onTap}) {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      elevation: 4.0,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12.0),
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: TextStyle(
+                  fontSize: 18.0,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.black,
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward,
+                color: Colors.blueAccent,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
 
   Widget _buildStatisticsSection() {
     return Center(

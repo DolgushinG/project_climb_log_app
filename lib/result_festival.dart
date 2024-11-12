@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-
 import 'main.dart';
+
 
 // Структура данных для результатов участников
 class ParticipantResult {
@@ -32,6 +32,36 @@ class ParticipantResult {
   }
 }
 
+class Category {
+  final String category;
+  final String toGrade;
+  final String fromGrade;
+
+  Category({
+    required this.category,
+    required this.toGrade,
+    required this.fromGrade,
+  });
+
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      category: json['category'],
+      toGrade: json['to_grade'],
+      fromGrade: json['from_grade'],
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is Category && other.category == category;
+  }
+
+  @override
+  int get hashCode => category.hashCode;
+}
+
+
 // Функция для получения данных участников
 Future<List<ParticipantResult>> fetchParticipants({required final int eventId}) async {
   final Uri url = Uri.parse('$DOMAIN/api/results/festival/?event_id=$eventId');
@@ -60,8 +90,8 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   late TabController _tabController;
   List<ParticipantResult> results = [];
   List<ParticipantResult> filteredResults = [];
-  String? searchQuery;
-  String? selectedCategory;
+  String? searchQuery = '';
+  Category? selectedCategory;
 
   @override
   void initState() {
@@ -71,8 +101,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   }
 
   void _fetchResults() async {
+    final int eventId = widget.eventId;
     try {
-      final data = await fetchParticipants(eventId: widget.eventId);
+      final data = await fetchParticipants(eventId: eventId);
 
       setState(() {
         results = data;
@@ -83,49 +114,52 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     }
   }
 
-  void _showFilterSheet(BuildContext context) {
+  void _showFilterSheet(BuildContext context, List<Category> categories) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
         return FractionallySizedBox(
           heightFactor: 0.3,
+          widthFactor: 1.0,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text('Фильтры', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Text(
+                  'Фильтры',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
                 SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(labelText: 'Поиск по имени'),
-                  onChanged: (value) {
-                    setState(() {
-                      searchQuery = value;
-                    });
-                  },
-                ),
-                DropdownButton<String>(
-                  value: selectedCategory,
-                  hint: Text('Выберите категорию'),
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedCategory = newValue;
-                    });
-                  },
-                  items: widget.categories.map((category) {
-                    return DropdownMenuItem<String>(
-                      value: category['category'],
-                      child: Text(category['category']),
+                StatefulBuilder(
+                  builder: (BuildContext context, StateSetter setState) {
+                    return DropdownButton<Category>(
+                      value: selectedCategory,
+                      onChanged: (Category? newValue) {
+                        setState(() {
+                          selectedCategory = newValue;
+                        });
+                        _applyFilters(selectedCategory); // Применяем фильтр после выбора
+                      },
+                      items: categories.map<DropdownMenuItem<Category>>((Category category) {
+                        return DropdownMenuItem<Category>(
+                          value: category,
+                          child: Text(category.category),
+                        );
+                      }).toList(),
+                      hint: Text('Выберите категорию'),
                     );
-                  }).toList(),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _applyFilters();
                   },
-                  child: Text('Применить фильтры'),
                 ),
+                SizedBox(height: 16),
+                // ElevatedButton(
+                //   onPressed: () {
+                //     Navigator.pop(context);
+                //     _applyFilters(selectedCategory); // Применяем выбранную категорию
+                //   },
+                //   child: Text('Применить фильтр'),
+                // ),
               ],
             ),
           ),
@@ -134,22 +168,24 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     );
   }
 
-  void _applyFilters() {
+  void _applyFilters(Category? selectedCategory) {
     setState(() {
       filteredResults = results.where((result) {
-        final matchesSearchQuery = searchQuery == null || result.middlename.contains(searchQuery!);
-        final matchesCategory = selectedCategory == null || result.category == selectedCategory;
-        return matchesSearchQuery && matchesCategory;
+        if (selectedCategory != null) {
+          return result.category == selectedCategory.category;
+        }
+        return true;
       }).toList();
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    List<Category> categoryList = widget.categories.map((json) => Category.fromJson(json)).toList();
     return Scaffold(
       appBar: AppBar(
         title: Text('Результаты'),
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
           tabs: [
@@ -160,7 +196,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         actions: [
           IconButton(
             icon: Icon(Icons.filter_list),
-            onPressed: () => _showFilterSheet(context),
+            onPressed: () => _showFilterSheet(context, categoryList),
           ),
         ],
       ),
@@ -186,15 +222,69 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
           child: Padding(
             padding: const EdgeInsets.all(12.0),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(child: Text('${result.user_place}', style: TextStyle(fontWeight: FontWeight.bold))),
-                SizedBox(width: 10),
-                Expanded(flex: 2, child: Text(result.middlename)),
-                SizedBox(width: 10),
-                Expanded(child: Text(result.category)),
-                SizedBox(width: 10),
-                Expanded(child: Text('${result.points}')),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Место',
+                            style: TextStyle(fontSize: 8, color: Colors.grey),
+                          ),
+                          Text(
+                            '${result.user_place}',
+                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 2,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            result.middlename,
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            result.category,
+                            style: TextStyle(fontSize: 10),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Баллы',
+                            style: TextStyle(fontSize: 8, color: Colors.grey),
+                          ),
+                          Text(
+                            '${result.points}',
+                            style: TextStyle(fontSize: 16),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

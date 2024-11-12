@@ -30,7 +30,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   @override
   void initState() {
     super.initState();
-    print('Принять участие кнопка обновлена');
     _fetchParticipationStatus();
   }
 
@@ -64,11 +63,9 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           SnackBar(content: Text('Ошибка сессии')),
         );
       } else {
-        print(response.body);
         _showNotification('Ошибка при получении статуса', Colors.red);
       }
     } catch (e) {
-      print(e);
       _showNotification('Ошибка сети', Colors.red);
     }
   }
@@ -118,7 +115,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _handleError(message);
       }
     } catch (e) {
-      print(e);
       _handleError('Ошибка сети');
     } finally {
       _resetButtonStateAfterDelay();
