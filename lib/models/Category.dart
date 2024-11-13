@@ -1,10 +1,12 @@
 class Category {
   final String category;
+  final int id;
   final String toGrade;
   final String fromGrade;
 
   Category({
     required this.category,
+    required this.id,
     required this.toGrade,
     required this.fromGrade,
   });
@@ -12,6 +14,7 @@ class Category {
   factory Category.fromJson(Map<String, dynamic> json) {
     return Category(
       category: json['category'],
+      id: json['id'],
       toGrade: json['to_grade'],
       fromGrade: json['from_grade'],
     );

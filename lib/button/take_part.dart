@@ -181,21 +181,5 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
 }
 
 // Экран для внесения результатов
-class ResultsEntryScreen extends StatelessWidget {
-  final int eventId;
 
-  ResultsEntryScreen({required this.eventId});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Внести результаты'),
-      ),
-      body: Center(
-        child: Text('Форма для внесения результатов для события $eventId'),
-      ),
-    );
-  }
-}
 

@@ -1,8 +1,11 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/login.dart';
 import 'package:login_app/result_festival.dart';
 import 'dart:convert';
+import 'ResultsEntryScreen.dart';
 import 'button/take_part.dart';
 import 'list_participants.dart';
 import 'list_participants.dart';
@@ -333,7 +336,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       case 0:
         return _buildInformationSection();
       case 1:
-        return _buildResultsSection();
+        return _buildResultsSection(context);
       case 2:
         return _buildStatisticsSection();
       default:
@@ -394,7 +397,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             Row(
               children: [
                 SizedBox(height: 8),
-                if (!_competitionDetails.isCompleted)
+                if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
                   Expanded(
                   child:
                   DropdownButton<Category>(
@@ -466,7 +469,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => ResultsEntryScreen(eventId: _competitionDetails.id),
+                            builder: (context) => ResultEntryPage(eventId: _competitionDetails.id),
                           ),
                         );
                       },
@@ -474,13 +477,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         'Внести результаты',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: 14.0,
+                          fontSize: 12.0,
                         ),
                         textAlign: TextAlign.left,
                       ),
                     ),
                   ),
-                  SizedBox(height: 8, width: 10),
+                  SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 ? 10: 0),
                   if(_competitionDetails.is_access_user_cancel_take_part == 1)
                     Expanded(
                       child:  ElevatedButton(
@@ -541,55 +544,36 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
 
-  Widget _buildResultsSection() {
+  @override
+  Widget _buildResultsSection(BuildContext context) {
+    List<Category> categoryList = _competitionDetails.categories.map((json) => Category.fromJson(json)).toList();
+
     return Scaffold(
       appBar: AppBar(
+        title: Text('Категории'),
         automaticallyImplyLeading: false,
-        title: Text('Результаты'),
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          children: [
-            _buildResultCard(
-              title: 'Квалификация',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ResultScreen(
-                      eventId: _competitionDetails.id,
-                      categories: _competitionDetails.categories,
-                    ),
+          children: categoryList
+              .map((category) => _buildResultCard(
+            title: category.category.split(' ').first,
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ResultScreen(
+                    eventId: _competitionDetails.id,
+                    categoryId: category.id,
+                    category: category,
                   ),
-                );
-              },
-            ),
-            const SizedBox(height: 16.0),
-            _buildResultCard(
-              title: 'Полуфинал',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const Center(child: Text('Semifinal Results')),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 16.0),
-            _buildResultCard(
-              title: 'Финал',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const Center(child: Text('Final Results')),
-                  ),
-                );
-              },
-            ),
-          ],
+                ),
+              );
+            },
+          ),
+          )
+              .toList(),
         ),
       ),
     );
@@ -611,8 +595,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             children: [
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 18.0,
+                style: const TextStyle(
+                  fontSize: 15.0,
                   fontWeight: FontWeight.bold,
                   color: Colors.black,
                 ),

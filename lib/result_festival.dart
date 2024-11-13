@@ -36,8 +36,8 @@ class ParticipantResult {
 
 
 // Функция для получения данных участников
-Future<List<ParticipantResult>> fetchParticipants({required final int eventId}) async {
-  final Uri url = Uri.parse('$DOMAIN/api/results/festival/?event_id=$eventId');
+Future<List<ParticipantResult>> fetchParticipants({required final int eventId,required final int categoryId}) async {
+  final Uri url = Uri.parse('$DOMAIN/api/results/festival/?event_id=$eventId&category_id=$categoryId');
 
   final response = await http.get(url);
 
@@ -45,15 +45,16 @@ Future<List<ParticipantResult>> fetchParticipants({required final int eventId}) 
     List jsonResponse = json.decode(response.body);
     return jsonResponse.map((data) => ParticipantResult.fromJson(data)).toList();
   } else {
+
     throw Exception('Failed to load participants');
   }
 }
 
 class ResultScreen extends StatefulWidget {
   final int eventId;
-  final List<Map<String, dynamic>> categories;
-
-  ResultScreen({required this.eventId, required this.categories});
+  final int categoryId;
+  final Category category;
+  ResultScreen({required this.eventId, required this.categoryId, required this.category});
 
   @override
   _ResultScreenState createState() => _ResultScreenState();
@@ -75,8 +76,9 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
 
   void _fetchResults() async {
     final int eventId = widget.eventId;
+    final int categoryId = widget.categoryId;
     try {
-      final data = await fetchParticipants(eventId: eventId);
+      final data = await fetchParticipants(eventId: eventId, categoryId: categoryId);
 
       setState(() {
         results = data;
@@ -87,77 +89,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     }
   }
 
-  void _showFilterSheet(BuildContext context, List<Category> categories) {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) {
-        return FractionallySizedBox(
-          heightFactor: 0.3,
-          widthFactor: 1.0,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'Фильтры',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-                SizedBox(height: 16),
-                StatefulBuilder(
-                  builder: (BuildContext context, StateSetter setState) {
-                    return DropdownButton<Category>(
-                      value: selectedCategory,
-                      onChanged: (Category? newValue) {
-                        setState(() {
-                          selectedCategory = newValue;
-                        });
-                        _applyFilters(selectedCategory); // Применяем фильтр после выбора
-                      },
-                      items: categories.map<DropdownMenuItem<Category>>((Category category) {
-                        return DropdownMenuItem<Category>(
-                          value: category,
-                          child: Text(category.category),
-                        );
-                      }).toList(),
-                      hint: Text('Выберите категорию'),
-                    );
-                  },
-                ),
-                SizedBox(height: 16),
-                // ElevatedButton(
-                //   onPressed: () {
-                //     Navigator.pop(context);
-                //     _applyFilters(selectedCategory); // Применяем выбранную категорию
-                //   },
-                //   child: Text('Применить фильтр'),
-                // ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _applyFilters(Category? selectedCategory) {
-    setState(() {
-      filteredResults = results.where((result) {
-        if (selectedCategory != null) {
-          return result.category == selectedCategory.category;
-        }
-        return true;
-      }).toList();
-    });
-  }
-
   @override
   Widget build(BuildContext context) {
-    List<Category> categoryList = widget.categories.map((json) => Category.fromJson(json)).toList();
+
     return Scaffold(
       appBar: AppBar(
-        title: Text('Результаты'),
+        title: Text(widget.category.category.split(' ').first),
         automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
@@ -166,12 +103,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
             Tab(text: 'Женщины'),
           ],
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.filter_list),
-            onPressed: () => _showFilterSheet(context, categoryList),
-          ),
-        ],
       ),
       body: TabBarView(
         controller: _tabController,
@@ -224,18 +155,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                           Text(
                             result.middlename,
                             style: TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            result.category,
-                            style: TextStyle(fontSize: 10),
                           ),
                         ],
                       ),
