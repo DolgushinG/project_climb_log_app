@@ -19,6 +19,7 @@ class Competition {
   final String city;
   final String contact;
   final bool is_participant;
+  final bool is_routes_exists;
   final String poster;
   final String info_payment;
   final List<Map<String, dynamic>> categories;
@@ -26,6 +27,7 @@ class Competition {
   final DateTime start_date;
   final bool isCompleted;
   final int is_access_user_cancel_take_part;
+  final int is_france_system_qualification;
 
   Competition({
     required this.id,
@@ -33,10 +35,12 @@ class Competition {
     required this.city,
     required this.contact,
     required this.is_participant,
+    required this.is_routes_exists,
     required this.address,
     required this.poster,
     required this.description,
     required this.is_access_user_cancel_take_part,
+    required this.is_france_system_qualification,
     required this.info_payment,
     required this.categories,
     required this.start_date,
@@ -49,9 +53,11 @@ class Competition {
       title: json['title'],
       city: json['city'],
       is_participant: json['is_participant'],
+      is_routes_exists: json['is_routes_exists'],
       contact: json['contact'],
       poster: json['poster'],
       is_access_user_cancel_take_part: json['is_access_user_cancel_take_part'],
+      is_france_system_qualification: json['is_france_system_qualification'],
       description: json['description'],
       categories: (json['categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       info_payment: json['info_payment'] ?? '',
@@ -456,7 +462,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             if (_competitionDetails.is_participant)
               Row(
                 children: [
-                  Expanded(
+
+                  if(_competitionDetails.is_routes_exists && _competitionDetails.is_france_system_qualification == 0)
+                    Expanded(
                     child:  ElevatedButton(
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.green,
@@ -483,7 +491,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       ),
                     ),
                   ),
-                  SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 ? 10: 0),
+                    SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 ? 10: 0),
                   if(_competitionDetails.is_access_user_cancel_take_part == 1)
                     Expanded(
                       child:  ElevatedButton(
@@ -601,7 +609,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   color: Colors.black,
                 ),
               ),
-              Icon(
+              const Icon(
                 Icons.arrow_forward,
                 color: Colors.blueAccent,
               ),
