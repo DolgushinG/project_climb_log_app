@@ -3,10 +3,11 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/login.dart';
 import 'package:login_app/result_festival.dart';
 import 'dart:convert';
-
 import 'button/take_part.dart';
 import 'list_participants.dart';
+import 'list_participants.dart';
 import 'main.dart';
+import 'models/Category.dart';
 
 class Competition {
   final int id;
@@ -21,6 +22,7 @@ class Competition {
   final String address;
   final DateTime start_date;
   final bool isCompleted;
+  final int is_access_user_cancel_take_part;
 
   Competition({
     required this.id,
@@ -31,6 +33,7 @@ class Competition {
     required this.address,
     required this.poster,
     required this.description,
+    required this.is_access_user_cancel_take_part,
     required this.info_payment,
     required this.categories,
     required this.start_date,
@@ -45,6 +48,7 @@ class Competition {
       is_participant: json['is_participant'],
       contact: json['contact'],
       poster: json['poster'],
+      is_access_user_cancel_take_part: json['is_access_user_cancel_take_part'],
       description: json['description'],
       categories: (json['categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       info_payment: json['info_payment'] ?? '',
@@ -338,7 +342,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildInformationSection() {
-    String? selectedCategory;
+    Category? selectedCategory;
+    List<Category> categoryList = _competitionDetails.categories.map((json) => Category.fromJson(json)).toList();
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -388,44 +393,41 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             SizedBox(height: 20),
             Row(
               children: [
-                SizedBox(width: 8),
-                Expanded(
+                SizedBox(height: 8),
+                if (!_competitionDetails.isCompleted)
+                  Expanded(
                   child:
-                  DropdownButton<String>(
+                  DropdownButton<Category>(
                     value: selectedCategory,
-                    onChanged: (String? newValue) {
+                    onChanged: (Category? newValue) {
                       setState(() {
                         selectedCategory = newValue;
                       });
                     },
-                    items: <String>['', 'Общий зачет', 'Новички']
-                        .map<DropdownMenuItem<String>>((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value.isEmpty ? 'Все категории' : value),
+                    items: categoryList.map<DropdownMenuItem<Category>>((Category category) {
+                      return DropdownMenuItem<Category>(
+                        value: category,
+                        child: Text(category.category),
                       );
                     }).toList(),
                     hint: Text('Выберите категорию'),
                   )
                 ),
-                SizedBox(width: 8),
+                SizedBox(height: 8),
               ],
             ),
             SizedBox(height: 20),
-
             Row(
               children: [
-
-                SizedBox(width: 8),
-                Expanded(
-                  child: TakePartButtonScreen(
-                    _competitionDetails.id,
-                    _competitionDetails.is_participant,
-                    _refreshParticipationStatus
+                if (!_competitionDetails.isCompleted)
+                  Expanded(
+                    child: TakePartButtonScreen(
+                      _competitionDetails.id,
+                      _competitionDetails.is_participant,
+                      _refreshParticipationStatus
+                    ),
                   ),
-                ),
-
-                SizedBox(width: 8), // Небольшой отступ между кнопками
+                SizedBox(width: 10), // Небольшой отступ между кнопками
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {
@@ -458,7 +460,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(10),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
                       onPressed: () {
                         Navigator.push(
@@ -474,63 +476,62 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                           color: Colors.white,
                           fontSize: 14.0,
                         ),
-                        textAlign: TextAlign.center,
+                        textAlign: TextAlign.left,
                       ),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Expanded(
-                    child:  ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.red,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                  SizedBox(height: 8, width: 10),
+                  if(_competitionDetails.is_access_user_cancel_take_part == 1)
+                    Expanded(
+                      child:  ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: EdgeInsets.symmetric(vertical: 12),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: 12),
-                      ),
-                      onPressed: () async {
-                        // Показать диалог с подтверждением
-                        bool? confirm = await showDialog<bool>(
-                          context: context,
-                          builder: (BuildContext context) {
-                            return AlertDialog(
-                              title: Text('Подтверждение отмены регистрации'),
-                              content: Text('Вы уверены, что хотите отменить регистрацию?'),
-                              actions: <Widget>[
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop(false); // Отклонить
-                                  },
-                                  child: Text('Отмена'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop(true); // Подтвердить
-                                  },
-                                  child: Text('Подтвердить'),
-                                ),
-                              ],
-                            );
-                          },
-                        );
+                        onPressed: () async {
+                          // Показать диалог с подтверждением
+                          bool? confirm = await showDialog<bool>(
+                            context: context,
+                            builder: (BuildContext context) {
+                              return AlertDialog(
+                                title: Text('Подтверждение отмены регистрации'),
+                                content: Text('Вы уверены, что хотите отменить регистрацию?'),
+                                actions: <Widget>[
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(false); // Отклонить
+                                    },
+                                    child: Text('Отмена'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop(true); // Подтвердить
+                                    },
+                                    child: Text('Подтвердить'),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
 
-                        if (confirm == true) {
-
-                         _cancelRegistration();
-                         _refreshParticipationStatus();
-
-                        }
-                      },
-                      child: const Text(
-                        'Отменить регистрацию',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14.0,
+                          if (confirm == true) {
+                           _cancelRegistration();
+                           _refreshParticipationStatus();
+                          }
+                        },
+                        child: const Text(
+                          'Отменить регистрацию',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 14.0,
+                          ),
+                          textAlign: TextAlign.center,
                         ),
-                        textAlign: TextAlign.center,
                       ),
                     ),
-                  ),
                 ],
               )
           ],
