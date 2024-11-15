@@ -112,17 +112,18 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       final List<dynamic> data = json.decode(response.body);
 
       List<Competition> competitions =
-          data.map((json) => Competition.fromJson(json)).toList();
+      data.map((json) => Competition.fromJson(json)).toList();
 
-      setState(() {
-        _currentCompetitions =
-            competitions.where((c) => !c.isCompleted).toList();
-        _completedCompetitions =
-            competitions.where((c) => c.isCompleted).toList();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _currentCompetitions =
+              competitions.where((c) => !c.isCompleted).toList();
+          _completedCompetitions =
+              competitions.where((c) => c.isCompleted).toList();
+          _isLoading = false;
+        });
+      }
     } else if (response.statusCode == 401 || response.statusCode == 419) {
-
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -134,17 +135,19 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       );
     } else {
       print('Failed to load competitions');
-      setState(() {
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
-  // @override
-  // void dispose() {
-  //   _tabController.dispose();
-  //   super.dispose();
-  // }
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -260,9 +263,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ElevatedButton(
                   onPressed: () {
                     // Обновляем состояние главного виджета
-                    setState(() {
-                      selectedNumberSet = tempSelectedNumberSet;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        selectedNumberSet = tempSelectedNumberSet;
+                      });
+                    }
                     Navigator.pop(context); // Закрыть окно
                   },
                   child: Text('Сохранить'),
@@ -312,9 +317,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ElevatedButton(
                   onPressed: () {
                     // Обновляем состояние главного виджета
-                    setState(() {
-                      selectedCategory = tempSelectedCategory;
-                    });
+                    if (mounted) {
+                      setState(() {
+                        selectedCategory = tempSelectedCategory;
+                      });
+                    }
                     Navigator.pop(context); // Закрыть окно
                   },
                   child: Text('Сохранить'),
@@ -660,7 +667,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   Future<void> _fetchInitialParticipationStatus() async {
     await fetchCompetition();
     // После того как данные загружены, перерисовываем UI
-    // setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
   // Колбек для обновления состояния
   Future<void> _refreshParticipationStatus() async {
@@ -691,9 +700,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       final data = json.decode(response.body);
       // Преобразуем JSON в объект `Competition`
       final Competition updatedCompetition = Competition.fromJson(data);
-      setState(() {
-        _competitionDetails = updatedCompetition; // Обновляем детали соревнования
-      });
+      if (mounted) {
+        setState(() {
+          _competitionDetails =
+              updatedCompetition; // Обновляем детали соревнования
+        });
+      }
     } else if (response.statusCode == 401 || response.statusCode == 419) {
       Navigator.push(
         context,
@@ -748,9 +760,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    if (mounted) {
+      setState(() {
+        _selectedIndex = index;
+      });
+    }
   }
 
 }

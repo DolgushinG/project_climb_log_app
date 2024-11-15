@@ -82,9 +82,11 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
     final int eventId = widget.eventId;
     try {
       final data = await getRoutesData(eventId: eventId);
-      setState(() {
-        routes = data;
-      });
+      if (mounted) {
+        setState(() {
+          routes = data;
+        });
+      }
     } catch (e) {
       print("Failed to load participants: $e");
     }
@@ -92,16 +94,19 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
 
   // Функция для обновления выбранной попытки
   void _updateSelectedAttempts(int routeId, int attempt) {
-    setState(() {
-      final index = selectedAttempts.indexWhere((a) => a['route_id'] == routeId);
-      if (index != -1) {
-        // Обновляем попытку, если она уже существует
-        selectedAttempts[index]['attempt'] = attempt;
-      } else {
-        // Добавляем новую запись, если попытка для routeId не существует
-        selectedAttempts.add({'route_id': routeId, 'attempt': attempt});
-      }
-    });
+    if (mounted) {
+      setState(() {
+        final index = selectedAttempts.indexWhere((a) =>
+        a['route_id'] == routeId);
+        if (index != -1) {
+          // Обновляем попытку, если она уже существует
+          selectedAttempts[index]['attempt'] = attempt;
+        } else {
+          // Добавляем новую запись, если попытка для routeId не существует
+          selectedAttempts.add({'route_id': routeId, 'attempt': attempt});
+        }
+      });
+    }
   }
 
   @override
@@ -214,10 +219,12 @@ class _RouteCardState extends State<RouteCard> {
   Widget _buildAttemptIcon(int index, String label, Color color, int routeId) {
     return GestureDetector(
       onTap: () {
+      if (mounted) {
         setState(() {
           selectedAttempt = index;
           widget.onAttemptSelected(routeId, selectedAttempt);
         });
+      }
       },
       child: Container(
         padding: const EdgeInsets.all(8),

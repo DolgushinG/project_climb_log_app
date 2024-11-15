@@ -34,15 +34,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
-      setState(() {
-        avatar = data['avatar'] ?? 'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
-        firstName = data['firstname'] ?? 'First Name';
-        lastName = data['lastname'] ?? 'Last Name';
-        city = data['city'] ?? 'City';
-        rank = data['sport_category'] ?? 'Rank';
-        birthYear = data['birthday']?.toString() ?? 'Birth Year';
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          avatar = data['avatar'] ??
+              'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
+          firstName = data['firstname'] ?? 'First Name';
+          lastName = data['lastname'] ?? 'Last Name';
+          city = data['city'] ?? 'City';
+          rank = data['sport_category'] ?? 'Rank';
+          birthYear = data['birthday']?.toString() ?? 'Birth Year';
+          isLoading = false;
+        });
+      }
     } else if (response.statusCode == 401 || response.statusCode == 419) {
       Navigator.push(
         context,
@@ -55,9 +58,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } else {
       print('Failed to load profile data');
-      setState(() {
-        isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 

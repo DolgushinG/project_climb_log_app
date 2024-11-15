@@ -79,11 +79,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     final int categoryId = widget.categoryId;
     try {
       final data = await fetchParticipants(eventId: eventId, categoryId: categoryId);
-
-      setState(() {
-        results = data;
-        filteredResults = results;
-      });
+      if (mounted) {
+        setState(() {
+          results = data;
+          filteredResults = results;
+        });
+      }
     } catch (e) {
       print("Failed to load participants: $e");
     }

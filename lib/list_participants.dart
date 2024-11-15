@@ -79,11 +79,12 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
     final int eventId = widget.eventId;
     try {
       final data = await fetchParticipants(eventId: eventId);
-
-      setState(() {
-        participants = data;
-        filteredParticipants = participants;
-      });
+      if (mounted) {
+        setState(() {
+          participants = data;
+          filteredParticipants = participants;
+        });
+      }
     } catch (e) {
       print("Failed to load participants: $e");
     }
@@ -144,14 +145,16 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
   }
 
   void _applyFilters(Category? selectedCategory) {
-    setState(() {
-      filteredParticipants = participants.where((participant) {
-        if (selectedCategory != null) {
-          return participant.category == selectedCategory.category;
-        }
-        return true;
-      }).toList();
-    });
+    if (mounted) {
+      setState(() {
+        filteredParticipants = participants.where((participant) {
+          if (selectedCategory != null) {
+            return participant.category == selectedCategory.category;
+          }
+          return true;
+        }).toList();
+      });
+    }
   }
 
   @override

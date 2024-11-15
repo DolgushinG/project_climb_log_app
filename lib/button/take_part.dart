@@ -56,11 +56,13 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
 
       if (response.statusCode == 200) {
         bool isParticipant = responseData['is_participant'];
-        setState(() {
-          _isButtonDisabled = isParticipant;
-          _buttonText = isParticipant ? 'Вы участник' : 'Принять участие';
-          success = isParticipant;
-        });
+        if (mounted) {
+          setState(() {
+            _isButtonDisabled = isParticipant;
+            _buttonText = isParticipant ? 'Вы участник' : 'Принять участие';
+            success = isParticipant;
+          });
+        }
       } else if (response.statusCode == 401 || response.statusCode == 419) {
         Navigator.push(
           context,
@@ -80,10 +82,12 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   }
 
   Future<void> _makeRequest() async {
-    setState(() {
-      _isButtonDisabled = true;
-      _buttonText = 'Загрузка...';
-    });
+    if (mounted) {
+      setState(() {
+        _isButtonDisabled = true;
+        _buttonText = 'Загрузка...';
+      });
+    }
 
     try {
       final String? token = await getToken();
@@ -106,11 +110,13 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
       print(responseData);
       if (response.statusCode == 200) {
         _showNotification(message, Colors.green);
-        setState(() {
-          _isButtonDisabled = true;
-          _buttonText = 'Вы участник';
-          success = true;
-        });
+        if (mounted) {
+          setState(() {
+            _isButtonDisabled = true;
+            _buttonText = 'Вы участник';
+            success = true;
+          });
+        }
         widget.onParticipationStatusChanged();
       } else if (response.statusCode == 401 || response.statusCode == 419) {
         Navigator.push(
@@ -143,20 +149,25 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   }
 
   void _handleError(String message) {
-    setState(() {
-      success = false;
-      _isButtonDisabled = false;
-      _buttonText = 'Принять участие';
-    });
+    if (mounted) {
+      setState(() {
+        success = false;
+        _isButtonDisabled = false;
+        _buttonText = 'Принять участие';
+      });
+    }
     _showNotification(message, Colors.red);
   }
 
   void _resetButtonStateAfterDelay() {
     Future.delayed(Duration(seconds: 3), () {
-      setState(() {
-        _isButtonDisabled = widget.is_participant;
-        _buttonText = widget.is_participant ? "Вы участник" : 'Принять участие';
-      });
+      if (mounted) {
+        setState(() {
+          _isButtonDisabled = widget.is_participant;
+          _buttonText =
+          widget.is_participant ? "Вы участник" : 'Принять участие';
+        });
+      }
     });
   }
 
