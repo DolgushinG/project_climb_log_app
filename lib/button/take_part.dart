@@ -7,16 +7,25 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/models/NumberSets.dart';
 import 'dart:convert';
 
 import '../login.dart';
+import '../models/Category.dart';
 
 class TakePartButtonScreen extends StatefulWidget {
   final int event_id;
   final bool is_participant;
+  Category? category;
+  NumberSets? number_set;
   final VoidCallback onParticipationStatusChanged; // Колбек
 
-  TakePartButtonScreen(this.event_id, this.is_participant, this.onParticipationStatusChanged);
+  TakePartButtonScreen(
+      this.event_id,
+      this.is_participant,
+      this.category,
+      this.number_set,
+      this.onParticipationStatusChanged);
 
   @override
   _MyButtonScreenState createState() => _MyButtonScreenState();
@@ -87,12 +96,14 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         },
         body: json.encode({
           'event_id': '${widget.event_id}',
+          'category': '${widget.category?.category}',
+          'number_set': '${widget.number_set?.number_set}',
 
         }),
       );
       final responseData = json.decode(response.body);
       final message = responseData['message'];
-
+      print(responseData);
       if (response.statusCode == 200) {
         _showNotification(message, Colors.green);
         setState(() {
