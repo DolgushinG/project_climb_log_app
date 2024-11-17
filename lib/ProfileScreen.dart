@@ -108,15 +108,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             SizedBox(height: 20),
             ProfileInfoCard(
-              label: 'City',
+              label: 'Город',
               value: city,
             ),
             ProfileInfoCard(
-              label: 'Rank',
+              label: 'Разряд',
               value: rank,
             ),
             ProfileInfoCard(
-              label: 'Birth Year',
+              label: 'День рождения',
               value: birthYear,
             ),
           ],
