@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'Screens/ProfileEditScreen.dart';
 import 'login.dart';
 import 'main.dart';
 
@@ -38,11 +39,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           avatar = data['avatar'] ??
               'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
-          firstName = data['firstname'] ?? 'First Name';
-          lastName = data['lastname'] ?? 'Last Name';
-          city = data['city'] ?? 'City';
-          rank = data['sport_category'] ?? 'Rank';
-          birthYear = data['birthday']?.toString() ?? 'Birth Year';
+          firstName = data['firstname'] ?? '';
+          lastName = data['lastname'] ?? '';
+          city = data['city'] ?? '';
+          rank = data['sport_category'] ?? '';
+          birthYear = data['birthday']?.toString() ?? '';
           isLoading = false;
         });
       }
@@ -118,6 +119,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ProfileInfoCard(
               label: 'День рождения',
               value: birthYear,
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final updatedProfile = await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfileEditScreen(),
+                  ),
+                );
+                if (updatedProfile != null) {
+                  // Обновляем данные после редактирования
+                  setState(() {
+                    firstName = updatedProfile.firstName;
+                    lastName = updatedProfile.lastName;
+                    city = updatedProfile.city;
+                    rank = updatedProfile.sportCategory;
+                    birthYear = updatedProfile.birthday;
+                  });
+                }
+              },
+              child: Text('Редактировать'),
             ),
           ],
         ),

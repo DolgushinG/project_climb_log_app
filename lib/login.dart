@@ -31,8 +31,9 @@ class _LoginScreenState extends State<LoginScreen> {
         Uri.parse(DOMAIN + '/api/auth/token'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'email': email,
-          'password': password,
+          // 'email': email,
+          'email': 'tester@tester.ru',
+          'password': 'password',
         }),
       );
 

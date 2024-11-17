@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
+import 'Screens/ProfileEditScreen.dart';
 
 
 class MainScreen extends StatefulWidget {
@@ -15,8 +16,8 @@ class _MainScreenState extends State<MainScreen> {
   static final List<Widget> _screens = <Widget>[
     ProfileScreen(),
     CompetitionsScreen(),
-    PlaceholderWidget('Analytics'), // Заглушка для будущих экранов
-    PlaceholderWidget('Settings'), // Заглушка для будущих экранов
+    PlaceholderWidget('Аналитика'), // Заглушка для будущих экранов
+    PlaceholderWidget('Безопастность')// Заглушка для будущих экранов
   ];
 
   void _onItemTapped(int index) {
@@ -36,10 +37,10 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-          BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Competitions'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Analytics'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
+          BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Соревнования'),
+          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Аналитика'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Настройка'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,
