@@ -52,7 +52,7 @@ class _LoginScreenState extends State<LoginScreen> {
       }
     } catch (error) {
       print('Error occurred: $error');
-      _showError('Something went wrong');
+      _showError('Something went wrong: $error');
     } finally {
       if (mounted) {
         setState(() {
