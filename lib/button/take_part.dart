@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 import 'package:login_app/main.dart';
 import 'dart:convert';
 
@@ -12,18 +13,23 @@ import 'dart:convert';
 
 import '../login.dart';
 import '../models/Category.dart';
+import '../models/SportCategory.dart';
 
 class TakePartButtonScreen extends StatefulWidget {
   final int event_id;
   final bool is_participant;
   Category? category;
+  SportCategory? sport_category;
+  DateTime? birthday;
   NumberSets? number_set;
   final VoidCallback onParticipationStatusChanged; // Колбек
 
   TakePartButtonScreen(
       this.event_id,
       this.is_participant,
+      this.birthday,
       this.category,
+      this.sport_category,
       this.number_set,
       this.onParticipationStatusChanged);
 
@@ -77,6 +83,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _showNotification('Ошибка при получении статуса', Colors.red);
       }
     } catch (e) {
+      print(e);
       _showNotification('Ошибка сети', Colors.red);
     }
   }
@@ -91,6 +98,21 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
 
     try {
       final String? token = await getToken();
+      final String? serverDate;
+      if(widget.birthday != null){
+        serverDate = DateFormat('yyyy-MM-dd').format(widget.birthday!);
+      } else {
+        serverDate = null;
+      }
+
+      print(json.encode({
+        'event_id': '${widget.event_id}',
+        'birthday': serverDate,
+        'category': '${widget.category?.category}',
+        'sport_category': '${widget.sport_category?.sport_category}',
+        'number_set': '${widget.number_set?.number_set}',
+
+      }));
 
       final response = await http.post(
         Uri.parse('${DOMAIN}/api/event/take/part'),
@@ -100,7 +122,9 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         },
         body: json.encode({
           'event_id': '${widget.event_id}',
+          'birthday': serverDate,
           'category': '${widget.category?.category}',
+          'sport_category': '${widget.sport_category?.sport_category}',
           'number_set': '${widget.number_set?.number_set}',
 
         }),
@@ -132,6 +156,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _handleError(message);
       }
     } catch (e) {
+      print(e);
       _handleError('Ошибка сети');
     } finally {
       _resetButtonStateAfterDelay();

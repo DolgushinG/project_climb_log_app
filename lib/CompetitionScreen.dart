@@ -1,18 +1,17 @@
-import 'dart:math';
-import 'package:dropdown_search/dropdown_search.dart';
+
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/login.dart';
 import 'package:login_app/models/NumberSets.dart';
+import 'package:login_app/models/SportCategory.dart';
 import 'package:login_app/result_festival.dart';
 import 'dart:convert';
 import 'ResultsEntryScreen.dart';
 import 'button/take_part.dart';
 import 'list_participants.dart';
-import 'list_participants.dart';
 import 'main.dart';
 import 'models/Category.dart';
-import 'package:dropdown_button2/dropdown_button2.dart';
+import 'package:intl/intl.dart';
 
 class Competition {
   final int id;
@@ -25,12 +24,15 @@ class Competition {
   final String poster;
   final String info_payment;
   final List<Map<String, dynamic>> categories;
+  final List<Map<String, dynamic>> sport_categories;
   final List<Map<String, dynamic>> number_sets;
   final String address;
   final DateTime start_date;
   final bool isCompleted;
   final int is_auto_categories;
   final int is_input_set;
+  final bool is_need_send_birthday;
+  final int is_need_sport_category;
   final int is_access_user_cancel_take_part;
   final int is_france_system_qualification;
 
@@ -48,8 +50,11 @@ class Competition {
     required this.is_auto_categories,
     required this.is_input_set,
     required this.is_france_system_qualification,
+    required this.is_need_send_birthday,
+    required this.is_need_sport_category,
     required this.info_payment,
     required this.categories,
+    required this.sport_categories,
     required this.number_sets,
     required this.start_date,
     required this.isCompleted,
@@ -61,6 +66,8 @@ class Competition {
       title: json['title'],
       city: json['city'],
       is_participant: json['is_participant'],
+      is_need_send_birthday: json['is_need_send_birthday'],
+      is_need_sport_category: json['is_need_sport_category'],
       is_routes_exists: json['is_routes_exists'],
       contact: json['contact'],
       poster: json['poster'],
@@ -70,6 +77,7 @@ class Competition {
       is_france_system_qualification: json['is_france_system_qualification'],
       description: json['description'],
       categories: (json['categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
+      sport_categories: (json['sport_categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       number_sets: (json['sets'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       info_payment: json['info_payment'] ?? '',
       address: json['address'],
@@ -207,6 +215,10 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           );
   }
 }
+class AlwaysDisabledFocusNode extends FocusNode {
+  @override
+  bool get hasFocus => false;
+}
 
 class CompetitionDetailScreen extends StatefulWidget {
   late Competition competition; // Локальная переменная состояния
@@ -221,9 +233,19 @@ class CompetitionDetailScreen extends StatefulWidget {
 class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   int _selectedIndex = 0;
   Category? selectedCategory;
+  SportCategory? selectedSportCategory;
   NumberSets? selectedNumberSet;
   late Competition _competitionDetails; // Хранит обновленные данные соревнования
+  DateTime? _selectedDate;
+  final TextEditingController _textEditingController = TextEditingController();
+  final FocusNode _focusNode = AlwaysDisabledFocusNode();
 
+  @override
+  void dispose() {
+    _textEditingController.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
 
   void _showSetSelectionDialog() {
     List<NumberSets> numberSetList = _competitionDetails.number_sets.map((json) => NumberSets.fromJson(json)).toList();
@@ -333,6 +355,60 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       },
     );
   }
+  void _showSportCategorySelectionDialog() {
+    List<SportCategory> categoryList = _competitionDetails.sport_categories.map((json) => SportCategory.fromJson(json)).toList();
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        // Локальная переменная для временного хранения выбора
+        SportCategory? tempSelectedSportCategory = selectedSportCategory;
+
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              title: Text('Выберите разряд'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: categoryList.map((sport_category) {
+                    return RadioListTile<SportCategory>(
+                      title: Text(sport_category.sport_category),
+                      value: sport_category,
+                      groupValue: tempSelectedSportCategory,
+                      onChanged: (SportCategory? value) {
+                        setDialogState(() {
+                          tempSelectedSportCategory = value; // Обновляем локальную переменную в диалоге
+                        });
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context); // Закрыть окно без сохранения
+                  },
+                  child: Text('Отмена'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    // Обновляем состояние главного виджета
+                    if (mounted) {
+                      setState(() {
+                        selectedSportCategory = tempSelectedSportCategory;
+                      });
+                    }
+                    Navigator.pop(context); // Закрыть окно
+                  },
+                  child: Text('Сохранить'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
 
   Widget _buildInformationSection() {
     List<NumberSets> numberSetList = _competitionDetails.number_sets.map((json) => NumberSets.fromJson(json)).toList();
@@ -383,6 +459,37 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ),
               ],
             ),
+            if(!_competitionDetails.isCompleted && !_competitionDetails.is_participant && _competitionDetails.is_need_send_birthday)
+              Row(
+                  children: [
+                    Expanded( // Используем Flexible для более гибкого контроля
+                      child: TextField(
+                        focusNode: _focusNode,
+                        controller: _textEditingController,
+                        readOnly: true,
+                        onTap: () => _selectDate(context),
+                        decoration: InputDecoration(
+                          labelText: 'Выберите дату',
+                          border: OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                  ]),
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+              if(_competitionDetails.is_need_sport_category == 1)
+                Row(
+                    children: [
+                      Expanded( // Используем Flexible для более гибкого контроля
+                        child:  ElevatedButton(
+                          onPressed: _showSportCategorySelectionDialog,
+                          child: Text(
+                            selectedSportCategory == null
+                                ? 'Выберите разряд'
+                                : 'Разряд: ${selectedSportCategory!.sport_category}',
+                          ),
+                        ),
+                      ),
+                    ]),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
               if(_competitionDetails.is_auto_categories == 0)
                 Row(
@@ -420,7 +527,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     child: TakePartButtonScreen(
                       _competitionDetails.id,
                       _competitionDetails.is_participant,
+                      _selectedDate,
                       selectedCategory,
+                      selectedSportCategory,
                       selectedNumberSet,
                       _refreshParticipationStatus,
                     ),
@@ -541,6 +650,37 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     );
   }
 
+  _selectDate(BuildContext context) async {
+    DateTime? newSelectedDate = await showDatePicker(
+        context: context,
+        initialDate: _selectedDate != null ? _selectedDate : DateTime.now(),
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2040),
+        builder: (BuildContext context, Widget? child) {
+          return Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: Colors.blue,
+                onPrimary: Colors.white,
+                surface: Colors.blueGrey,
+                onSurface: Colors.white,
+              ),
+              dialogBackgroundColor: Colors.grey[500],
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        });
+    if (newSelectedDate != null) {
+      if(mounted){
+        setState(() {
+          _selectedDate = newSelectedDate;
+          _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(_selectedDate!);
+        });
+      }
+    }
+  }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -659,9 +799,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       ),
     );
   }
-
-
-
 
   // Метод для инициализации состояния
   Future<void> _fetchInitialParticipationStatus() async {
