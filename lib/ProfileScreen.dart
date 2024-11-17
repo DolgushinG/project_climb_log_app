@@ -13,11 +13,11 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   // Данные профиля
   String avatar = 'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
-  String firstName = 'First Name';
-  String lastName = 'Last Name';
-  String city = 'City';
-  String rank = 'Rank';
-  String birthYear = 'Birth Year';
+  String firstName = 'Имя';
+  String lastName = 'Фамилия';
+  String city = 'Город';
+  String rank = 'Разряд';
+  String birthYear = 'День рождения';
   bool isLoading = true;
 
   // Загрузка данных профиля с сервера
