@@ -9,8 +9,8 @@ void main() {
 }
 
 // const DOMAIN = "http://127.0.0.1:8000";
-const DOMAIN = "http://climbing-events.ru";
-// const DOMAIN = "http://stage-dev.climbing-events.ru";
+const DOMAIN = "https://climbing-events.ru";
+// const DOMAIN = "https://stage-dev.climbing-events.ru";
 
 Future<void> saveToken(String token) async {
   SharedPreferences.setMockInitialValues({});
