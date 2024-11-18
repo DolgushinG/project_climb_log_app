@@ -75,7 +75,7 @@ class Competition {
       is_auto_categories: json['is_auto_categories'],
       is_input_set: json['is_input_set'],
       is_france_system_qualification: json['is_france_system_qualification'],
-      description: json['description'],
+      description: json['description'] ?? '',
       categories: (json['categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       sport_categories: (json['sport_categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       number_sets: (json['sets'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
@@ -161,7 +161,8 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Соревнвоания'),
+        automaticallyImplyLeading: false,
+        title: Text('Соревнования'),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [

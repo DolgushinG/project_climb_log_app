@@ -77,7 +77,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Profile'),
+        automaticallyImplyLeading: false,
+        title: Text('Личный кабинет'),
         backgroundColor: Colors.blueAccent,
       ),
       body: isLoading
