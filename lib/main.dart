@@ -9,8 +9,8 @@ void main() {
   runApp(MyApp());
 }
 
-const DOMAIN = "http://127.0.0.1:8000";
-// const DOMAIN = "https://climbing-events.ru";
+// const DOMAIN = "http://127.0.0.1:8000";
+const DOMAIN = "https://climbing-events.ru";
 // const DOMAIN = "https://stage-dev.climbing-events.ru";
 
 Future<void> saveToken(String token) async {
@@ -108,7 +108,7 @@ class StartPage extends StatelessWidget {
                     gradient: const LinearGradient(
                       begin: Alignment(0.00, -1.00),
                       end: Alignment(0, 1),
-                      colors: [Color(0x0043E6FA), Color(0xFF43E6FA)],
+                      colors: [Colors.blue, Color(0xFF43E6FA)],
                     ),
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(width: 1, color: Color(0xFF1D67DE)),
@@ -149,7 +149,7 @@ class StartPage extends StatelessWidget {
                     gradient: const LinearGradient(
                       begin: Alignment(0.00, -1.00),
                       end: Alignment(0, 1),
-                      colors: [Color(0x0043E6FA), Color(0xFF43E6FA)],
+                      colors: [Colors.blue, Color(0xFF43E6FA)],
                     ),
                     shape: RoundedRectangleBorder(
                       side: const BorderSide(width: 1, color: Color(0xFF1D67DE)),

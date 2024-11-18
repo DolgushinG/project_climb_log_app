@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:login_app/MainScreen.dart';
 import 'dart:convert';
+import 'MainScreen.dart';
 import 'main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -12,6 +12,78 @@ class LoginScreen extends StatefulWidget {
 
 
 class _LoginScreenState extends State<LoginScreen> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
+
+  Future<void> _login() async {
+    final email = _emailController.text;
+    final password = _passwordController.text;
+
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+      });
+    }
+
+    try {
+      final response = await http.post(
+        Uri.parse(DOMAIN + '/api/auth/token'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({
+          'email': email,
+          'password': password,
+        }),
+      );
+
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
+        final token = responseData['token'];
+        print(token);
+        saveToken(token);
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => MainScreen()),
+        );
+        // Здесь вы можете добавить навигацию на другой экран после успешного входа
+      } else {
+        print('Login failed: ${response.body}');
+        _showError('Invalid credentials');
+      }
+    } catch (error) {
+      print('Error occurred: $error');
+      _showError('Something went wrong');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showError(String message) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -21,153 +93,153 @@ class _LoginScreenState extends State<LoginScreen> {
         decoration: BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/background.png"),
-            fit: BoxFit.cover, // растягиваем изображение на весь экран
+            fit: BoxFit.cover,
           ),
         ),
         child: SafeArea(
-          child: Center( // Центрируем форму по вертикали и горизонтали
-            child: Container(
-              width: MediaQuery.of(context).size.width * 0.9, // 80% от ширины экрана
-              height: MediaQuery.of(context).size.height * 0.8, // 60% от высоты экрана
-              padding: EdgeInsets.symmetric(horizontal: 10), // отступы по бокам
-              decoration: BoxDecoration(
-                color: Colors.transparent, // Прозрачный фон для формы
-                borderRadius: BorderRadius.circular(48),
-              ),
-              child: Stack(
-                children: [
-                  // Заголовок
-                  Positioned(
-                    left: 30,
-                    top: 20,
-                    child: Text(
-                      'CLIMBING EVENTS.',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 25,
-                        fontFamily: 'Roboto',
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 1.28,
-                      ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Заголовок
+                Text(
+                  'CLIMBING EVENTS.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 32,
+                    fontFamily: 'Roboto',
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.28,
+                  ),
+                ),
+                SizedBox(height: 20), // Отступ между заголовком и формой
+                // Форма
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.9,
+                  padding: EdgeInsets.all(20),
+                  decoration: ShapeDecoration(
+                    color: Colors.white.withOpacity(0.3),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
                     ),
                   ),
-
-                  // Поля для ввода
-                  Positioned(
-                    left: 20,
-                    top: 80,
-                    child: Container(
-                      width: MediaQuery.of(context).size.width * 0.7,
-                      child: Column(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Email
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: TextFormField(
+                          controller: _emailController,
+                          style: TextStyle(color: Colors.white), // Белый текст
+                          decoration: InputDecoration(
+                            labelText: 'Email',
+                            labelStyle: TextStyle(color: Colors.white),
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.blue),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Пароль
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: TextFormField(
+                          controller: _passwordController,
+                          obscureText: true,
+                          style: TextStyle(color: Colors.white), // Белый текст
+                          decoration: InputDecoration(
+                            labelText: 'Пароль',
+                            labelStyle: TextStyle(color: Colors.white),
+                            filled: true,
+                            fillColor: Colors.transparent,
+                            enabledBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.white),
+                            ),
+                            focusedBorder: UnderlineInputBorder(
+                              borderSide: BorderSide(color: Colors.blue),
+                            ),
+                          ),
+                        ),
+                      ),
+                      // Ссылка "Забыл пароль?"
+                      Align(
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              // Логика для восстановления пароля
+                            },
+                            child: Text(
+                              'Забыл пароль?',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20), // Отступ перед кнопкой
+                      // Кнопка входа
+                      GestureDetector(
+                        onTap: _login,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [Colors.blue, Color(0xFF43E6FA)],
+                            ),
+                            borderRadius: BorderRadius.circular(30),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'Вход',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.64,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 20), // Отступ перед кнопками соцсетей
+                      Text(
+                        'Войти с помощью',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          letterSpacing: 0.64,
+                        ),
+                      ),
+                      SizedBox(height: 10), // Отступ перед кнопками
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Email
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 5),
-                            child: TextFormField(
-                              decoration: InputDecoration(
-                                labelText: 'Email',
-                                labelStyle: TextStyle(color: Colors.white),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.3),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                          // Пароль
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 5),
-                            child: TextFormField(
-                              obscureText: true,
-                              decoration: InputDecoration(
-                                labelText: 'Пароль',
-                                labelStyle: TextStyle(color: Colors.white),
-                                filled: true,
-                                fillColor: Colors.white.withOpacity(0.3),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                  borderSide: BorderSide.none,
-                                ),
-                              ),
-                            ),
-                          ),
-                          // Ссылка "Забыл пароль?"
-                          Align(
-                            alignment: Alignment.centerRight,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: GestureDetector(
-                                onTap: () {
-                                  // Логика для восстановления пароля
-                                },
-                                child: Text(
-                                  'Забыл пароль?',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
+                          SocialLoginButton(imageUrl: "assets/VK.png"),
+                          SizedBox(width: 20),
+                          SocialLoginButton(imageUrl: "assets/Telegram.png"),
+                          SizedBox(width: 20),
+                          SocialLoginButton(imageUrl: "assets/Yandex.png"),
                         ],
                       ),
-                    ),
+                    ],
                   ),
-
-                  // Кнопка входа
-                  Positioned(
-                    left: 20,
-                    top: 300, // немного пониже, чтобы не перекрывать поля
-                    child: GestureDetector(
-                      onTap: () {
-                        // Логика входа
-                      },
-                      child: Container(
-                        width: 304,
-                        height: 48,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x0043E6FA), Color(0xFF43E6FA)],
-                          ),
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'Вход',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.64,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Кнопки соцсетей
-                  Positioned(
-                    left: 41,
-                    top: 370, // разместим ниже кнопки входа
-                    child: Row(
-                      children: [
-                        SocialLoginButton(imageUrl: "https://via.placeholder.com/32x32"),
-                        SizedBox(width: 14),
-                        SocialLoginButton(imageUrl: "https://via.placeholder.com/40x40"),
-                        SizedBox(width: 14),
-                        SocialLoginButton(imageUrl: "https://via.placeholder.com/32x32"),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
@@ -184,15 +256,14 @@ class SocialLoginButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 32,
-      height: 32,
+      width: 40,
+      height: 40,
       decoration: BoxDecoration(
         image: DecorationImage(
-          image: NetworkImage(imageUrl),
+          image: AssetImage(imageUrl),
           fit: BoxFit.contain,
         ),
         shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 1),
       ),
     );
   }
