@@ -5,7 +5,10 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'Screens/RegisterScreen.dart';
 import 'login.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final token = await getToken();
+  MyApp(token: token);
   runApp(MyApp());
 }
 
@@ -25,6 +28,10 @@ Future<String?> getToken() async {
 }
 
 class MyApp extends StatelessWidget {
+  final String? token;
+
+  MyApp({this.token});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -49,7 +56,7 @@ class MyApp extends StatelessWidget {
       ],
       // Устанавливаем русскую локаль по умолчанию
       locale: const Locale('ru'),
-      home: StartPage(), // Начальная страница
+      home: token == null ? StartPage() : MainScreen(), // Начальная страница
     );
   }
 }

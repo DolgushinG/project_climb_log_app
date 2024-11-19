@@ -33,6 +33,7 @@ class Competition {
   final int is_input_set;
   final bool is_need_send_birthday;
   final int is_need_sport_category;
+  final bool is_participant_paid;
   final int is_access_user_cancel_take_part;
   final int is_france_system_qualification;
 
@@ -46,6 +47,7 @@ class Competition {
     required this.address,
     required this.poster,
     required this.description,
+    required this.is_participant_paid,
     required this.is_access_user_cancel_take_part,
     required this.is_auto_categories,
     required this.is_input_set,
@@ -69,6 +71,7 @@ class Competition {
       is_need_send_birthday: json['is_need_send_birthday'],
       is_need_sport_category: json['is_need_sport_category'],
       is_routes_exists: json['is_routes_exists'],
+      is_participant_paid: json['is_participant_paid'],
       contact: json['contact'],
       poster: json['poster'],
       is_access_user_cancel_take_part: json['is_access_user_cancel_take_part'],
@@ -592,8 +595,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         ),
                       ),
                     ),
-                  SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 ? 0 : 0),
-                  if (_competitionDetails.is_access_user_cancel_take_part == 1)
+                  SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 && !_competitionDetails.is_participant_paid ? 10 : 0),
+                  if (_competitionDetails.is_access_user_cancel_take_part == 1 && !_competitionDetails.is_participant_paid)
                     Expanded(
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
