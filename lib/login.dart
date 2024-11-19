@@ -90,7 +90,7 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Container(
         width: double.infinity,
         height: double.infinity,
-        decoration: BoxDecoration(
+        decoration: const BoxDecoration(
           image: DecorationImage(
             image: AssetImage("assets/background.png"),
             fit: BoxFit.cover,
@@ -177,7 +177,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             onTap: () {
                               // Логика для восстановления пароля
                             },
-                            child: Text(
+                            child: const Text(
                               'Забыл пароль?',
                               style: TextStyle(
                                 color: Colors.white,
@@ -188,7 +188,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 20), // Отступ перед кнопкой
+                      SizedBox(height: 40), // Отступ перед кнопкой
                       // Кнопка входа
                       GestureDetector(
                         onTap: _login,
@@ -196,14 +196,14 @@ class _LoginScreenState extends State<LoginScreen> {
                           width: double.infinity,
                           height: 48,
                           decoration: BoxDecoration(
-                            gradient: LinearGradient(
+                            gradient: const LinearGradient(
                               begin: Alignment.topCenter,
                               end: Alignment.bottomCenter,
                               colors: [Colors.blue, Color(0xFF43E6FA)],
                             ),
                             borderRadius: BorderRadius.circular(30),
                           ),
-                          child: Center(
+                          child: const Center(
                             child: Text(
                               'Вход',
                               style: TextStyle(
@@ -216,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 20), // Отступ перед кнопками соцсетей
+                      SizedBox(height: 40), // Отступ перед кнопками соцсетей
                       Text(
                         'Войти с помощью',
                         style: TextStyle(
