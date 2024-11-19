@@ -6,9 +6,7 @@ import 'Screens/RegisterScreen.dart';
 import 'login.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  final token = await getToken();
-  MyApp(token: token);
+  WidgetsFlutterBinding.ensureInitialized(); // Инициализация Flutter
   runApp(MyApp());
 }
 
@@ -17,7 +15,7 @@ const DOMAIN = "https://climbing-events.ru";
 // const DOMAIN = "https://stage-dev.climbing-events.ru";
 
 Future<void> saveToken(String token) async {
-  SharedPreferences.setMockInitialValues({});
+  // SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
   await prefs.setString('token', token);
 }
@@ -28,10 +26,6 @@ Future<String?> getToken() async {
 }
 
 class MyApp extends StatelessWidget {
-  final String? token;
-
-  MyApp({this.token});
-
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -43,21 +37,54 @@ class MyApp extends StatelessWidget {
           unselectedItemColor: Colors.grey,
         ),
       ),
-      // Поддерживаемые локали
       supportedLocales: const [
         Locale('en'), // Английский
         Locale('ru'), // Русский
       ],
-      // Локализация для Flutter
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      // Устанавливаем русскую локаль по умолчанию
       locale: const Locale('ru'),
-      home: token == null ? StartPage() : MainScreen(), // Начальная страница
+      home: TokenChecker(), // Передаем управление проверке токена
     );
+  }
+}
+
+class TokenChecker extends StatefulWidget {
+  @override
+  _TokenCheckerState createState() => _TokenCheckerState();
+}
+
+class _TokenCheckerState extends State<TokenChecker> {
+  String? token;
+  bool isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    checkToken(); // Загружаем токен при старте
+  }
+
+  Future<void> checkToken() async {
+    final storedToken = await getToken();
+    setState(() {
+      token = storedToken;
+      isLoading = false; // Отключаем индикатор загрузки
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading) {
+      // Показываем индикатор загрузки
+      return Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    // После загрузки токена выбираем страницу
+    return token == null ? StartPage() : MainScreen();
   }
 }
 
