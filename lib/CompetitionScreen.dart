@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/Screens/FranceResultScreen.dart';
 import 'package:login_app/login.dart';
 import 'package:login_app/models/NumberSets.dart';
 import 'package:login_app/models/SportCategory.dart';
@@ -32,6 +33,7 @@ class Competition {
   final int is_auto_categories;
   final int is_input_set;
   final bool is_need_send_birthday;
+  final bool is_semifinal;
   final int is_need_sport_category;
   final bool is_participant_paid;
   final int is_access_user_cancel_take_part;
@@ -51,6 +53,7 @@ class Competition {
     required this.is_access_user_cancel_take_part,
     required this.is_auto_categories,
     required this.is_input_set,
+    required this.is_semifinal,
     required this.is_france_system_qualification,
     required this.is_need_send_birthday,
     required this.is_need_sport_category,
@@ -68,6 +71,7 @@ class Competition {
       title: json['title'],
       city: json['city'],
       is_participant: json['is_participant'],
+      is_semifinal: json['is_semifinal'],
       is_need_send_birthday: json['is_need_send_birthday'],
       is_need_sport_category: json['is_need_sport_category'],
       is_routes_exists: json['is_routes_exists'],
@@ -684,8 +688,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
 
-
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -720,7 +722,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       case 0:
         return _buildInformationSection();
       case 1:
-        return _buildResultsSection(context);
+        return buildResults(context);
       case 2:
         return _buildStatisticsSection();
       default:
@@ -728,36 +730,88 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
 
-  Widget _buildResultsSection(BuildContext context) {
-    List<Category> categoryList = _competitionDetails.categories.map((json) => Category.fromJson(json)).toList();
+  @override
+  Widget buildResults(BuildContext context) {
+    return DefaultTabController(
+      length: _competitionDetails.is_semifinal ? 3 : 2, // Количество вкладок зависит от флага
+      child: Scaffold(
+        appBar: AppBar(
+          automaticallyImplyLeading: false,
+          title: Text('Результаты'),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Квалификация'),
+              if ( _competitionDetails.is_semifinal) Tab(text: 'Полуфинал'), // Показываем только при флаге
+              Tab(text: 'Финал'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            _buildQualificationTab(context),
+            if ( _competitionDetails.is_semifinal) _buildSemifinalTab(context), // Показываем только при флаге
+            _buildFinalTab(context),
+          ],
+        ),
+      ),
+    );
+  }
 
+  // Вкладка для квалификации
+  Widget _buildQualificationTab(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Категории'),
         automaticallyImplyLeading: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: categoryList
-              .map((category) => _buildResultCard(
-            title: category.category.split(' ').first,
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ResultScreen(
-                    eventId: _competitionDetails.id,
-                    categoryId: category.id,
-                    category: category,
-                  ),
+      body: _buildResultsSection(context, 'Квалификация'),
+    );
+  }
+
+  // Вкладка для полуфинала
+  Widget _buildSemifinalTab(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+      ),
+      body: _buildResultsSection(context, 'Полуфинал'),
+    );
+  }
+
+  // Вкладка для финала
+  Widget _buildFinalTab(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+      ),
+      body: FranceResultsPage(),
+    );
+  }
+
+  Widget _buildResultsSection(BuildContext context, String stage) {
+    List<Category> categoryList = _competitionDetails.categories
+        .map((json) => Category.fromJson(json))
+        .toList();
+
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: categoryList
+            .map((category) => _buildResultCard(
+          title: category.category.split(' ').first,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ResultScreen(
+                  eventId: _competitionDetails.id,
+                  categoryId: category.id,
+                  category: category,
                 ),
-              );
-            },
-          ),
-          )
-              .toList(),
-        ),
+              ),
+            );
+          },
+        ))
+            .toList(),
       ),
     );
   }
