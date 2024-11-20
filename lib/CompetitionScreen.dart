@@ -730,7 +730,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
 
-  @override
   Widget buildResults(BuildContext context) {
     return DefaultTabController(
       length: _competitionDetails.is_semifinal ? 3 : 2, // Количество вкладок зависит от флага

@@ -1,43 +1,76 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
-class FranceResultsPage extends StatelessWidget {
-  final List<Map<String, dynamic>> femaleResults = [
-    {
-      'place': 1,
-      'middlename': 'Иванова Анна',
-      'city': 'Москва',
-      'amount_final_results': '5T5z 88',
-      'routes': [
-        {'try_top': 1, 'try_zone': 1},
-        {'try_top': 1, 'try_zone': 1},
-      ],
-    },
-    {
-      'place': 2,
-      'middlename': 'Иванова22 Анна22',
-      'city': 'Москва',
-      'amount_final_results': '5T5z 88',
-      'routes': [
-        {'try_top': 1, 'try_zone': 1},
-        {'try_top': 1, 'try_zone': 1},
-        {'try_top': 1, 'try_zone': 1},
-        {'try_top': 1, 'try_zone': 1},
-      ],
-    },
-    // Добавьте больше результатов здесь
-  ];
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:login_app/main.dart';
+
+
+class FranceResultsPage extends StatefulWidget {
+  final int eventId; // Переданный eventId
+
+  FranceResultsPage({required this.eventId});
+
+  @override
+  _FranceResultsPageState createState() => _FranceResultsPageState();
+}
+
+class _FranceResultsPageState extends State<FranceResultsPage> {
+  List<Map<String, dynamic>> femaleResults = []; // Данные из API
+  bool isLoading = true; // Флаг загрузки
+  bool hasError = false; // Флаг ошибки
+
+  @override
+  void initState() {
+    super.initState();
+    fetchResults(); // Выполняем запрос при загрузке экрана
+  }
+
+  Future<void> fetchResults() async {
+    final url = Uri.parse('$DOMAIN/api/france/results?eventId=${widget.eventId}');
+    try {
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        // Успешный ответ
+        final data = json.decode(response.body);
+        setState(() {
+          femaleResults = List<Map<String, dynamic>>.from(data['results']);
+          isLoading = false;
+        });
+      } else {
+        // Ошибка сервера
+        setState(() {
+          hasError = true;
+          isLoading = false;
+        });
+      }
+    } catch (e) {
+      // Обработка ошибок
+      setState(() {
+        hasError = true;
+        isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: femaleResults.isNotEmpty
+      appBar: AppBar(
+        title: Text('France Results'),
+      ),
+      body: isLoading
+          ? Center(child: CircularProgressIndicator()) // Индикатор загрузки
+          : hasError
+          ? Center(child: Text('Ошибка загрузки данных')) // Сообщение об ошибке
+          : femaleResults.isNotEmpty
           ? Padding(
         padding: const EdgeInsets.all(16.0),
         child: ListView.builder(
           itemCount: femaleResults.length,
           itemBuilder: (context, index) {
             var result = femaleResults[index];
-            var routes = result['routes']; // Список маршрутов и их результатов
+            var routes = result['routes'];
 
             return Card(
               margin: EdgeInsets.symmetric(vertical: 8.0),
@@ -50,7 +83,6 @@ class FranceResultsPage extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Строка с местом, фамилией и городом
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -72,12 +104,9 @@ class FranceResultsPage extends StatelessWidget {
                       ],
                     ),
                     SizedBox(height: 12.0),
-
-                    // Отображение маршрутов и финального результата
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Маршруты (в одну строку)
                         Row(
                           children: routes.map<Widget>((route) {
                             return Row(
@@ -89,13 +118,11 @@ class FranceResultsPage extends StatelessWidget {
                                     _buildBadgeBottom(route['try_zone'].toString()),
                                   ],
                                 ),
-                                SizedBox(width: 10), // Отступ между маршрутами
+                                SizedBox(width: 10),
                               ],
                             );
                           }).toList(),
                         ),
-
-                        // Финальный результат
                         Text(
                           result['amount_final_results'],
                           style: TextStyle(
@@ -117,10 +144,6 @@ class FranceResultsPage extends StatelessWidget {
     );
   }
 
-
-
-
-  // Виджет для верхней части бейджа
   Widget _buildBadgeTop(String value) {
     return Container(
       width: 30,
@@ -145,7 +168,6 @@ class FranceResultsPage extends StatelessWidget {
     );
   }
 
-  // Виджет для нижней части бейджа
   Widget _buildBadgeBottom(String value) {
     return Container(
       width: 30,
@@ -170,12 +192,12 @@ class FranceResultsPage extends StatelessWidget {
     );
   }
 
-  // Виджет для разделяющей линии между бейджами
   Widget _buildDivider() {
     return Container(
       width: 30,
-      height: 2,  // высота линии между бейджами
+      height: 2,
       color: Colors.black,
     );
   }
 }
+
