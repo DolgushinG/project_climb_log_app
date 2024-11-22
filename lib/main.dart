@@ -83,6 +83,7 @@ class _TokenCheckerState extends State<TokenChecker> {
         body: Center(child: CircularProgressIndicator()),
       );
     }
+    print(token);
     // После загрузки токена выбираем страницу
     return token == null ? StartPage() : MainScreen();
   }

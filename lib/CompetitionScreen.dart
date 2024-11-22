@@ -747,7 +747,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         ),
         body: TabBarView(
           children: [
-            _buildQualificationTab(context),
+            if( _competitionDetails.is_france_system_qualification == 0)
+              _buildQualificationTab(context),
+            if( _competitionDetails.is_france_system_qualification == 1)
+              _buildFranceQualificationTab(context),
             if ( _competitionDetails.is_semifinal) _buildSemifinalTab(context), // Показываем только при флаге
             _buildFinalTab(context),
           ],
@@ -765,14 +768,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       body: _buildResultsSection(context, 'Квалификация'),
     );
   }
-
+  Widget _buildFranceQualificationTab(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+      ),
+      body: _buildFranceResultsSection(context, 'Квалификация'),
+    );
+  }
   // Вкладка для полуфинала
   Widget _buildSemifinalTab(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: _buildResultsSection(context, 'Полуфинал'),
+      body: _buildFranceResultsSection(context, 'Полуфинал'),
     );
   }
 
@@ -782,7 +792,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: FranceResultsPage(),
+      body: _buildFranceResultsSection(context, 'Финал'),
     );
   }
 
@@ -790,7 +800,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     List<Category> categoryList = _competitionDetails.categories
         .map((json) => Category.fromJson(json))
         .toList();
-
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -805,6 +814,35 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   eventId: _competitionDetails.id,
                   categoryId: category.id,
                   category: category,
+                ),
+              ),
+            );
+          },
+        ))
+            .toList(),
+      ),
+    );
+  }
+
+  Widget _buildFranceResultsSection(BuildContext context, String stage) {
+    List<Category> categoryList = _competitionDetails.categories
+        .map((json) => Category.fromJson(json))
+        .toList();
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: categoryList
+            .map((category) => _buildResultCard(
+          title: category.category.split(' ').first,
+          onTap: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => FranceResultsPage(
+                  eventId: _competitionDetails.id,
+                  categoryId: category.id,
+                  category: category,
+                  stage: stage
                 ),
               ),
             );

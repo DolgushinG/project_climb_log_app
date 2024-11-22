@@ -74,21 +74,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
     _fetchResults();
   }
 
-  void _fetchResults() async {
-    final int eventId = widget.eventId;
-    final int categoryId = widget.categoryId;
-    try {
-      final data = await fetchParticipants(eventId: eventId, categoryId: categoryId);
-      if (mounted) {
-        setState(() {
-          results = data;
-          filteredResults = results;
-        });
-      }
-    } catch (e) {
-      print("Failed to load participants: $e");
-    }
-  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -114,7 +100,21 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       ),
     );
   }
-
+  void _fetchResults() async {
+    final int eventId = widget.eventId;
+    final int categoryId = widget.categoryId;
+    try {
+      final data = await fetchParticipants(eventId: eventId, categoryId: categoryId);
+      if (mounted) {
+        setState(() {
+          results = data;
+          filteredResults = results;
+        });
+      }
+    } catch (e) {
+      print("Failed to load participants: $e");
+    }
+  }
   Widget _buildResultList(String gender) {
     final genderResults = filteredResults.where((result) => result.gender == gender).toList();
 
