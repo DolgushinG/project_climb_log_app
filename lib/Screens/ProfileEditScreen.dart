@@ -223,7 +223,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: true,
         title: Text('Изменение данных профиля'),
       ),
       body: FutureBuilder<UserProfile>(

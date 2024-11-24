@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+import 'Screens/AnalyticsScreen.dart';
+import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
+import 'Screens/SettingScreen.dart';
 import 'login.dart';
 import 'main.dart';
 
@@ -12,7 +15,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  // Данные профиля
   String avatar = 'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
   String firstName = 'Имя';
   String lastName = 'Фамилия';
@@ -79,105 +81,173 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: Text('Личный кабинет'),
-        backgroundColor: Colors.blueAccent,
+        title: Text('Профиль'),
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              color: Colors.blueAccent,
-              padding: EdgeInsets.symmetric(vertical: 40),
-              child: Column(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   CircleAvatar(
-                    radius: 60,
+                    radius: 30,
                     backgroundImage: NetworkImage(avatar),
                   ),
-                  SizedBox(height: 16),
-                  Text(
-                    '$firstName $lastName',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+                  SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '$firstName $lastName',
+                          style: TextStyle(
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(height: 8),
+                        Text('Город: $city'),
+                        Text('Разряд: $rank'),
+                        Text('День рождения: $birthYear'),
+                      ],
                     ),
                   ),
                 ],
               ),
-            ),
-            SizedBox(height: 20),
-            ProfileInfoCard(
-              label: 'Город',
-              value: city,
-            ),
-            ProfileInfoCard(
-              label: 'Разряд',
-              value: rank,
-            ),
-            ProfileInfoCard(
-              label: 'День рождения',
-              value: birthYear,
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final updatedProfile = await Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ProfileEditScreen(),
+              SizedBox(height: 20),
+              Column(
+                children: [
+                  ProfileActionCard(
+                    title: 'Изменить данные',
+                    icon: Icons.edit,
+                    onTap:  () async {
+                      final updatedProfile = await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ProfileEditScreen(),
+                        ),
+                      );
+                      if (updatedProfile != null) {
+                        // Обновляем данные после редактирования
+                        setState(() {
+                          firstName = updatedProfile.firstName;
+                          lastName = updatedProfile.lastName;
+                          city = updatedProfile.city;
+                          rank = updatedProfile.sportCategory;
+                          birthYear = updatedProfile.birthday;
+                        });
+                      }
+                    },
                   ),
-                );
-                if (updatedProfile != null) {
-                  // Обновляем данные после редактирования
-                  setState(() {
-                    firstName = updatedProfile.firstName;
-                    lastName = updatedProfile.lastName;
-                    city = updatedProfile.city;
-                    rank = updatedProfile.sportCategory;
-                    birthYear = updatedProfile.birthday;
-                  });
-                }
-              },
-              child: Text('Редактировать'),
-            ),
-          ],
+                  ProfileActionCard(
+                    title: 'Изменение пароля',
+                    icon: Icons.lock,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => ChangePasswordScreen()
+                        ),
+                      );
+                    },
+                  ),
+                  ProfileActionCard(
+                    title: 'Настройка',
+                    icon: Icons.settings,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ChangePasswordScreen()
+                        ),
+                      );
+                    },
+                  ),
+
+                  ProfileActionCard(
+                    title: 'История участия',
+                    icon: Icons.history,
+                    onTap: () {
+                      // Логика для истории участия
+                    },
+                  ),
+                  ProfileActionCard(
+                    title: 'Статистика',
+                    icon: Icons.bar_chart,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => AnalyticsScreen(
+                              analytics: {
+                                'labels': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
+                                'flashes': [10, 20, 30, 25, 40],
+                                'redpoints': [5, 15, 10, 20, 25],
+                              },
+                              analyticsProgress: {
+                                'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
+                                'flashes': [12, 18, 25, 30],
+                                'redpoints': [7, 14, 18, 22],
+                              },
+                            ) // Заглушка для будущих экранов
+                        ),
+                      );
+
+                    },
+                  ),
+                  ProfileActionCard(
+                    title: 'Авторизация',
+                    icon: Icons.login,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (context) => ChangePasswordScreen()
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class ProfileInfoCard extends StatelessWidget {
-  final String label;
-  final String value;
+class ProfileActionCard extends StatelessWidget {
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
 
-  const ProfileInfoCard({required this.label, required this.value});
+  const ProfileActionCard({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10),
         ),
         child: ListTile(
+          leading: Icon(icon, color: Colors.blueAccent),
           title: Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[700],
-            ),
+            title,
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
           ),
-          subtitle: Text(
-            value,
-            style: TextStyle(fontSize: 16),
-          ),
+          onTap: onTap,
         ),
       ),
     );

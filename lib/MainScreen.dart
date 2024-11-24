@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
-import 'Screens/AnalyticsScreen.dart';
-import 'Screens/ProfileEditScreen.dart';
-import 'Screens/SettingScreen.dart';
+
 
 
 class MainScreen extends StatefulWidget {
@@ -18,19 +16,6 @@ class _MainScreenState extends State<MainScreen> {
   static final List<Widget> _screens = <Widget>[
     ProfileScreen(),
     CompetitionsScreen(),
-    AnalyticsScreen(
-      analytics: {
-        'labels': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-        'flashes': [10, 20, 30, 25, 40],
-        'redpoints': [5, 15, 10, 20, 25],
-      },
-      analyticsProgress: {
-        'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-        'flashes': [12, 18, 25, 30],
-        'redpoints': [7, 14, 18, 22],
-      },
-    ), // Заглушка для будущих экранов
-    ChangePasswordScreen()// Заглушка для будущих экранов
   ];
 
   void _onItemTapped(int index) {
@@ -52,8 +37,6 @@ class _MainScreenState extends State<MainScreen> {
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
           BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Соревнования'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'Аналитика'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Настройка'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,

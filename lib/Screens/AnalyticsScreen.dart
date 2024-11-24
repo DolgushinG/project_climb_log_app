@@ -15,8 +15,8 @@ class AnalyticsScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Analytics and Statistics'),
+        automaticallyImplyLeading: true,
+        title: const Text('Аналитика и Статистика'),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
