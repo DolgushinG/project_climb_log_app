@@ -31,6 +31,9 @@ class Competition {
   final DateTime start_date;
   final bool isCompleted;
   final int is_auto_categories;
+  final int amount_routes_in_qualification;
+  final int amount_routes_in_final;
+  final int amount_routes_in_semifinal;
   final int is_input_set;
   final bool is_need_send_birthday;
   final bool is_semifinal;
@@ -45,6 +48,9 @@ class Competition {
     required this.city,
     required this.contact,
     required this.is_participant,
+    required this.amount_routes_in_qualification,
+    required this.amount_routes_in_final,
+    required this.amount_routes_in_semifinal,
     required this.is_routes_exists,
     required this.address,
     required this.poster,
@@ -71,6 +77,9 @@ class Competition {
       title: json['title'],
       city: json['city'],
       is_participant: json['is_participant'],
+      amount_routes_in_qualification: json['amount_routes_in_qualification'],
+      amount_routes_in_final: json['amount_routes_in_final'] ?? 0,
+      amount_routes_in_semifinal: json['amount_routes_in_semifinal'] ?? 0,
       is_semifinal: json['is_semifinal'],
       is_need_send_birthday: json['is_need_send_birthday'],
       is_need_sport_category: json['is_need_sport_category'],
@@ -825,6 +834,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildFranceResultsSection(BuildContext context, String stage) {
+    var amount_routes = 0;
+    if (stage == 'qualification') {
+      amount_routes = _competitionDetails.amount_routes_in_qualification;
+    }
+    if (stage == 'semifinal') {
+      amount_routes = _competitionDetails.amount_routes_in_semifinal;
+    }
+    if (stage == 'final') {
+      amount_routes = _competitionDetails.amount_routes_in_final;
+    }
+
     List<Category> categoryList = _competitionDetails.categories
         .map((json) => Category.fromJson(json))
         .toList();
@@ -840,6 +860,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               MaterialPageRoute(
                 builder: (context) => FranceResultsPage(
                   eventId: _competitionDetails.id,
+                  amount_routes: amount_routes,
                   categoryId: category.id,
                   category: category,
                   stage: stage

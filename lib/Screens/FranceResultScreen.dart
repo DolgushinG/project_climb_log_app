@@ -8,7 +8,6 @@ import '../models/Category.dart';
 
 
 Future<http.Response?> fetchResults({required final int eventId,required final int categoryId,required final String stage}) async {
-  print('$DOMAIN/api/results/france?event_id=$eventId&stage=$stage&category_id=$categoryId');
   final url = Uri.parse('$DOMAIN/api/results/france?event_id=$eventId&stage=$stage&category_id=$categoryId');
   try {
     final response = await http.get(url);
@@ -21,11 +20,12 @@ Future<http.Response?> fetchResults({required final int eventId,required final i
 
 class FranceResultsPage extends StatefulWidget {
   final int eventId;
+  final int amount_routes;
   final int categoryId;
   final Category category; // Переданный eventId
   final String stage; // Переданный eventId
 
-  FranceResultsPage({required this.eventId, required this.categoryId, required this.category, required this.stage});
+  FranceResultsPage({required this.eventId,required this.amount_routes,  required this.categoryId, required this.category, required this.stage});
 
   @override
   _FranceResultsPageState createState() => _FranceResultsPageState();
@@ -194,58 +194,81 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: routes.map<Widget>((route) {
-                        return Row(
-                          children: [
-                            Column(
-                              children: [
-                                _buildBadgeTopNumberRoute(route['route_id'], 5, 5),
-                                _buildBadgeTop(route['amount_try_top'].toString()),
-                                _buildDivider(),
-                                _buildBadgeBottom(route['amount_try_zone'].toString(), 5, 5),
-
-                              ],
-                            ),
-                            SizedBox(width: 1),
-                          ],
-
-                        );
-                      }).toList(),
+                    // Блок с бейджами, где бейджи автоматически переносятся
+                    Expanded(
+                      flex: 3,
+                      child: Wrap(
+                        spacing: 8.0, // Отступы между бейджами по горизонтали
+                        runSpacing: 8.0, // Отступы между строками
+                        children: routes.map<Widget>((route) {
+                          return Column(
+                            children: [
+                              _buildBadgeTopNumberRoute(route['route_id'], 5, 5),
+                              _buildBadgeTop(route['amount_try_top'].toString()),
+                              _buildDivider(),
+                              _buildBadgeBottom(route['amount_try_zone'].toString(), 5, 5),
+                            ],
+                          );
+                        }).toList(),
+                      ),
                     ),
-                    // SizedBox(width: 2),
-                    Column(children: [
-                      _buildBadgeTopTitle('Кол-во'),
-                      Row(
+                    SizedBox(width: 6.0),
+                    // Колонка "Кол-во"
+                    Expanded(
+                      flex: 1,
+                      child: Column(
                         children: [
-                          Column(children: [
-                            _buildBadgeTopNumberRoute('T', 0, 0),
-                            _buildBadgeBottom(result['amount_top'].toString(), 5, 0),
-                          ],),
-                          Column(children: [
-                            _buildBadgeTopNumberRoute('Z',0, 0),
-                            _buildBadgeBottom(result['amount_zone'].toString(), 0, 5),
-                          ],)
+                          _buildBadgeTopTitle('Кол-во'),
+                          Row(
+                            children: [
+                              Column(
+                                children: [
+                                  _buildBadgeTopNumberRoute('T', 0, 0),
+                                  _buildBadgeBottom(result['amount_top'].toString(), 5, 5),
+                                ],
+                              ),
+                              SizedBox(width: 9.0),
+                              Column(
+                                children: [
+                                  _buildBadgeTopNumberRoute('Z', 0, 0),
+                                  _buildBadgeBottom(result['amount_zone'].toString(), 5, 5),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],),
-                    Column(children: [
-                      _buildBadgeTopTitle('Попытки'),
-                      Row(
+                    ),
+                    SizedBox(width: 6.0),
+                    // Колонка "Попытки"
+                    Expanded(
+                      flex: 1,
+                      child: Column(
                         children: [
-                          Column(children: [
-                            _buildBadgeTopNumberRoute('T', 0, 0),
-                            _buildBadgeBottom(result['amount_try_top'].toString(), 5, 0),
-                          ],),
-                          Column(children: [
-                            _buildBadgeTopNumberRoute('Z', 0, 0),
-                            _buildBadgeBottom(result['amount_try_zone'].toString(), 0, 5),
-                          ],)
+                          _buildBadgeTopTitle('Попытки'),
+                          Row(
+                            children: [
+                              Column(
+                                children: [
+                                  _buildBadgeTopNumberRoute('T', 0, 0),
+                                  _buildBadgeBottom(result['amount_try_top'].toString(), 5, 5),
+                                ],
+                              ),
+                              SizedBox(width: 9.0),
+                              Column(
+                                children: [
+                                  _buildBadgeTopNumberRoute('Z', 0, 0),
+                                  _buildBadgeBottom(result['amount_try_zone'].toString(), 5, 5),
+                                ],
+                              ),
+                            ],
+                          ),
                         ],
                       ),
-                    ],),
+                    ),
                   ],
                 ),
+
               ],
             ),
           ),
@@ -255,7 +278,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
   }
   Widget _buildBadgeTopTitle(String text) {
     return Container(
-      width: 60,
+      width: 69,
       height: 20,
       decoration: BoxDecoration(
         color: Colors.black,
