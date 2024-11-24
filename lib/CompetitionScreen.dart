@@ -765,7 +765,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: _buildResultsSection(context, 'Квалификация'),
+      body: _buildResultsSection(context, 'qualification'),
     );
   }
   Widget _buildFranceQualificationTab(BuildContext context) {
@@ -773,7 +773,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: _buildFranceResultsSection(context, 'Квалификация'),
+      body: _buildFranceResultsSection(context, 'qualification'),
     );
   }
   // Вкладка для полуфинала
@@ -782,7 +782,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: _buildFranceResultsSection(context, 'Полуфинал'),
+      body: _buildFranceResultsSection(context, 'semifinal'),
     );
   }
 
@@ -792,7 +792,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
       ),
-      body: _buildFranceResultsSection(context, 'Финал'),
+      body: _buildFranceResultsSection(context, 'final'),
     );
   }
 
@@ -833,7 +833,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       child: Column(
         children: categoryList
             .map((category) => _buildResultCard(
-          title: category.category.split(' ').first,
+          title: category.category,
           onTap: () {
             Navigator.push(
               context,

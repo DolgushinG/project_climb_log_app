@@ -8,10 +8,10 @@ import '../models/Category.dart';
 
 
 Future<http.Response?> fetchResults({required final int eventId,required final int categoryId,required final String stage}) async {
+  print('$DOMAIN/api/results/france?event_id=$eventId&stage=$stage&category_id=$categoryId');
   final url = Uri.parse('$DOMAIN/api/results/france?event_id=$eventId&stage=$stage&category_id=$categoryId');
   try {
     final response = await http.get(url);
-    print(response.body);
     return response;
   } catch (e) {
     print("Failed to load participants: $e");
@@ -52,7 +52,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.category.category.split(' ').first),
+        title: Text(widget.category.category),
         automaticallyImplyLeading: true,
         bottom: TabBar(
           controller: _tabController,
@@ -78,13 +78,30 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     try {
       final data = await fetchResults(eventId: eventId, categoryId: categoryId, stage: stage);
       if (data!.statusCode == 200) {
-        List jsonResponse = json.decode(data.body);
+        // Декодируем JSON-ответ
+        List<dynamic> jsonResponse = json.decode(data.body);
+
+        // Нормализация результата
         List normalizedResults = [];
-        jsonResponse.forEach((entry) {
-          entry.forEach((key, value) {
-            normalizedResults.add(value);
-          });
-        });
+
+        if (jsonResponse.isNotEmpty) {
+          if (jsonResponse.first is List) {
+
+            // Если это вложенный массив [[...]], объединяем в один список
+            for (var sublist in jsonResponse) {
+              if (sublist is List) {
+                normalizedResults.addAll(sublist);
+              }
+            }
+          } else {
+            jsonResponse.forEach((entry) {
+              entry.forEach((key, value) {
+                normalizedResults.add(value);
+              });
+            });
+          }
+        }
+        print(normalizedResults);
         if (mounted) {
           setState(() {
             results = normalizedResults;
@@ -108,10 +125,28 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
 
   Widget buildFinalResults(String gender) {
     final genderResults = filteredResults.where((result) => result['gender'] == gender).toList();
+    final String gender_route;
+    if(gender == 'female'){
+      gender_route = 'Ж';
+    } else {
+       gender_route = 'М';
+    }
+
     return ListView.builder(
       itemCount: genderResults.length,
       itemBuilder: (context, index) {
         final result = genderResults[index];
+
+        // Формируем динамические данные для маршрутов
+        final routes = List.generate(10, (i) {
+          final routeIndex = i + 1;
+          return {
+            'amount_try_top': result['amount_try_top_$routeIndex'] ?? 0,
+            'route_id': gender_route+routeIndex.toString(),
+            'amount_try_zone': result['amount_try_zone_$routeIndex'] ?? 0,
+          };
+        });
+
         return Card(
           elevation: 2,
           margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
@@ -120,6 +155,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Блок с основной информацией
                 Row(
                   children: [
                     Expanded(
@@ -137,7 +173,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                         ],
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 5),
                     Expanded(
                       flex: 2,
                       child: Column(
@@ -152,150 +188,167 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                     ),
                   ],
                 ),
+                SizedBox(height: 12.0),
+
+                // Блок с бейджами
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: routes.map<Widget>((route) {
+                        return Row(
+                          children: [
+                            Column(
+                              children: [
+                                _buildBadgeTopNumberRoute(route['route_id'], 5, 5),
+                                _buildBadgeTop(route['amount_try_top'].toString()),
+                                _buildDivider(),
+                                _buildBadgeBottom(route['amount_try_zone'].toString(), 5, 5),
+
+                              ],
+                            ),
+                            SizedBox(width: 1),
+                          ],
+
+                        );
+                      }).toList(),
+                    ),
+                    // SizedBox(width: 2),
+                    Column(children: [
+                      _buildBadgeTopTitle('Кол-во'),
+                      Row(
+                        children: [
+                          Column(children: [
+                            _buildBadgeTopNumberRoute('T', 0, 0),
+                            _buildBadgeBottom(result['amount_top'].toString(), 5, 0),
+                          ],),
+                          Column(children: [
+                            _buildBadgeTopNumberRoute('Z',0, 0),
+                            _buildBadgeBottom(result['amount_zone'].toString(), 0, 5),
+                          ],)
+                        ],
+                      ),
+                    ],),
+                    Column(children: [
+                      _buildBadgeTopTitle('Попытки'),
+                      Row(
+                        children: [
+                          Column(children: [
+                            _buildBadgeTopNumberRoute('T', 0, 0),
+                            _buildBadgeBottom(result['amount_try_top'].toString(), 5, 0),
+                          ],),
+                          Column(children: [
+                            _buildBadgeTopNumberRoute('Z', 0, 0),
+                            _buildBadgeBottom(result['amount_try_zone'].toString(), 0, 5),
+                          ],)
+                        ],
+                      ),
+                    ],),
+                  ],
+                ),
               ],
             ),
           ),
         );
       },
     );
-    // return Scaffold(
-    //   appBar: AppBar(
-    //     title: Text('France Results'),
-    //   ),
-    //   body: isLoading
-    //       ? Center(child: CircularProgressIndicator()) // Индикатор загрузки
-    //       : hasError
-    //       ? Center(child: Text('Ошибка загрузки данных')) // Сообщение об ошибке
-    //       : genderResults.isNotEmpty
-    //       ? Padding(
-    //     padding: const EdgeInsets.all(16.0),
-    //     child: ListView.builder(
-    //       itemCount: genderResults.length,
-    //       itemBuilder: (context, index) {
-    //         var result = genderResults[index];
-    //
-    //         return Card(
-    //           margin: EdgeInsets.symmetric(vertical: 8.0),
-    //           shape: RoundedRectangleBorder(
-    //             borderRadius: BorderRadius.circular(12),
-    //           ),
-    //           elevation: 4.0,
-    //           child: Padding(
-    //             padding: const EdgeInsets.all(16.0),
-    //             child: Column(
-    //               crossAxisAlignment: CrossAxisAlignment.start,
-    //               children: [
-    //                 Row(
-    //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //                   children: [
-    //                     Text(
-    //                       '${result['middlename']} место',
-    //                       style: TextStyle(
-    //                         fontSize: 18,
-    //                         fontWeight: FontWeight.bold,
-    //                       ),
-    //                     ),
-    //                     Text(
-    //                       result['middlename'],
-    //                       style: TextStyle(fontSize: 15),
-    //                     ),
-    //                   ],
-    //                 ),
-    //                 SizedBox(height: 12.0),
-    //                 Row(
-    //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-    //                   children: [
-    //                     Row(
-    //                       children: routes.map<Widget>((route) {
-    //                         return Row(
-    //                           children: [
-    //                             Column(
-    //                               children: [
-    //                                 _buildBadgeTop(route['amount_try_top'].toString()),
-    //                                 _buildDivider(),
-    //                                 _buildBadgeBottom(route['amount_try_zone'].toString()),
-    //                               ],
-    //                             ),
-    //                             SizedBox(width: 10),
-    //                           ],
-    //                         );
-    //                       }).toList(),
-    //                     ),
-    //                     Text(
-    //                       result['amount_final_results'],
-    //                       style: TextStyle(
-    //                         fontSize: 16,
-    //                         fontWeight: FontWeight.bold,
-    //                         color: Colors.black,
-    //                       ),
-    //                     ),
-    //                   ],
-    //                 ),
-    //               ],
-    //             ),
-    //           ),
-    //         );
-    //       },
-    //     ),
-    //   )
-    //       : Center(child: Text('Результаты пока не добавлены')),
-    // );
   }
-  //
-  // Widget _buildBadgeTop(String value) {
-  //   return Container(
-  //     width: 30,
-  //     height: 20,
-  //     decoration: BoxDecoration(
-  //       color: Colors.green,
-  //       borderRadius: BorderRadius.only(
-  //         topLeft: Radius.circular(5),
-  //         topRight: Radius.circular(5),
-  //       ),
-  //     ),
-  //     child: Center(
-  //       child: Text(
-  //         value,
-  //         style: TextStyle(
-  //           color: Colors.white,
-  //           fontSize: 12,
-  //           fontWeight: FontWeight.bold,
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-  //
-  // Widget _buildBadgeBottom(String value) {
-  //   return Container(
-  //     width: 30,
-  //     height: 20,
-  //     decoration: BoxDecoration(
-  //       color: Colors.green,
-  //       borderRadius: BorderRadius.only(
-  //         bottomLeft: Radius.circular(5),
-  //         bottomRight: Radius.circular(5),
-  //       ),
-  //     ),
-  //     child: Center(
-  //       child: Text(
-  //         value,
-  //         style: TextStyle(
-  //           color: Colors.white,
-  //           fontSize: 12,
-  //           fontWeight: FontWeight.bold,
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-  //
-  // Widget _buildDivider() {
-  //   return Container(
-  //     width: 30,
-  //     height: 2,
-  //     color: Colors.black,
-  //   );
-  // }
+  Widget _buildBadgeTopTitle(String text) {
+    return Container(
+      width: 60,
+      height: 20,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(5),
+          topRight: Radius.circular(5),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _buildBadgeTopNumberRoute(String value, double radius_left, double radius_right) {
+    return Container(
+      width: 30,
+      height: 20,
+      decoration: BoxDecoration(
+        color: Colors.black,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(radius_left),
+          topRight: Radius.circular(radius_right),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+  Widget _buildBadgeTop(String value) {
+    return Container(
+      width: 30,
+      height: 20,
+      decoration: BoxDecoration(
+        color: Colors.green,
+      ),
+      child: Center(
+        child: Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBadgeBottom(String value, double radius_left, double radius_right) {
+    return Container(
+      width: 30,
+      height: 20,
+      decoration: BoxDecoration(
+        color: Colors.green,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(radius_left),
+          bottomRight: Radius.circular(radius_right),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Container(
+      width: 30,
+      height: 2,
+      color: Colors.black,
+    );
+  }
 }
 
