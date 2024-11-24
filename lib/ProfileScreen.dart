@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/Screens/AuthSettingScreen.dart';
 import 'dart:convert';
 
 import 'Screens/AnalyticsScreen.dart';
 import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
-import 'Screens/SettingScreen.dart';
+import 'Screens/ChangePasswordScreen.dart';
 import 'login.dart';
 import 'main.dart';
 
@@ -159,12 +160,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'Настройка',
                     icon: Icons.settings,
                     onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => ChangePasswordScreen()
-                        ),
-                      );
+                      // Navigator.push(
+                      //   context,
+                      //   MaterialPageRoute(
+                      //       builder: (context) => ChangePasswordScreen()
+                      //   ),
+                      // );
                     },
                   ),
 
@@ -206,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => ChangePasswordScreen()
+                            builder: (context) => AuthSettingScreen()
                         ),
                       );
                     },

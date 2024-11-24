@@ -40,7 +40,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // Обновление профиля
-  Future<void> _saveChanges(UserProfile profile) async {
+  _saveChanges(UserProfile profile) async {
     if(selectedGender == null && profile.gender == null){
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -226,106 +226,152 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         automaticallyImplyLeading: true,
         title: Text('Изменение данных профиля'),
       ),
-      body: FutureBuilder<UserProfile>(
-        future: _profileFuture,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
-          } else if (snapshot.hasError) {
-            return Center(child: Text('Ошибка при загрузке данных'));
-          } else if (snapshot.hasData) {
-            final profile = snapshot.data!;
+      body: Card(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(15.0),
+        ),
+        elevation: 4,
+        margin: const EdgeInsets.all(16.0),
+        child: FutureBuilder<UserProfile>(
+          future: _profileFuture,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              return Center(child: Text('Ошибка при загрузке данных'));
+            } else if (snapshot.hasData) {
+              final profile = snapshot.data!;
 
-            // Обновляем значения полей в профиле после изменения
-            profile.firstName = profile.firstName;
-            profile.lastName = profile.lastName;
-            profile.team = profile.team;
-            profile.city = profile.city;
-            profile.contact = profile.contact;
-            profile.email = profile.email;
-            profile.gender = profile.gender;
-
-            return SingleChildScrollView(
-              padding: const EdgeInsets.all(16.0),
-              child: Form(
-                child: Column(
-                  children: [
-                    _buildTextFormField('Имя', profile.firstName, (value) => profile.firstName = value),
-                    _buildTextFormField('Фамилия', profile.lastName, (value) => profile.lastName = value),
-                    _buildTextFormField('Команда', profile.team, (value) => profile.team = value),
-                    _buildTextFormField('Город', profile.city, (value) => profile.city = value),
-                    _buildTextFormField('Контакты для быстрой связи', profile.contact, (value) => profile.contact = value),
-
-                    // Поле для выбора даты рождения
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: TextField(
-                        focusNode: _focusNode,
-                        controller: _textEditingController,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        decoration: InputDecoration(
-                          labelText: 'Дата рождения',
-                          border: OutlineInputBorder(),
-                        ),
+              return SingleChildScrollView(
+                padding: const EdgeInsets.all(16.0),
+                child: Form(
+                  child: Column(
+                    children: [
+                      _buildTextFormFieldWithIcon(
+                        'Имя',
+                        profile.firstName,
+                            (value) => profile.firstName = value,
+                        Icons.person,
                       ),
-                    ),
+                      _buildTextFormFieldWithIcon(
+                        'Фамилия',
+                        profile.lastName,
+                            (value) => profile.lastName = value,
+                        Icons.person_outline,
+                      ),
+                      _buildTextFormFieldWithIcon(
+                        'Команда',
+                        profile.team,
+                            (value) => profile.team = value,
+                        Icons.group,
+                      ),
+                      _buildTextFormFieldWithIcon(
+                        'Город',
+                        profile.city,
+                            (value) => profile.city = value,
+                        Icons.location_city,
+                      ),
+                      _buildTextFormFieldWithIcon(
+                        'Контакты для быстрой связи',
+                        profile.contact,
+                            (value) => profile.contact = value,
+                        Icons.phone,
+                      ),
 
-                    // Поле для выбора пола
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: GestureDetector(
-                        onTap: _showGenderSelectionDialog,
-                        child: InputDecorator(
+                      // Поле для выбора даты рождения с иконкой
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: TextField(
+                          focusNode: _focusNode,
+                          controller: _textEditingController,
+                          readOnly: true,
+                          onTap: () => _selectDate(context),
                           decoration: InputDecoration(
-                            labelText: 'Пол',
+                            labelText: 'Дата рождения',
                             border: OutlineInputBorder(),
+                            prefixIcon: Icon(Icons.calendar_today),
                           ),
-                          child: Text(
-                            profile.gender != null
-                                ? (profile.gender == 'male' ? 'Мужской' : 'Женский')
-                                : '-',
+
+                        ),
+                      ),
+
+                      // Поле для выбора пола с иконкой
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: GestureDetector(
+                          onTap: _showGenderSelectionDialog,
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Пол',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.wc),
+                            ),
+                            child: Text(
+                              profile.gender != null
+                                  ? (profile.gender == 'male'
+                                  ? 'Мужской'
+                                  : 'Женский')
+                                  : '-',
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
-                    // Поле для выбора разряда
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      child: GestureDetector(
-                        onTap: _showSportCategorySelectionDialog,
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Разряд',
-                            border: OutlineInputBorder(),
+                      // Поле для выбора разряда с иконкой
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: GestureDetector(
+                          onTap: _showSportCategorySelectionDialog,
+                          child: InputDecorator(
+                            decoration: InputDecoration(
+                              labelText: 'Разряд',
+                              border: OutlineInputBorder(),
+                              prefixIcon: Icon(Icons.sports),
+                            ),
+                            child: Text(profile.sportCategory ?? '-'),
                           ),
-                          child: Text(profile.sportCategory ?? '-'),
                         ),
                       ),
-                    ),
 
-                    _buildTextFormField('Email', profile.email, (value) => profile.email = value, isEmail: true),
-                    SizedBox(height: 20),
-                    ElevatedButton(
-                      onPressed: () {
-                        _saveChanges(profile);
-                      },
-                      child: Text('Сохранить'),
-                    ),
-                  ],
+                      _buildTextFormFieldWithIcon(
+                        'Email',
+                        profile.email,
+                            (value) => profile.email = value,
+                        Icons.email,
+                        isEmail: true,
+                      ),
+                      SizedBox(height: 20),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: () => _saveChanges(profile),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            padding: const EdgeInsets.symmetric(vertical: 15),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text('Сохранить',
+                              style: TextStyle(fontSize: 16, color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            );
-          } else {
-            return Center(child: Text('Нет данных'));
-          }
-        },
+              );
+            } else {
+              return Center(child: Text('Нет данных'));
+            }
+          },
+        ),
       ),
     );
   }
 
-  Widget _buildTextFormField(String label, String initialValue, Function(String) onChanged, {bool isEmail = false}) {
+  Widget _buildTextFormFieldWithIcon(String label, String initialValue,
+      ValueChanged<String> onChanged, IconData icon,
+      {bool isEmail = false}) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: TextFormField(
@@ -334,9 +380,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(),
+          prefixIcon: Icon(icon),
         ),
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
       ),
     );
   }
+
 }
