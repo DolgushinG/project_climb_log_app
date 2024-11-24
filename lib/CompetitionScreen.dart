@@ -37,6 +37,7 @@ class Competition {
   final int is_input_set;
   final bool is_need_send_birthday;
   final bool is_semifinal;
+  final bool is_result_in_final_exists;
   final int is_need_sport_category;
   final bool is_participant_paid;
   final int is_access_user_cancel_take_part;
@@ -48,6 +49,7 @@ class Competition {
     required this.city,
     required this.contact,
     required this.is_participant,
+    required this.is_result_in_final_exists,
     required this.amount_routes_in_qualification,
     required this.amount_routes_in_final,
     required this.amount_routes_in_semifinal,
@@ -77,6 +79,7 @@ class Competition {
       title: json['title'],
       city: json['city'],
       is_participant: json['is_participant'],
+      is_result_in_final_exists: json['is_result_in_final_exists'],
       amount_routes_in_qualification: json['amount_routes_in_qualification'],
       amount_routes_in_final: json['amount_routes_in_final'] ?? 0,
       amount_routes_in_semifinal: json['amount_routes_in_semifinal'] ?? 0,
@@ -741,7 +744,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   Widget buildResults(BuildContext context) {
     return DefaultTabController(
-      length: _competitionDetails.is_semifinal ? 3 : 2, // Количество вкладок зависит от флага
+      length: _competitionDetails.is_semifinal
+          ? (_competitionDetails.is_result_in_final_exists ? 3 : 2)
+          : (_competitionDetails.is_result_in_final_exists ? 2 : 1), // Количество вкладок зависит от флага
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -750,7 +755,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             tabs: [
               Tab(text: 'Квалификация'),
               if ( _competitionDetails.is_semifinal) Tab(text: 'Полуфинал'), // Показываем только при флаге
-              Tab(text: 'Финал'),
+              if (_competitionDetails.is_result_in_final_exists) Tab(text: 'Финал'),
             ],
           ),
         ),
@@ -761,7 +766,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             if( _competitionDetails.is_france_system_qualification == 1)
               _buildFranceQualificationTab(context),
             if ( _competitionDetails.is_semifinal) _buildSemifinalTab(context), // Показываем только при флаге
-            _buildFinalTab(context),
+            if ( _competitionDetails.is_result_in_final_exists) _buildFinalTab(context),
           ],
         ),
       ),

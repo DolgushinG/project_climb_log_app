@@ -138,7 +138,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
         final result = genderResults[index];
 
         // Формируем динамические данные для маршрутов
-        final routes = List.generate(10, (i) {
+        final routes = List.generate(widget.amount_routes, (i) {
           final routeIndex = i + 1;
           return {
             'amount_try_top': result['amount_try_top_$routeIndex'] ?? 0,
