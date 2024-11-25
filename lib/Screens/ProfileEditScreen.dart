@@ -14,7 +14,7 @@ class ProfileEditScreen extends StatefulWidget {
 }
 
 class _ProfileEditScreenState extends State<ProfileEditScreen> {
-  late Future<UserProfile> _profileFuture;
+  late Future<UserProfile?> _profileFuture;
   String? selectedSportCategory;
   String? selectedGender;
   DateTime? _selectedDate;
@@ -35,14 +35,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
 
   // Загружаем данные профиля
   // Загружаем данные профиля
-  Future<UserProfile> _loadProfileData() async {
+  Future<UserProfile?> _loadProfileData() async {
     final profileService = ProfileService(baseUrl: DOMAIN);
-    final profile = await profileService.getProfile();
+    final profile = await profileService.getProfile(context);
 
     // Обрабатываем дату рождения
-    if (profile.birthday != null && profile.birthday.isNotEmpty) {
+    if (profile?.birthday != null) {
       try {
-        final DateTime parsedDate = DateTime.parse(profile.birthday);
+        final DateTime parsedDate = DateTime.parse(profile!.birthday);
         _selectedDate = parsedDate;
         _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
       } catch (e) {
@@ -245,7 +245,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         ),
         elevation: 4,
         margin: const EdgeInsets.all(16.0),
-        child: FutureBuilder<UserProfile>(
+        child: FutureBuilder<UserProfile?>(
           future: _profileFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {

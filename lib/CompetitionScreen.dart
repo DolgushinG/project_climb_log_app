@@ -13,6 +13,7 @@ import 'list_participants.dart';
 import 'main.dart';
 import 'models/Category.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class Competition {
   final int id;
@@ -439,11 +440,23 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           children: [
             Container(
               height: 300,
+              width: MediaQuery.of(context).size.width, // Задаём ширину равную ширине экрана
               decoration: BoxDecoration(
                 color: Colors.blueAccent,
-                image: DecorationImage(
-                  image: NetworkImage('$DOMAIN${_competitionDetails.poster}'),
-                  fit: BoxFit.cover,
+              ),
+              child: CachedNetworkImage(
+                imageUrl: '$DOMAIN${_competitionDetails.poster}',
+                fit: BoxFit.cover,
+
+                placeholder: (context, url) => Center(
+                  child: CircularProgressIndicator(), // Виджет загрузки
+                ),
+                errorWidget: (context, url, error) => Center(
+                  child: Icon(
+                    Icons.error, // Иконка ошибки
+                    color: Colors.red,
+                    size: 50,
+                  ),
                 ),
               ),
             ),
