@@ -431,7 +431,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildInformationSection() {
-    List<NumberSets> numberSetList = _competitionDetails.number_sets.map((json) => NumberSets.fromJson(json)).toList();
     return SingleChildScrollView(
       child: Padding(
         padding: const EdgeInsets.all(16.0),

@@ -34,9 +34,23 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // Загружаем данные профиля
+  // Загружаем данные профиля
   Future<UserProfile> _loadProfileData() async {
     final profileService = ProfileService(baseUrl: DOMAIN);
-    return await profileService.getProfile();
+    final profile = await profileService.getProfile();
+
+    // Обрабатываем дату рождения
+    if (profile.birthday != null && profile.birthday.isNotEmpty) {
+      try {
+        final DateTime parsedDate = DateTime.parse(profile.birthday);
+        _selectedDate = parsedDate;
+        _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
+      } catch (e) {
+        print('Ошибка обработки даты: $e');
+      }
+    }
+
+    return profile;
   }
 
   // Обновление профиля
@@ -53,14 +67,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     if(selectedSportCategory != null){
       profile.sportCategory = (selectedSportCategory)!;
     }
-    if (profile.birthday != null && profile.birthday.isNotEmpty) {
-      try {
-        final DateTime parsedDate = DateTime.parse(profile.birthday); // Парсим ISO-строку
-        _selectedDate = parsedDate; // Сохраняем выбранную дату
-        _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate); // Форматируем
-      } catch (e) {
-        print('Ошибка преобразования даты: $e');
-      }
+    if (_selectedDate != null) {
+      profile.birthday = DateFormat('yyyy-MM-dd').format(_selectedDate!);
     }
     profile.gender = (selectedGender ?? profile.gender);
     final profileService = ProfileService(baseUrl: DOMAIN);
@@ -95,7 +103,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   _selectDate(BuildContext context) async {
     DateTime? newSelectedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedDate,
+      initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2040),
       builder: (BuildContext context, Widget? child) {
@@ -117,6 +125,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       if (mounted) {
         setState(() {
           _selectedDate = newSelectedDate;
+          _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(newSelectedDate);
         });
       }
     }
@@ -246,7 +255,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             } else if (snapshot.hasData) {
               final profile = snapshot.data!;
 
-              if (profile.birthday != ''){
+              if (_selectedDate == null){
                 final DateTime parsedDate = DateTime.parse(profile.birthday);
                 _selectedDate = parsedDate;
                 final String formattedDate = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
