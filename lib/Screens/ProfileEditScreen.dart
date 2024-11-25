@@ -53,9 +53,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     if(selectedSportCategory != null){
       profile.sportCategory = (selectedSportCategory)!;
     }
-    if(_selectedDate != null){
-      String formattedDate = DateFormat('yyyy-M-d').format(_selectedDate!);
-      profile.birthday = formattedDate;
+    if (profile.birthday != null && profile.birthday.isNotEmpty) {
+      try {
+        final DateTime parsedDate = DateTime.parse(profile.birthday); // Парсим ISO-строку
+        _selectedDate = parsedDate; // Сохраняем выбранную дату
+        _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate); // Форматируем
+      } catch (e) {
+        print('Ошибка преобразования даты: $e');
+      }
     }
     profile.gender = (selectedGender ?? profile.gender);
     final profileService = ProfileService(baseUrl: DOMAIN);
@@ -90,8 +95,8 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   _selectDate(BuildContext context) async {
     DateTime? newSelectedDate = await showDatePicker(
       context: context,
-      initialDate: _selectedDate ?? DateTime.now(),
-      firstDate: DateTime(2000),
+      initialDate: _selectedDate,
+      firstDate: DateTime(1900),
       lastDate: DateTime(2040),
       builder: (BuildContext context, Widget? child) {
         return Theme(
@@ -112,7 +117,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       if (mounted) {
         setState(() {
           _selectedDate = newSelectedDate;
-          _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(_selectedDate!);
         });
       }
     }
@@ -242,7 +246,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             } else if (snapshot.hasData) {
               final profile = snapshot.data!;
 
-              return SingleChildScrollView(
+              if (profile.birthday != ''){
+                final DateTime parsedDate = DateTime.parse(profile.birthday);
+                _selectedDate = parsedDate;
+                final String formattedDate = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
+                _textEditingController.text = formattedDate;
+              }
+
+            return SingleChildScrollView(
                 padding: const EdgeInsets.all(16.0),
                 child: Form(
                   child: Column(

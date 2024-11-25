@@ -223,14 +223,14 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                             children: [
                               Column(
                                 children: [
-                                  _buildBadgeTopNumberRoute('T', 0, 0),
+                                  _buildBadgeTopNumberRoute('T', 5, 5),
                                   _buildBadgeBottom(result['amount_top'].toString(), 5, 5),
                                 ],
                               ),
                               SizedBox(width: 9.0),
                               Column(
                                 children: [
-                                  _buildBadgeTopNumberRoute('Z', 0, 0),
+                                  _buildBadgeTopNumberRoute('Z', 5, 5),
                                   _buildBadgeBottom(result['amount_zone'].toString(), 5, 5),
                                 ],
                               ),
@@ -239,7 +239,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                         ],
                       ),
                     ),
-                    SizedBox(width: 6.0),
+                    SizedBox(width: 2.0),
                     // Колонка "Попытки"
                     Expanded(
                       flex: 1,
@@ -250,14 +250,14 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                             children: [
                               Column(
                                 children: [
-                                  _buildBadgeTopNumberRoute('T', 0, 0),
+                                  _buildBadgeTopNumberRoute('T', 5, 5),
                                   _buildBadgeBottom(result['amount_try_top'].toString(), 5, 5),
                                 ],
                               ),
                               SizedBox(width: 9.0),
                               Column(
                                 children: [
-                                  _buildBadgeTopNumberRoute('Z', 0, 0),
+                                  _buildBadgeTopNumberRoute('Z', 5, 5),
                                   _buildBadgeBottom(result['amount_try_zone'].toString(), 5, 5),
                                 ],
                               ),
@@ -278,20 +278,13 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
   }
   Widget _buildBadgeTopTitle(String text) {
     return Container(
-      width: 69,
+      width: 72,
       height: 20,
-      decoration: BoxDecoration(
-        color: Colors.black,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(5),
-          topRight: Radius.circular(5),
-        ),
-      ),
       child: Center(
         child: Text(
           text,
           style: TextStyle(
-            color: Colors.white,
+            color: Colors.black,
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),

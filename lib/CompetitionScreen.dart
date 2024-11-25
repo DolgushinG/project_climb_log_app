@@ -88,7 +88,7 @@ class Competition {
       is_need_sport_category: json['is_need_sport_category'],
       is_routes_exists: json['is_routes_exists'],
       is_participant_paid: json['is_participant_paid'],
-      contact: json['contact'],
+      contact: json['contact'] ?? '',
       poster: json['poster'],
       is_access_user_cancel_take_part: json['is_access_user_cancel_take_part'],
       is_auto_categories: json['is_auto_categories'],

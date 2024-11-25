@@ -58,7 +58,7 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
   assets:
-    - assets/background.png
+    - assets/poster.png
     - assets/Telegram.png
     - assets/Yandex.png
     - assets/VK.png

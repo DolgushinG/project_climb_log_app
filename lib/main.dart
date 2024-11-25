@@ -10,8 +10,8 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-// const DOMAIN = "http://127.0.0.1:8000";
-const DOMAIN = "https://climbing-events.ru";
+const DOMAIN = "http://127.0.0.1:8000";
+// const DOMAIN = "https://climbing-events.ru";
 // const DOMAIN = "https://stage-dev.climbing-events.ru";
 
 Future<void> saveToken(String token) async {
@@ -103,12 +103,26 @@ class StartPage extends StatelessWidget {
         height: screenHeight,
         decoration: BoxDecoration(
           image: DecorationImage(
-            image: AssetImage('assets/background.png'), // Путь к картинке в папке assets
+            image: AssetImage('assets/poster.png'), // Путь к картинке в папке assets
             fit: BoxFit.cover, // Заставляем изображение покрывать весь экран
           ),
         ),
         child: Stack(
           children: [
+            Positioned(
+              top: screenHeight * 0.15, // Поднимаем текст выше середины экрана
+              left: screenWidth * 0.15, // Центрируем по горизонтали
+              child: Text(
+                'Добро пожаловать в сервис',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontFamily: 'Roboto',
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.28,
+                ),
+              ),
+            ),
             // Текст "CLIMBING EVENTS."
             Positioned(
               top: screenHeight * 0.2, // Поднимаем текст выше середины экрана
@@ -126,7 +140,7 @@ class StartPage extends StatelessWidget {
             ),
             // Кнопка "Зарегистрироваться"
             Positioned(
-              bottom: screenHeight * 0.15, // Располагаем кнопку ближе к нижней части экрана
+              bottom: screenHeight * 0.23, // Располагаем кнопку ближе к нижней части экрана
               left: screenWidth * 0.15, // Центрируем кнопку
               child: GestureDetector(
                 onTap: () {
@@ -167,7 +181,7 @@ class StartPage extends StatelessWidget {
             ),
             // Кнопка "Вход"
             Positioned(
-              bottom: screenHeight * 0.05, // Располагаем чуть ниже кнопки "Зарегистрироваться"
+              bottom: screenHeight * 0.13, // Располагаем чуть ниже кнопки "Зарегистрироваться"
               left: screenWidth * 0.15,
               child: GestureDetector(
                 onTap: () {
