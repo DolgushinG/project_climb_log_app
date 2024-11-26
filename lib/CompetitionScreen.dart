@@ -441,17 +441,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             Container(
               height: 300,
               width: MediaQuery.of(context).size.width, // Задаём ширину равную ширине экрана
-              decoration: BoxDecoration(
+              decoration: const BoxDecoration(
                 color: Colors.blueAccent,
               ),
               child: CachedNetworkImage(
                 imageUrl: '$DOMAIN${_competitionDetails.poster}',
                 fit: BoxFit.cover,
 
-                placeholder: (context, url) => Center(
+                placeholder: (context, url) => const Center(
                   child: CircularProgressIndicator(), // Виджет загрузки
                 ),
-                errorWidget: (context, url, error) => Center(
+                errorWidget: (context, url, error) => const Center(
                   child: Icon(
                     Icons.error, // Иконка ошибки
                     color: Colors.red,

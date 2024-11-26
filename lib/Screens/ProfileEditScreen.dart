@@ -255,7 +255,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             } else if (snapshot.hasData) {
               final profile = snapshot.data!;
 
-              if (_selectedDate == null){
+              if (_selectedDate == null && profile.birthday != null && profile.birthday.isNotEmpty) {
                 final DateTime parsedDate = DateTime.parse(profile.birthday);
                 _selectedDate = parsedDate;
                 final String formattedDate = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);

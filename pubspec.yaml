@@ -37,6 +37,7 @@ dependencies:
     sdk: flutter
   cupertino_icons: ^1.0.8
   path_provider: ^2.0.12
+  webview_flutter: ^4.0.1
   http: ^1.2.2
   flutter_html: 3.0.0-beta.2 # или актуальная версия
   shared_preferences: 2.3.2
@@ -62,6 +63,9 @@ flutter:
   assets:
     - assets/poster.png
     - assets/Telegram.png
+    - assets/icon-telegram.png
+    - assets/icon-vk.png
+    - assets/yandex-icon.png
     - assets/Yandex.png
     - assets/VK.png
   # The following line ensures that the Material Icons font is

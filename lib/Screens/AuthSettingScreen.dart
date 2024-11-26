@@ -43,7 +43,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
       if (mounted) {
         setState(() {
           widget.socialite = data['socialite'] ?? '';
-          widget.rememberToken = data['rememberToken'] ?? '';
+          widget.rememberToken = data['rememberToken'] ?? null;
         });
       }
     } else if (response.statusCode == 401 || response.statusCode == 419) {

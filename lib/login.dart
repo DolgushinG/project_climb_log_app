@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'MainScreen.dart';
+import 'Screens/WebViewScreen.dart';
 import 'main.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -41,6 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
         final token = responseData['token'];
         print(token);
         saveToken(token);
+
         Navigator.pushReplacement(
           context,
           MaterialPageRoute(builder: (context) => MainScreen()),
@@ -225,17 +227,27 @@ class _LoginScreenState extends State<LoginScreen> {
                           letterSpacing: 0.64,
                         ),
                       ),
-                      SizedBox(height: 10), // Отступ перед кнопками
-                      Row(
+                      SizedBox(height: 32), // Отступ перед кнопками
+                      const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          SocialLoginButton(imageUrl: "assets/VK.png"),
-                          SizedBox(width: 20),
-                          SocialLoginButton(imageUrl: "assets/Telegram.png"),
-                          SizedBox(width: 20),
-                          SocialLoginButton(imageUrl: "assets/Yandex.png"),
+                          SocialLoginButton(
+                            imageUrl: "assets/icon-vk.png",
+                            loginUrl: "$DOMAIN/auth/vkontakte/redirect", // VK
+                          ),
+                          SizedBox(width: 16),
+                          SocialLoginButton(
+                            imageUrl: "assets/icon-telegram.png",
+                            loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=https://climbing-events.ru&embed=1&request_access=write&return_to=https://climbing-events.ru/auth/telegram/redirect",
+                          ),
+
+                          SizedBox(width: 16),
+                          SocialLoginButton(
+                            imageUrl: "assets/yandex-icon.png",
+                            loginUrl: "$DOMAIN/auth/yandex/redirect", // Yandex
+                          ),
                         ],
-                      ),
+                      )
                     ],
                   ),
                 ),
@@ -250,20 +262,31 @@ class _LoginScreenState extends State<LoginScreen> {
 
 class SocialLoginButton extends StatelessWidget {
   final String imageUrl;
+  final String loginUrl;
 
-  const SocialLoginButton({required this.imageUrl});
+  const SocialLoginButton({
+    Key? key,
+    required this.imageUrl,
+    required this.loginUrl,
+  }) : super(key: key);
+
+  void _openWebView(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WebViewScreen(url: loginUrl),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 40,
-      height: 40,
-      decoration: BoxDecoration(
-        image: DecorationImage(
-          image: AssetImage(imageUrl),
-          fit: BoxFit.contain,
-        ),
-        shape: BoxShape.circle,
+    return GestureDetector(
+      onTap: () => _openWebView(context),
+      child: Image.asset(
+        imageUrl,
+        width: 50,
+        height: 50,
       ),
     );
   }

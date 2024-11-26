@@ -10,14 +10,14 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-const DOMAIN = "http://127.0.0.1:8000";
-// const DOMAIN = "https://climbing-events.ru";
+// const DOMAIN = "http://127.0.0.1:8000";
+const DOMAIN = "https://climbing-events.ru";
+// const DOMAIN = "https://8d34-179-43-151-14.ngrok-free.app";
 // const DOMAIN = "https://stage-dev.climbing-events.ru";
 
 Future<void> saveToken(String token) async {
-  // SharedPreferences.setMockInitialValues({});
   final prefs = await SharedPreferences.getInstance();
-  await prefs.setString('token', token);
+  await prefs.setString('token', token);  // Ждем, пока токен будет сохранен
 }
 
 Future<String?> getToken() async {
@@ -111,9 +111,9 @@ class StartPage extends StatelessWidget {
           children: [
             Positioned(
               top: screenHeight * 0.15, // Поднимаем текст выше середины экрана
-              left: screenWidth * 0.15, // Центрируем по горизонтали
+              left: screenWidth * 0.13, // Центрируем по горизонтали
               child: Text(
-                'Добро пожаловать в сервис',
+                'ДОБРО ПОЖАЛОВАТЬ В СЕРВИС',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 16,
@@ -126,7 +126,7 @@ class StartPage extends StatelessWidget {
             // Текст "CLIMBING EVENTS."
             Positioned(
               top: screenHeight * 0.2, // Поднимаем текст выше середины экрана
-              left: screenWidth * 0.15, // Центрируем по горизонтали
+              left: screenWidth * 0.11, // Центрируем по горизонтали
               child: Text(
                 'CLIMBING EVENTS.',
                 style: TextStyle(
@@ -157,10 +157,10 @@ class StartPage extends StatelessWidget {
                     gradient: const LinearGradient(
                       begin: Alignment(0.00, -1.00),
                       end: Alignment(0, 1),
-                      colors: [Colors.blue, Color(0xFF43E6FA)],
+                      colors: [Colors.blue, Color(0xFF1D67DE)],
                     ),
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(width: 1, color: Color(0xFF1D67DE)),
+                      side: const BorderSide(width: 1, color: Color(0xFF44E7FB)),
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
@@ -198,10 +198,10 @@ class StartPage extends StatelessWidget {
                     gradient: const LinearGradient(
                       begin: Alignment(0.00, -1.00),
                       end: Alignment(0, 1),
-                      colors: [Colors.blue, Color(0xFF43E6FA)],
+                      colors: [Colors.blue, Color(0xFF1D67DE)],
                     ),
                     shape: RoundedRectangleBorder(
-                      side: const BorderSide(width: 1, color: Color(0xFF1D67DE)),
+                      side: const BorderSide(width: 1, color: Color(0xFF44E7FB)),
                       borderRadius: BorderRadius.circular(30),
                     ),
                   ),
