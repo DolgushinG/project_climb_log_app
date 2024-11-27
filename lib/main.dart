@@ -143,13 +143,7 @@ class StartPage extends StatelessWidget {
               bottom: screenHeight * 0.23, // Располагаем кнопку ближе к нижней части экрана
               left: screenWidth * 0.15, // Центрируем кнопку
               child: GestureDetector(
-                onTap: () {
-                  // Переход на экран регистрации
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => RegisterScreen()),
-                  );
-                },
+                onTap: () => RegistrationScreen(),
                 child: Container(
                   width: screenWidth * 0.7,
                   height: 48,

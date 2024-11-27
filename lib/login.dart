@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/Screens/RegisterScreen.dart';
 import 'dart:convert';
 import 'MainScreen.dart';
+import 'Screens/PasswordRecoveryScreen.dart';
 import 'Screens/WebViewScreen.dart';
 import 'main.dart';
 
@@ -89,6 +91,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -100,7 +103,8 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: SafeArea(
           child: Center(
-            child: Column(
+            child: SingleChildScrollView(
+              child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 // Заголовок
@@ -177,6 +181,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           padding: const EdgeInsets.only(top: 8),
                           child: GestureDetector(
                             onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) =>  PasswordRecoveryScreen()), // Переход на LoginScreen
+                              );
                               // Логика для восстановления пароля
                             },
                             child: const Text(
@@ -190,6 +198,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
+
                       SizedBox(height: 40), // Отступ перед кнопкой
                       // Кнопка входа
                       GestureDetector(
@@ -218,9 +227,32 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 40), // Отступ перед кнопками соцсетей
+                      SizedBox(height: 40),
+                      Align(
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 8),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (context) => RegistrationScreen()), // Переход на LoginScreen
+                              );
+                            },
+                            child: const Text(
+                              'Регистрация',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w400,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 32),// Отступ перед кнопками соцсетей
                       Text(
-                        'Войти с помощью',
+                        'Или войти с помощью',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 14,
@@ -253,6 +285,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
+            )
           ),
         ),
       ),
