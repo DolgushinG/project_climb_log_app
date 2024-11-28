@@ -30,10 +30,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             return Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.9), // Прозрачный белый фон
+                color: Colors.white.withOpacity(0.8), // Прозрачный белый фон
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(20),
-                  topRight: Radius.circular(20),
+                  topLeft: Radius.circular(30),
+                  topRight: Radius.circular(30),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -52,7 +52,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       height: 4,
                       margin: const EdgeInsets.only(bottom: 20),
                       decoration: BoxDecoration(
-                        color: Colors.grey[300],
+                        color: Colors.white.withOpacity(0.8),
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -178,7 +178,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 color: Colors.white.withOpacity(0.3), // Прозрачный фон формы
                 elevation: 5,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+                  borderRadius: BorderRadius.circular(30),
                 ),
                 child: Padding(
                   padding: const EdgeInsets.all(20),
