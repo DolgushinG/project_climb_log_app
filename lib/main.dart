@@ -10,8 +10,8 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-// const DOMAIN = "http://127.0.0.1:8000";
-const DOMAIN = "https://climbing-events.ru";
+const DOMAIN = "http://127.0.0.1:8000";
+// const DOMAIN = "https://climbing-events.ru";
 // const DOMAIN = "https://8d34-179-43-151-14.ngrok-free.app";
 // const DOMAIN = "https://stage-dev.climbing-events.ru";
 
