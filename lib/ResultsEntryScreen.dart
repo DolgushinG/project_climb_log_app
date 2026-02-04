@@ -120,18 +120,20 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
   void _updateSelectedAttempts(int routeId, int attempt) {
     if (mounted) {
       setState(() {
-        final index = selectedAttempts.indexWhere((a) =>
-        a['route_id'] == routeId);
+        final index = selectedAttempts.indexWhere((a) => a['route_id'] == routeId);
         if (index != -1) {
-          // Обновляем попытку, если она уже существует
           selectedAttempts[index]['attempt'] = attempt;
         } else {
-          // Добавляем новую запись, если попытка для routeId не существует
           selectedAttempts.add({'route_id': routeId, 'attempt': attempt});
+        }
+        for (final r in routes) {
+          if (r.routeId == routeId) {
+            r.attempt = attempt;
+            break;
+          }
         }
       });
 
-      // Сохраняем черновик локально после каждого изменения
       _saveDraftResults();
     }
   }
@@ -298,11 +300,20 @@ class _RouteCardState extends State<RouteCard> {
     selectedAttempt = widget.route.attempt;
   }
 
+  int get _selectedAttempt {
+    final found = widget.selectedAttempts
+        .where((a) => (a['route_id'] ?? -1) == widget.route.routeId)
+        .toList();
+    if (found.isEmpty) return widget.route.attempt;
+    final a = found.first['attempt'];
+    if (a is int) return a;
+    if (a is num) return a.toInt();
+    return widget.route.attempt;
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Синхронизируем локальное состояние с актуальным значением из модели.
-    // Это позволяет корректно отображать попытки, загруженные с сервера.
-    selectedAttempt = widget.route.attempt;
+    selectedAttempt = _selectedAttempt;
 
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),

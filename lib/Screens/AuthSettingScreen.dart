@@ -83,10 +83,14 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
       );
 
       if (response.statusCode == 200) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => StartPage()),
-        );
+        await clearToken();
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (context) => StartPage()),
+            (route) => false,
+          );
+        }
       } else {
         _showSnackBar('Ошибка при выходе из аккаунта', Colors.red);
       }

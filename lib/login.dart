@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/Screens/RegisterScreen.dart';
 import 'dart:convert';
 import 'MainScreen.dart';
+import 'Screens/LoginByCodeScreen.dart';
 import 'Screens/PasswordRecoveryScreen.dart';
 import 'Screens/WebViewScreen.dart';
 import 'main.dart';
@@ -44,9 +45,10 @@ class _LoginScreenState extends State<LoginScreen> {
         final token = responseData['token'];
         saveToken(token);
 
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => MainScreen()),
+          (route) => false,
         );
       } else {
         String message = 'Неверный email или пароль. Проверьте данные и попробуйте снова.';
@@ -189,9 +191,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             onTap: () {
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (context) =>  PasswordRecoveryScreen()), // Переход на LoginScreen
+                                MaterialPageRoute(
+                                  builder: (context) => PasswordRecoveryScreen(),
+                                ),
                               );
-                              // Логика для восстановления пароля
                             },
                             child: const Text(
                               'Забыл пароль?',
@@ -233,7 +236,42 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ),
-                      SizedBox(height: 40),
+                      const SizedBox(height: 12),
+                      // Кнопка "Вход по коду" (прозрачная)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const LoginByCodeScreen(),
+                            ),
+                          );
+                        },
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'Вход по коду',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.64,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(height: 28),
                       Align(
                         alignment: Alignment.center,
                         child: Padding(

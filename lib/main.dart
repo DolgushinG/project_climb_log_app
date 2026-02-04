@@ -9,8 +9,8 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-//const DOMAIN = "https://climbing-events.ru.tuna.am";
-const DOMAIN = "https://climbing-events.ru";
+const DOMAIN = "https://climbing-events.ru.tuna.am";
+//const DOMAIN = "https://climbing-events.ru";
 
 Future<void> saveToken(String token) async {
   final prefs = await SharedPreferences.getInstance();
@@ -20,6 +20,11 @@ Future<void> saveToken(String token) async {
 Future<String?> getToken() async {
   final prefs = await SharedPreferences.getInstance();
   return prefs.getString('token');
+}
+
+Future<void> clearToken() async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.remove('token');
 }
 
 class MyApp extends StatelessWidget {

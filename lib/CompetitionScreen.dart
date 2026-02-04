@@ -61,6 +61,8 @@ class Competition {
   final int is_access_user_cancel_take_part;
   final int is_france_system_qualification;
   final bool? is_access_user_edit_result;
+  final bool? is_send_result_state;
+  final bool? is_open_send_result_state;
 
   Competition({
     required this.id,
@@ -84,6 +86,8 @@ class Competition {
     required this.is_semifinal,
     required this.is_france_system_qualification,
     this.is_access_user_edit_result,
+    this.is_send_result_state,
+    this.is_open_send_result_state,
     required this.is_need_send_birthday,
     required this.is_need_sport_category,
     required this.info_payment,
@@ -127,6 +131,8 @@ class Competition {
       is_input_set: json['is_input_set'] ?? 0,
       is_france_system_qualification: json['is_france_system_qualification'] ?? 0,
       is_access_user_edit_result: _jsonToBool(json['is_access_user_edit_result']),
+      is_send_result_state: _jsonToBool(json['is_send_result_state']),
+      is_open_send_result_state: _jsonToBool(json['is_open_send_result_state']),
       description: json['description'] ?? '',
       categories: (categoriesRaw is List)
           ? categoriesRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
@@ -1019,6 +1025,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                             _competitionDetails.is_participant_active),
                         isAccessUserEditResult: _jsonToBool(
                             _competitionDetails.is_access_user_edit_result),
+                        isOpenSendResultState: _jsonToBool(
+                            _competitionDetails.is_open_send_result_state),
                         isRoutesExists: _competitionDetails.is_routes_exists,
                         onResultSubmitted: _refreshParticipationStatus,
                       ),

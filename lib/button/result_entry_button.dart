@@ -7,6 +7,7 @@ class ResultEntryButton extends StatelessWidget {
   final int eventId;
   final bool isParticipantActive;
   final bool isAccessUserEditResult;
+  final bool isOpenSendResultState;
   final bool isRoutesExists;
   final Future<void> Function() onResultSubmitted;
 
@@ -15,12 +16,21 @@ class ResultEntryButton extends StatelessWidget {
     required this.eventId,
     required this.isParticipantActive,
     required this.isAccessUserEditResult,
+    required this.isOpenSendResultState,
     required this.onResultSubmitted,
     this.isRoutesExists = true,
   });
 
+  /// Кнопка активна: до отправки — is_open_send_result_state; после — только is_access_user_edit_result
   bool get _canEdit =>
-      isParticipantActive && isAccessUserEditResult && isRoutesExists;
+      (isParticipantActive ? isAccessUserEditResult : (isOpenSendResultState || isAccessUserEditResult)) &&
+      isRoutesExists;
+
+  String get _buttonText {
+    if (!isParticipantActive) return 'Внести результаты';
+    if (isAccessUserEditResult) return 'Обновить результаты';
+    return 'Результаты добавлены';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -43,14 +53,14 @@ class ResultEntryButton extends StatelessWidget {
               }
             : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF16A34A),
+          backgroundColor: _canEdit ? const Color(0xFF16A34A) : Colors.grey,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
           padding: const EdgeInsets.symmetric(vertical: 12),
         ),
         child: Text(
-          _canEdit ? 'Внести результаты' : 'Результаты добавлены',
+          _buttonText,
           style: TextStyle(
             color: _canEdit ? Colors.white : Colors.white70,
             fontSize: 14,

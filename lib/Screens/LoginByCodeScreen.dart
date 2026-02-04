@@ -1,0 +1,519 @@
+import 'dart:async';
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+
+import '../MainScreen.dart';
+import '../main.dart';
+
+class LoginByCodeScreen extends StatefulWidget {
+  const LoginByCodeScreen({Key? key}) : super(key: key);
+
+  @override
+  State<LoginByCodeScreen> createState() => _LoginByCodeScreenState();
+}
+
+class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
+  final _emailController = TextEditingController();
+  final _codeController = TextEditingController();
+  final _codeFocusNode = FocusNode();
+
+  bool _isEmailStep = true;
+  bool _isRequestingCode = false;
+  bool _isVerifying = false;
+  int _resendCooldown = 0;
+  Timer? _cooldownTimer;
+
+  static const int _codeLength = 6;
+  static const int _resendDelaySeconds = 30;
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _codeController.dispose();
+    _codeFocusNode.dispose();
+    _cooldownTimer?.cancel();
+    super.dispose();
+  }
+
+  String _parseErrorMessage(dynamic body) {
+    if (body is Map) {
+      final errors = body['errors'];
+      if (errors is Map) {
+        for (final key in errors.keys) {
+          final list = errors[key];
+          if (list is List && list.isNotEmpty) {
+            return list.first.toString();
+          }
+        }
+      }
+      if (body['message'] != null) return body['message'].toString();
+      if (body['error'] != null) return body['error'].toString();
+    }
+    return 'Произошла ошибка. Попробуйте снова.';
+  }
+
+  Future<void> _requestCode() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      _showError('Введите email');
+      return;
+    }
+    final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+    if (!emailRegex.hasMatch(email)) {
+      _showError('Введите корректный email');
+      return;
+    }
+
+    if (_isRequestingCode) return;
+    setState(() => _isRequestingCode = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse(DOMAIN + '/api/auth/code/request'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email}),
+      );
+
+      if (response.statusCode == 200) {
+        setState(() {
+          if (_isEmailStep) {
+            _isEmailStep = false;
+            _codeController.clear();
+            _codeFocusNode.requestFocus();
+          } else {
+            _codeController.clear();
+          }
+          _resendCooldown = _resendDelaySeconds;
+          _startCooldownTimer();
+        });
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Код отправлен на указанный email')),
+          );
+        }
+      } else {
+        String message = 'Не удалось отправить код';
+        try {
+          final body = jsonDecode(response.body);
+          message = _parseErrorMessage(body);
+        } catch (_) {}
+        _showError(message);
+      }
+    } catch (_) {
+      _showError('Ошибка соединения. Проверьте интернет и попробуйте снова.');
+    } finally {
+      if (mounted) setState(() => _isRequestingCode = false);
+    }
+  }
+
+  void _startCooldownTimer() {
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        if (_resendCooldown > 0) _resendCooldown--;
+      });
+    });
+  }
+
+  Future<void> _verifyCode() async {
+    final email = _emailController.text.trim();
+    final code = _codeController.text.replaceAll(RegExp(r'\D'), '');
+    if (code.length != _codeLength) {
+      _showError('Введите код из 6 цифр');
+      return;
+    }
+
+    if (_isVerifying) return;
+    setState(() => _isVerifying = true);
+
+    try {
+      final response = await http.post(
+        Uri.parse(DOMAIN + '/api/auth/code/verify'),
+        headers: {'Content-Type': 'application/json'},
+        body: json.encode({'email': email, 'code': code}),
+      );
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final token = data['token'];
+        if (token != null && token.toString().isNotEmpty) {
+          await saveToken(token.toString());
+          if (!mounted) return;
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => MainScreen()),
+            (route) => false,
+          );
+        } else {
+          _showError('Не удалось получить токен');
+        }
+      } else {
+        String message = 'Неверный или истёкший код';
+        try {
+          final body = jsonDecode(response.body);
+          message = _parseErrorMessage(body);
+        } catch (_) {}
+        _showError(message);
+      }
+    } catch (_) {
+      _showError('Ошибка соединения. Проверьте интернет и попробуйте снова.');
+    } finally {
+      if (mounted) setState(() => _isVerifying = false);
+    }
+  }
+
+  void _onCodeChanged(String value) {
+    final digits = value.replaceAll(RegExp(r'\D'), '');
+    final truncated = digits.length > _codeLength ? digits.substring(0, _codeLength) : digits;
+    if (truncated != value) {
+      _codeController
+        ..text = truncated
+        ..selection = TextSelection.collapsed(offset: truncated.length);
+    }
+    if (truncated.length == _codeLength) {
+      _verifyCode();
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Ошибка'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      resizeToAvoidBottomInset: true,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/poster.png'),
+            fit: BoxFit.cover,
+          ),
+        ),
+        child: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const SizedBox(height: 24),
+                Text(
+                  'Вход по коду',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _isEmailStep
+                      ? 'Введите email, на который придёт код'
+                      : 'Введите код из письма',
+                  style: TextStyle(
+                    color: Colors.white.withOpacity(0.9),
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 32),
+                if (_isEmailStep) _buildEmailStep() else _buildCodeStep(),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmailStep() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: ShapeDecoration(
+        color: Colors.white.withOpacity(0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextField(
+            controller: _emailController,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+            decoration: InputDecoration(
+              labelText: 'Email',
+              labelStyle: TextStyle(color: Colors.white.withOpacity(0.9)),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.white.withOpacity(0.7)),
+              ),
+              focusedBorder: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.blue),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: _isRequestingCode ? null : _requestCode,
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: _isRequestingCode
+                      ? [Colors.grey, Colors.grey.shade600]
+                      : [Colors.blue, const Color(0xFF43E6FA)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Center(
+                child: _isRequestingCode
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Отправить код',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCodeStep() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: ShapeDecoration(
+        color: Colors.white.withOpacity(0.3),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(
+            _emailController.text.trim(),
+            style: TextStyle(
+              color: Colors.white.withOpacity(0.9),
+              fontSize: 14,
+            ),
+          ),
+          const SizedBox(height: 20),
+          _CodeInputField(
+            controller: _codeController,
+            focusNode: _codeFocusNode,
+            codeLength: _codeLength,
+            onChanged: _onCodeChanged,
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: _isVerifying ? null : _verifyCode,
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: _isVerifying
+                      ? [Colors.grey, Colors.grey.shade600]
+                      : [Colors.blue, const Color(0xFF43E6FA)],
+                ),
+                borderRadius: BorderRadius.circular(30),
+              ),
+              child: Center(
+                child: _isVerifying
+                    ? const SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 2,
+                        ),
+                      )
+                    : const Text(
+                        'Подтвердить',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: _resendCooldown > 0 ? null : _requestCode,
+            child: Center(
+              child: Text(
+                _resendCooldown > 0
+                    ? 'Перезапросить код через $_resendCooldown сек'
+                    : 'Перезапросить код',
+                style: TextStyle(
+                  color: _resendCooldown > 0
+                      ? Colors.white.withOpacity(0.5)
+                      : Colors.white,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => setState(() => _isEmailStep = true),
+            child: Center(
+              child: Text(
+                'Изменить email',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.9),
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CodeInputField extends StatefulWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final int codeLength;
+  final ValueChanged<String> onChanged;
+
+  const _CodeInputField({
+    required this.controller,
+    required this.focusNode,
+    required this.codeLength,
+    required this.onChanged,
+  });
+
+  @override
+  State<_CodeInputField> createState() => _CodeInputFieldState();
+}
+
+class _CodeInputFieldState extends State<_CodeInputField> {
+  @override
+  void initState() {
+    super.initState();
+    widget.controller.addListener(_handleChange);
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_handleChange);
+    super.dispose();
+  }
+
+  void _handleChange() {
+    setState(() {}); // только перерисовка цифр, onChanged вызывается из TextField
+  }
+
+  static const double _boxWidth = 44;
+  static const double _boxGap = 8;
+
+  @override
+  Widget build(BuildContext context) {
+    final boxesRow = Row(
+      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(widget.codeLength, (i) {
+        final text = widget.controller.text;
+        final digit = i < text.length ? text[i] : '';
+        return Container(
+          width: _boxWidth,
+          height: 52,
+          margin: EdgeInsets.only(right: i < widget.codeLength - 1 ? _boxGap : 0),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: digit.isNotEmpty
+                  ? Colors.blue
+                  : Colors.white.withOpacity(0.5),
+              width: 1.5,
+            ),
+          ),
+          child: Center(
+            child: Text(
+              digit,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        );
+      }),
+    );
+
+    final totalWidth = widget.codeLength * _boxWidth + (widget.codeLength - 1) * _boxGap;
+
+    return GestureDetector(
+      onTap: () => widget.focusNode.requestFocus(),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Center(child: boxesRow),
+          SizedBox(
+            width: totalWidth,
+            height: 52,
+            child: TextField(
+              controller: widget.controller,
+              focusNode: widget.focusNode,
+              showCursor: false,
+              cursorColor: Colors.transparent,
+              cursorWidth: 0,
+              keyboardType: TextInputType.number,
+              maxLength: widget.codeLength,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                LengthLimitingTextInputFormatter(widget.codeLength),
+              ],
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.transparent, fontSize: 22),
+              decoration: const InputDecoration(
+                counterText: '',
+                border: InputBorder.none,
+                contentPadding: EdgeInsets.zero,
+              ),
+              onChanged: widget.onChanged,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

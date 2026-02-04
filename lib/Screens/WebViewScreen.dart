@@ -61,9 +61,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
             if (token != null && token.trim().isNotEmpty && mounted) {
               _tokenHandled = true;
               await saveToken(token);
-              Navigator.pushReplacement(
+              Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (context) => MainScreen()),
+                (route) => false,
               );
             }
           },
@@ -78,9 +79,10 @@ class _WebViewScreenState extends State<WebViewScreen> {
               _tokenHandled = true;
               await saveToken(token);
               if (mounted) {
-                Navigator.pushReplacement(
+                Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(builder: (context) => MainScreen()),
+                  (route) => false,
                 );
               }
               return NavigationDecision.prevent;

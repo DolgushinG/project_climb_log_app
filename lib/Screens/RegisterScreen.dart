@@ -193,9 +193,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           saveToken(token);
           _showSnackBar(
               'Регистрация успешно выполнена', Colors.green);
-          Navigator.pushReplacement(
+          Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => MainScreen()),
+            (route) => false,
           );
         } else {
           final responseData = json.decode(response.body);
