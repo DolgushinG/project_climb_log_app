@@ -54,12 +54,33 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       appBar: AppBar(
         title: Text(widget.category.category),
         automaticallyImplyLeading: true,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: 'Мужчины'),
-            Tab(text: 'Женщины'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.transparent,
+                overlayColor:
+                    MaterialStateProperty.all(Colors.transparent),
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: Colors.white.withOpacity(0.16),
+                ),
+                labelPadding:
+                    const EdgeInsets.symmetric(horizontal: 8.0),
+                tabs: const [
+                  Tab(text: 'Мужчины'),
+                  Tab(text: 'Женщины'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: TabBarView(
@@ -362,7 +383,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
         child: Text(
           text,
           style: TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontSize: 10,
             fontWeight: FontWeight.bold,
           ),
@@ -375,7 +396,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       width: 30,
       height: 20,
       decoration: BoxDecoration(
-        color: Colors.black,
+        color: const Color(0xFF020617),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(radius_left),
           topRight: Radius.circular(radius_right),
@@ -441,7 +462,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     return Container(
       width: 30,
       height: 2,
-      color: Colors.black,
+      color: Colors.white24,
     );
   }
 }

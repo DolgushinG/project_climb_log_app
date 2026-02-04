@@ -35,12 +35,18 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Профиль'),
-          BottomNavigationBarItem(icon: Icon(Icons.emoji_events), label: 'Соревнования'),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline_rounded),
+            activeIcon: Icon(Icons.person_rounded),
+            label: 'Профиль',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.emoji_events_outlined),
+            activeIcon: Icon(Icons.emoji_events_rounded),
+            label: 'Соревнования',
+          ),
         ],
         currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blue,
-        unselectedItemColor: Colors.grey, // Цвет неактивных иконок
         onTap: _onItemTapped,
       ),
     );

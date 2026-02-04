@@ -16,7 +16,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  String avatar = 'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
+  String avatar = '';
   String firstName = 'Имя';
   String lastName = 'Фамилия';
   String city = 'Город';
@@ -42,8 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       final data = json.decode(response.body);
       if (mounted) {
         setState(() {
-          avatar = data['avatar'] ??
-              'https://ui-avatars.com/api/?background=0D8ABC&color=fff';
+          avatar = data['avatar'] ?? '';
           firstName = data['firstname'] ?? '';
           lastName = data['lastname'] ?? '';
           city = data['city'] ?? '';
@@ -97,7 +96,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundImage: NetworkImage(avatar),
+                    backgroundColor: Colors.blueGrey.shade700,
+                    backgroundImage:
+                        avatar.isNotEmpty ? NetworkImage(avatar) : null,
+                    child: avatar.isNotEmpty
+                        ? null
+                        : Text(
+                            (firstName.isNotEmpty ? firstName[0] : '?'),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 24,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                   SizedBox(width: 16),
                   Expanded(

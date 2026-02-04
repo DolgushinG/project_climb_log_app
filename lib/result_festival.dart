@@ -117,12 +117,33 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       appBar: AppBar(
         title: Text(widget.category.category.split(' ').first),
         automaticallyImplyLeading: true,
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: [
-            Tab(text: 'Мужчины'),
-            Tab(text: 'Женщины'),
-          ],
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.transparent,
+                overlayColor:
+                    MaterialStateProperty.all(Colors.transparent),
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: Colors.white.withOpacity(0.16),
+                ),
+                labelPadding:
+                    const EdgeInsets.symmetric(horizontal: 8.0),
+                tabs: const [
+                  Tab(text: 'Мужчины'),
+                  Tab(text: 'Женщины'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: TabBarView(

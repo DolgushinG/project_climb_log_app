@@ -205,29 +205,53 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Соревнования'),
-        bottom: TabBar(
-          controller: _tabController,
-          tabs: const [
-            Tab(text: 'Текущие'),
-            Tab(text: 'Завершенные'),
-          ],
+        title: const Text('Соревнования'),
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.04),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: TabBar(
+                controller: _tabController,
+                indicatorColor: Colors.transparent,
+                overlayColor:
+                    MaterialStateProperty.all(Colors.transparent),
+                indicator: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  color: Colors.white.withOpacity(0.16),
+                ),
+                labelPadding:
+                    const EdgeInsets.symmetric(horizontal: 8.0),
+                tabs: const [
+                  Tab(text: 'Текущие'),
+                  Tab(text: 'Завершенные'),
+                ],
+              ),
+            ),
+          ),
         ),
       ),
       body: _isLoading
-          ? Center(child: CircularProgressIndicator())
-          : TabBarView(
-              controller: _tabController,
-              children: [
-                RefreshIndicator(
-                  onRefresh: _refreshCompetitions,
-                  child: buildCompetitionList(_currentCompetitions),
-                ),
-                RefreshIndicator(
-                  onRefresh: _refreshCompetitions,
-                  child: buildCompetitionList(_completedCompetitions),
-                ),
-              ],
+          ? const Center(child: CircularProgressIndicator())
+          : Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  RefreshIndicator(
+                    onRefresh: _refreshCompetitions,
+                    child: buildCompetitionList(_currentCompetitions),
+                  ),
+                  RefreshIndicator(
+                    onRefresh: _refreshCompetitions,
+                    child: buildCompetitionList(_completedCompetitions),
+                  ),
+                ],
+              ),
             ),
     );
   }
@@ -252,21 +276,144 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       itemCount: competitions.length,
       itemBuilder: (context, index) {
         final Competition competition = competitions[index];
-        return Card(
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: ListTile(
-            title: Text(competition.title),
-            subtitle: Text(competition.address),
-            trailing: Text(
-                '${competition.start_date.toLocal().toString().split(' ')[0]}'),
+        final String dateLabel =
+            DateFormat('dd.MM.yyyy').format(competition.start_date);
+        final bool isCurrent = !competition.isCompleted;
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            splashColor: Colors.transparent,
+            highlightColor: Colors.transparent,
             onTap: () {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => CompetitionDetailScreen(competition),
+                  builder: (context) =>
+                      CompetitionDetailScreen(competition),
                 ),
               );
             },
+            child: Card(
+              color: const Color(0xFF0B1220),
+              surfaceTintColor: Colors.transparent,
+              clipBehavior: Clip.antiAlias,
+              child: SizedBox(
+                height: 108,
+                child: Row(
+                  children: [
+                    // Постер
+                    AspectRatio(
+                      aspectRatio: 3 / 4,
+                      child: CachedNetworkImage(
+                        imageUrl: '$DOMAIN${competition.poster}',
+                        fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
+                        placeholder: (context, url) => Container(
+                          color: Colors.black12,
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) =>
+                            Container(
+                          color: Colors.black26,
+                          child: const Icon(
+                            Icons.landscape_rounded,
+                            color: Colors.white38,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.all(12.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    competition.title,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: isCurrent
+                                        ? Colors.green.withOpacity(0.18)
+                                        : Colors.grey.withOpacity(0.18),
+                                    borderRadius:
+                                        BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    isCurrent ? 'Идут' : 'Завершены',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: isCurrent
+                                          ? Colors.greenAccent
+                                          : Colors.grey[300],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              children: [
+                                const Icon(
+                                  Icons.location_on_outlined,
+                                  size: 14,
+                                  color: Colors.white70,
+                                ),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    '${competition.city}, ${competition.address}',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white70,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Row(
+                              children: [
+                                Text(
+                                  dateLabel,
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         );
       },
@@ -471,7 +618,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   Widget _buildInformationSection() {
     return SingleChildScrollView(
       child: Padding(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -497,37 +644,50 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 8),
-            Text(
-              _competitionDetails.title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
+            const SizedBox(height: 16),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF0B1220),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _competitionDetails.title,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  CompetitionInfoCard(
+                    label: 'Адрес',
+                    value: _competitionDetails.address,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Flexible(
+                        child: CompetitionInfoCard(
+                          label: 'Город',
+                          value: _competitionDetails.city,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: CompetitionInfoCard(
+                          label: 'Контакты',
+                          value: _competitionDetails.contact,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
-            CompetitionInfoCard(
-              label: 'Адрес',
-              value: _competitionDetails.address,
-            ),
-            // Используем SizedBox с шириной double.infinity вместо Expanded
-            Row(
-              children: [
-                Flexible( // Используем Flexible для более гибкого контроля
-                  child: CompetitionInfoCard(
-                    label: 'Город',
-                    value: _competitionDetails.city,
-                  ),
-                ),
-                SizedBox(width: 3),
-                Flexible(
-                  child: CompetitionInfoCard(
-                    label: 'Контакты',
-                    value: _competitionDetails.contact,
-                  ),
-                ),
-              ],
-            ),
+            const SizedBox(height: 20),
             if(!_competitionDetails.isCompleted && !_competitionDetails.is_participant && _competitionDetails.is_need_send_birthday)
               Row(
                   children: [
@@ -544,6 +704,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       ),
                     ),
                   ]),
+            const SizedBox(height: 12),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
               if(_competitionDetails.is_need_sport_category == 1)
                 Row(
@@ -551,10 +712,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       Expanded( // Используем Flexible для более гибкого контроля
                         child:  ElevatedButton(
                           onPressed: _showSportCategorySelectionDialog,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1D4ED8),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
                           child: Text(
                             selectedSportCategory == null
                                 ? 'Выберите разряд'
                                 : 'Разряд: ${selectedSportCategory!.sport_category}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                            ),
                           ),
                         ),
                       ),
@@ -566,29 +738,52 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   Expanded( // Используем Flexible для более гибкого контроля
                       child:  ElevatedButton(
                         onPressed: _showCategorySelectionDialog,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1D4ED8),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                         child: Text(
                           selectedCategory == null
                               ? 'Выберите категорию'
                               : 'Категория: ${selectedCategory!.category}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
                   ),
                 ]),
+            const SizedBox(height: 8),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
               if(_competitionDetails.is_input_set == 0)
                 Row(children: [
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _showSetSelectionDialog,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1D4ED8),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
                     child: Text(
                       selectedNumberSet == null
                           ? 'Выберите сет'
                           : 'Сет: ${selectedNumberSet!.number_set}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                 ),
                 )
               ]),
-            SizedBox(height: 10),
+            const SizedBox(height: 16),
             Row(
               children: [
                 if (!_competitionDetails.isCompleted)
@@ -618,35 +813,48 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue[600],
+                      backgroundColor: const Color(0xFF1E293B),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(12),
                       ),
-                      padding: EdgeInsets.symmetric(vertical: 12),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    child: Text('Список участников', style: TextStyle(color: Colors.white)),
+                    child: const Text(
+                      'Список участников',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
             if (_competitionDetails.is_participant)
-              Row(
+              Column(
                 children: [
-                  if (_competitionDetails.is_routes_exists &&
-                      _competitionDetails.is_france_system_qualification == 0)
-                    Expanded(
-                      child: _jsonToBool(_competitionDetails.is_participant_active)
-                          ? (_jsonToBool(_competitionDetails.is_access_user_edit_result)
-                              ? ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.green,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 10),
-                                  ),
-                                  onPressed: () async {
+                  Row(
+                    children: [
+                      if (_competitionDetails.is_routes_exists &&
+                          _competitionDetails.is_france_system_qualification ==
+                              0)
+                        Expanded(
+                          child: ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF16A34A),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12),
+                            ),
+                            onPressed: _jsonToBool(
+                                        _competitionDetails
+                                            .is_participant_active) &&
+                                    _jsonToBool(_competitionDetails
+                                        .is_access_user_edit_result)
+                                ? () async {
                                     final bool? needRefresh =
                                         await Navigator.push(
                                       context,
@@ -661,121 +869,93 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                       ),
                                     );
 
-                                    // Если с экрана внесения результатов вернулись с флагом обновления — перезапрашиваем данные события
                                     if (needRefresh == true) {
                                       await _refreshParticipationStatus();
                                     }
-                                  },
-                                  child: const Text(
-                                    'Редактировать результаты',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 12.0,
-                                    ),
-                                    textAlign: TextAlign.left,
-                                  ),
-                                )
-                              : Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      vertical: 12, horizontal: 8),
-                                  alignment: Alignment.center,
-                                  child: const Text(
-                                    'Результаты добавлены',
-                                    style: TextStyle(
-                                      color: Colors.green,
-                                      fontSize: 12.0,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
-                                ))
-                          : ElevatedButton(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.green,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10),
-                                ),
-                                padding:
-                                    const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                              onPressed: () async {
-                                final bool? needRefresh = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ResultEntryPage(
-                                      eventId: _competitionDetails.id,
-                                      isParticipantActive: _jsonToBool(
-                                        _competitionDetails.is_participant_active,
-                                      ),
-                                    ),
-                                  ),
-                                );
-
-                                // Если с экрана внесения результатов вернулись с флагом обновления — перезапрашиваем данные события
-                                if (needRefresh == true) {
-                                  await _refreshParticipationStatus();
-                                }
-                              },
-                              child: const Text(
-                                'Внести результаты',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12.0,
-                                ),
-                                textAlign: TextAlign.left,
+                                  }
+                                : null,
+                            child: Text(
+                              _jsonToBool(_competitionDetails
+                                          .is_participant_active) &&
+                                      _jsonToBool(_competitionDetails
+                                          .is_access_user_edit_result)
+                                  ? 'Редактировать результаты'
+                                  : 'Результаты добавлены',
+                              style: TextStyle(
+                                color: _jsonToBool(_competitionDetails
+                                                .is_participant_active) &&
+                                        _jsonToBool(_competitionDetails
+                                            .is_access_user_edit_result)
+                                    ? Colors.white
+                                    : Colors.white70,
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
-                    ),
-                  SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 && !_competitionDetails.is_participant_paid ? 10 : 0),
-                  if (_competitionDetails.is_access_user_cancel_take_part == 1 && !_competitionDetails.is_participant_paid)
-                    Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
                           ),
-                          padding: EdgeInsets.symmetric(vertical: 12),
                         ),
-                        onPressed: () async {
-                          bool? confirm = await showDialog<bool>(
-                            context: context,
-                            builder: (BuildContext context) {
-                              return AlertDialog(
-                                title: Text('Подтверждение отмены регистрации'),
-                                content: Text('Вы уверены, что хотите отменить регистрацию?'),
-                                actions: <Widget>[
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop(false);
-                                    },
-                                    child: Text('Отмена'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () {
-                                      Navigator.of(context).pop(true);
-                                    },
-                                    child: Text('Подтвердить'),
-                                  ),
-                                ],
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  if (_competitionDetails.is_access_user_cancel_take_part ==
+                          1 &&
+                      !_competitionDetails.is_participant_paid)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: Colors.redAccent,
+                              side: const BorderSide(color: Colors.redAccent),
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () async {
+                              bool? confirm = await showDialog<bool>(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text(
+                                        'Подтверждение отмены регистрации'),
+                                    content: const Text(
+                                        'Вы уверены, что хотите отменить регистрацию?'),
+                                    actions: <Widget>[
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop(false);
+                                        },
+                                        child: const Text('Отмена'),
+                                      ),
+                                      TextButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop(true);
+                                        },
+                                        child: const Text('Подтвердить'),
+                                      ),
+                                    ],
+                                  );
+                                },
                               );
-                            },
-                          );
 
-                          if (confirm == true) {
-                            _cancelRegistration();
-                            _refreshParticipationStatus();
-                          }
-                        },
-                        child: const Text(
-                          'Отменить регистрацию',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 14.0,
+                              if (confirm == true) {
+                                _cancelRegistration();
+                                _refreshParticipationStatus();
+                              }
+                            },
+                            child: const Text(
+                              'Отменить регистрацию',
+                              style: TextStyle(
+                                fontSize: 14.0,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          textAlign: TextAlign.center,
                         ),
-                      ),
+                      ],
                     ),
                 ],
               ),
@@ -866,12 +1046,35 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         appBar: AppBar(
           automaticallyImplyLeading: false,
           title: Text('Результаты'),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: 'Квалификация'),
-              if ( _competitionDetails.is_semifinal) Tab(text: 'Полуфинал'), // Показываем только при флаге
-              if (_competitionDetails.is_result_in_final_exists) Tab(text: 'Финал'),
-            ],
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: TabBar(
+                  indicatorColor: Colors.transparent,
+                  overlayColor:
+                      MaterialStateProperty.all(Colors.transparent),
+                  indicator: BoxDecoration(
+                    borderRadius: BorderRadius.circular(999),
+                    color: Colors.white.withOpacity(0.16),
+                  ),
+                  labelPadding:
+                      const EdgeInsets.symmetric(horizontal: 8.0),
+                  tabs: [
+                    const Tab(text: 'Квалификация'),
+                    if (_competitionDetails.is_semifinal)
+                      const Tab(text: 'Полуфинал'),
+                    if (_competitionDetails.is_result_in_final_exists)
+                      const Tab(text: 'Финал'),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
         body: TabBarView(
@@ -999,29 +1202,34 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   Widget _buildResultCard({required String title, required VoidCallback onTap}) {
     return Card(
+      color: const Color(0xFF0B1220),
+      surfaceTintColor: Colors.transparent,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12.0),
       ),
-      elevation: 4.0,
+      elevation: 0.0,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(12.0),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
                 style: const TextStyle(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
+                  fontSize: 14.0,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
                 ),
               ),
               const Icon(
-                Icons.arrow_forward,
-                color: Colors.blueAccent,
+                Icons.arrow_forward_ios_rounded,
+                size: 16,
+                color: Colors.white70,
               ),
             ],
           ),
@@ -1156,19 +1364,48 @@ class CompetitionInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final cardColor = theme.cardTheme.color ?? theme.colorScheme.surface;
+    final blockBg = cardColor.computeLuminance() > 0.2
+        ? Colors.white.withOpacity(0.08)
+        : Colors.white.withOpacity(0.06);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: ListTile(
-        title: Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black,
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: blockBg,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
+            width: 1,
           ),
         ),
-        subtitle: Text(
-          value,
-          style: TextStyle(fontSize: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.white.withOpacity(0.85),
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 15,
+                color: Colors.white,
+                height: 1.35,
+              ),
+            ),
+          ],
         ),
       ),
     );

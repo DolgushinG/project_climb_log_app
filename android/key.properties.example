@@ -1,0 +1,7 @@
+# Скопируйте этот файл как key.properties и заполните своими данными.
+# key.properties не коммитится в git (уже в .gitignore).
+
+storePassword=ваш_пароль_хранилища
+keyPassword=ваш_пароль_ключа
+keyAlias=upload
+storeFile=upload-keystore.jks

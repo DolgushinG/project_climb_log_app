@@ -255,11 +255,22 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             } else if (snapshot.hasData) {
               final profile = snapshot.data!;
 
-              if (_selectedDate == null && profile.birthday != null && profile.birthday.isNotEmpty) {
-                final DateTime parsedDate = DateTime.parse(profile.birthday);
-                _selectedDate = parsedDate;
-                final String formattedDate = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
-                _textEditingController.text = formattedDate;
+              // Дополнительная защита от некорректного формата даты
+              if (_selectedDate == null &&
+                  profile.birthday != null &&
+                  profile.birthday.isNotEmpty) {
+                try {
+                  final DateTime parsedDate =
+                      DateTime.parse(profile.birthday);
+                  _selectedDate = parsedDate;
+                  final String formattedDate =
+                      DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
+                  _textEditingController.text = formattedDate;
+                } catch (e) {
+                  print('Ошибка обработки даты в build: $e');
+                  _selectedDate = null;
+                  _textEditingController.text = '';
+                }
               }
 
             return SingleChildScrollView(
