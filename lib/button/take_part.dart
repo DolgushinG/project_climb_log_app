@@ -18,11 +18,13 @@ import '../models/SportCategory.dart';
 class TakePartButtonScreen extends StatefulWidget {
   final int event_id;
   final bool is_participant;
+  final bool is_need_pay_for_reg;
   Category? category;
   SportCategory? sport_category;
   DateTime? birthday;
   NumberSets? number_set;
-  final VoidCallback onParticipationStatusChanged; // Колбек
+  final VoidCallback onParticipationStatusChanged;
+  final void Function(int eventId)? onNeedCheckout;
 
   TakePartButtonScreen(
       this.event_id,
@@ -31,7 +33,10 @@ class TakePartButtonScreen extends StatefulWidget {
       this.category,
       this.sport_category,
       this.number_set,
-      this.onParticipationStatusChanged);
+      this.onParticipationStatusChanged, {
+      this.is_need_pay_for_reg = false,
+      this.onNeedCheckout,
+    });
 
   @override
   _MyButtonScreenState createState() => _MyButtonScreenState();
@@ -131,6 +136,9 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           });
         }
         widget.onParticipationStatusChanged();
+        if (widget.is_need_pay_for_reg && widget.onNeedCheckout != null) {
+          widget.onNeedCheckout!(widget.event_id);
+        }
       } else if (response.statusCode == 401 || response.statusCode == 419) {
         Navigator.push(
           context,

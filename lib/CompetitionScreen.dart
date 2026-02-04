@@ -11,6 +11,7 @@ import 'button/result_entry_button.dart';
 import 'button/take_part.dart';
 import 'list_participants.dart';
 import 'main.dart';
+import 'Screens/CheckoutScreen.dart';
 import 'models/Category.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -63,6 +64,7 @@ class Competition {
   final bool? is_access_user_edit_result;
   final bool? is_send_result_state;
   final bool? is_open_send_result_state;
+  final bool is_need_pay_for_reg;
 
   Competition({
     required this.id,
@@ -88,6 +90,7 @@ class Competition {
     this.is_access_user_edit_result,
     this.is_send_result_state,
     this.is_open_send_result_state,
+    this.is_need_pay_for_reg = false,
     required this.is_need_send_birthday,
     required this.is_need_sport_category,
     required this.info_payment,
@@ -133,6 +136,7 @@ class Competition {
       is_access_user_edit_result: _jsonToBool(json['is_access_user_edit_result']),
       is_send_result_state: _jsonToBool(json['is_send_result_state']),
       is_open_send_result_state: _jsonToBool(json['is_open_send_result_state']),
+      is_need_pay_for_reg: _jsonToBool(json['is_need_pay_for_reg']),
       description: json['description'] ?? '',
       categories: (categoriesRaw is List)
           ? categoriesRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
@@ -573,6 +577,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   NumberSets? selectedNumberSet;
   late Competition _competitionDetails; // Хранит обновленные данные соревнования
   DateTime? _selectedDate;
+  bool _receiptPending = false; // Чек загружен, ожидает подтверждения
+  bool _isRefreshing = false;
   final TextEditingController _textEditingController = TextEditingController();
   final FocusNode _focusNode = AlwaysDisabledFocusNode();
 
@@ -748,6 +754,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   Widget _buildInformationSection() {
     return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
       child: Padding(
         padding: const EdgeInsets.all(20.0),
         child: Column(
@@ -979,6 +986,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       selectedSportCategory,
                       selectedNumberSet,
                       _refreshParticipationStatus,
+                      is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
+                      onNeedCheckout: (eventId) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => CheckoutScreen(eventId: eventId),
+                          ),
+                        ).then((_) => _refreshParticipationStatus());
+                      },
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -1014,11 +1030,40 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                 ],
               ),
+              if (_receiptPending &&
+                  _competitionDetails.is_participant &&
+                  _competitionDetails.is_need_pay_for_reg &&
+                  !_competitionDetails.is_participant_paid) ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.only(top: 16, bottom: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.receipt_long, color: Colors.orange, size: 28),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          'Чек проверяется. Ожидайте подтверждения администратором. Результаты можно будет вносить после подтверждения оплаты.',
+                          style: TextStyle(color: Colors.white, fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
               if (_competitionDetails.is_participant) ...[
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    if (_competitionDetails.is_routes_exists)
+                    if (_competitionDetails.is_routes_exists &&
+                        (!_competitionDetails.is_need_pay_for_reg ||
+                            _competitionDetails.is_participant_paid))
                       ResultEntryButton(
                         eventId: _competitionDetails.id,
                         isParticipantActive: _jsonToBool(
@@ -1131,8 +1176,37 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Детали соревнования'),
+        actions: [
+          IconButton(
+            icon: _isRefreshing
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Icon(Icons.refresh),
+            onPressed: _isRefreshing ? null : _onRefreshPressed,
+            tooltip: 'Обновить',
+          ),
+        ],
       ),
-      body: _buildContent(),
+      body: Stack(
+        children: [
+          _buildContent(),
+          Positioned.fill(
+            child: IgnorePointer(
+              ignoring: !_isRefreshing,
+              child: AnimatedOpacity(
+                opacity: _isRefreshing ? 0.3 : 0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  color: Colors.black,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
       bottomNavigationBar: BottomNavigationBar(
         items: const <BottomNavigationBarItem>[
           BottomNavigationBarItem(
@@ -1158,13 +1232,30 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   Widget _buildContent() {
     switch (_selectedIndex) {
       case 0:
-        return _buildInformationSection();
+        return RefreshIndicator(
+          onRefresh: () async => fetchCompetition(),
+          child: _buildInformationSection(),
+        );
       case 1:
         return buildResults(context);
       case 2:
-        return _buildStatisticsSection();
+        return RefreshIndicator(
+          onRefresh: () async => fetchCompetition(),
+          child: LayoutBuilder(
+            builder: (context, constraints) => SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                child: _buildStatisticsSection(),
+              ),
+            ),
+          ),
+        );
       default:
-        return _buildInformationSection();
+        return RefreshIndicator(
+          onRefresh: () async => fetchCompetition(),
+          child: _buildInformationSection(),
+        );
     }
   }
 
@@ -1377,6 +1468,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     );
   }
 
+  Future<void> _onRefreshPressed() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    try {
+      await fetchCompetition();
+    } finally {
+      if (mounted) setState(() => _isRefreshing = false);
+    }
+  }
+
   // Метод для инициализации состояния
   Future<void> _fetchInitialParticipationStatus() async {
     await fetchCompetition();
@@ -1390,12 +1491,42 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     await _fetchInitialParticipationStatus();
   }
 
+  /// Если участник платного соревнования и не оплатил — проверяем таймер и редиректим на Checkout
+  Future<void> _checkAndRedirectToCheckoutIfNeeded(Competition c) async {
+    if (!c.is_participant || !c.is_need_pay_for_reg || c.is_participant_paid) return;
+    try {
+      final token = await getToken();
+      if (token == null) return;
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${c.id}/checkout'),
+        headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
+      );
+      if (r.statusCode != 200 || !mounted) return;
+      final raw = json.decode(r.body);
+      final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
+      if (data == null) return;
+      final hasBill = data['has_bill'] == true;
+      final remaining = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
+      if (mounted) {
+        setState(() => _receiptPending = hasBill);
+        if (hasBill) return; // Чек загружен — остаёмся на странице соревнования
+        if (remaining > 0) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => CheckoutScreen(eventId: c.id, initialData: data),
+            ),
+          ).then((_) => fetchCompetition());
+        }
+      }
+    } catch (_) {}
+  }
+
   @override
   void initState() {
     super.initState();
-    _fetchInitialParticipationStatus();
-    _competitionDetails = widget.competition; // Инициализируем значением из конструктора
-    fetchCompetition();
+    _competitionDetails = widget.competition;
+    fetchCompetition(); // _fetchInitialParticipationStatus = fetchCompetition, один вызов
   }
 
 // Обновить детали соревнования
@@ -1411,14 +1542,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
 
     if (response.statusCode == 200) {
-      final data = json.decode(response.body);
-      // Преобразуем JSON в объект `Competition`
-      final Competition updatedCompetition = Competition.fromJson(data);
+      final raw = json.decode(response.body);
+      final data = raw is List && raw.isNotEmpty ? raw.first : raw;
+      if (data is! Map) return;
+      final Competition updatedCompetition = Competition.fromJson(Map<String, dynamic>.from(data));
       if (mounted) {
         setState(() {
-          _competitionDetails =
-              updatedCompetition; // Обновляем детали соревнования
+          _competitionDetails = updatedCompetition;
         });
+        _checkAndRedirectToCheckoutIfNeeded(updatedCompetition);
       }
     } else if (response.statusCode == 401 || response.statusCode == 419) {
       Navigator.push(
