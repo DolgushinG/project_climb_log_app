@@ -46,7 +46,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         _selectedDate = parsedDate;
         _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
       } catch (e) {
-        print('Ошибка обработки даты: $e');
       }
     }
 
@@ -267,7 +266,6 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       DateFormat('dd MMMM yyyy', 'ru').format(parsedDate);
                   _textEditingController.text = formattedDate;
                 } catch (e) {
-                  print('Ошибка обработки даты в build: $e');
                   _selectedDate = null;
                   _textEditingController.text = '';
                 }

@@ -167,7 +167,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       final String apiUrl = DOMAIN + '/api/register';
 
       if (!_isPrivacyAccepted) {
-        print(1);
         _showSnackBar(
             'Необходимо согласиться с обработкой данных', Colors.red);
         return;
@@ -188,7 +187,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             'password_confirmation': _confirmPassword,
           }),
         );
-        print(response.body);
         if (response.statusCode == 200) {
           final responseData = json.decode(response.body);
           final token = responseData['token'];

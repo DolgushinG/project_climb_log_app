@@ -42,7 +42,6 @@ class _LoginScreenState extends State<LoginScreen> {
       if (response.statusCode == 200) {
         final responseData = json.decode(response.body);
         final token = responseData['token'];
-        print(token);
         saveToken(token);
 
         Navigator.pushReplacement(
@@ -51,11 +50,9 @@ class _LoginScreenState extends State<LoginScreen> {
         );
         // Здесь вы можете добавить навигацию на другой экран после успешного входа
       } else {
-        print('Login failed: ${response.body}');
         _showError('Invalid credentials');
       }
     } catch (error) {
-      print('Error occurred: $error');
       _showError('Something went wrong');
     } finally {
       if (mounted) {

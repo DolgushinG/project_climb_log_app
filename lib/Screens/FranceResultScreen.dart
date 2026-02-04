@@ -13,7 +13,6 @@ Future<http.Response?> fetchResults({required final int eventId,required final i
     final response = await http.get(url);
     return response;
   } catch (e) {
-    print("Failed to load participants: $e");
   }
   return null;
 }
@@ -139,7 +138,6 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
           }
         }
 
-        print(normalizedResults);
         if (mounted) {
           setState(() {
             results = normalizedResults;

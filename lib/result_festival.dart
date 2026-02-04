@@ -170,7 +170,6 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         });
       }
     } catch (e) {
-      print("Failed to load participants: $e");
     }
   }
   Widget _buildResultList(String gender) {

@@ -199,7 +199,6 @@ class _TokenCheckerState extends State<TokenChecker> {
         ),
       );
     }
-    print(token);
     // После загрузки токена выбираем страницу
     return token == null ? StartPage() : MainScreen();
   }

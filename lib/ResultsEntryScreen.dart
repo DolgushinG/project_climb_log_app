@@ -15,7 +15,6 @@ Future<List<Routes>> getRoutesData({
 
   if (response.statusCode == 200) {
     List jsonResponse = json.decode(response.body);
-    print(jsonResponse);
     return jsonResponse.map((data) => Routes.fromJson(data)).toList();
   } else {
     throw Exception('Failed to load participants');
@@ -77,9 +76,6 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
         // Возвращаемся на экран события и даём сигнал обновить данные
         Navigator.pop(context, true);
       } else {
-        print('Failed to submit results, status: ${response.statusCode}');
-        print('Failed to submit results body: ${response.body}');
-
         try {
           final Map<String, dynamic> body = jsonDecode(response.body);
           final String message =
@@ -90,7 +86,6 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
         }
       }
     } catch (e) {
-      print("Error occurred while submitting results: $e");
     }
   }
 
@@ -118,7 +113,6 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
         await _loadServerResultsIfNeeded();
       }
     } catch (e) {
-      print("Failed to load participants: $e");
     }
   }
 
@@ -148,7 +142,6 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
       final key = 'results_draft_${widget.eventId}';
       await prefs.setString(key, jsonEncode(selectedAttempts));
     } catch (e) {
-      print('Failed to save draft results: $e');
     }
   }
 
@@ -182,7 +175,6 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
         }
       });
     } catch (e) {
-      print('Failed to load draft results: $e');
     }
   }
 
@@ -208,8 +200,6 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
       );
 
       if (response.statusCode != 200) {
-        print(
-            'Failed to load server results, status: ${response.statusCode}, body: ${response.body}');
         return;
       }
 
@@ -240,8 +230,7 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
                 })
             .toList();
       });
-    } catch (e) {
-      print('Failed to load server results: $e');
+    } catch (_) {
     }
   }
 

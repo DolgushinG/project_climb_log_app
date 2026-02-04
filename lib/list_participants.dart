@@ -57,8 +57,6 @@ Future<List<Participant>> fetchParticipants({
     return jsonResponse.map((data) => Participant.fromJson(data)).toList();
   } else {
     // Логируем, чтобы понимать, что именно не нравится бэку
-    print('Failed to load participants, status: ${response.statusCode}');
-    print('Failed to load participants body: ${response.body}');
     throw Exception('Failed to load participants');
   }
 }
@@ -97,7 +95,6 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
         });
       }
     } catch (e) {
-      print("Failed to load participants: $e");
     }
   }
 

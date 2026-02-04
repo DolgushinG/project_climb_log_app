@@ -35,9 +35,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         'Content-Type': 'application/json',
       },
     );
-    print(DOMAIN + '/api/profile');
-    print(response.body);
-    print(token);
     if (response.statusCode == 200) {
       final data = json.decode(response.body);
       if (mounted) {
@@ -62,7 +59,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         SnackBar(content: Text('Ошибка сессии')),
       );
     } else {
-      print('Failed to load profile data');
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -82,7 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Профиль'),
+        automaticallyImplyLeading: false,
+        title: const Text('Профиль'),
       ),
       body: isLoading
           ? Center(child: CircularProgressIndicator())

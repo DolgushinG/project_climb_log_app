@@ -28,10 +28,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       ..setJavaScriptMode(JavaScriptMode.unrestricted) // Разрешение JavaScript
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (String url) {
-            // Логгируем загрузку страницы (можно убрать)
-            print('Страница загружена: $url');
-          },
+          onPageFinished: (String url) {},
           onNavigationRequest: (NavigationRequest request) async {
             // Проверяем редирект-URL
             if (request.url.startsWith('$DOMAIN/auth/callback')) {
@@ -40,10 +37,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
               final token = uri.queryParameters['token'];
 
               if (token != null) {
-                print(token);
                 saveToken(token);
-                final token2 =  getToken();
-                print(token2);
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => MainScreen()),

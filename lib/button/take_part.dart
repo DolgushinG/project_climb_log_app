@@ -83,7 +83,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _showNotification('Ошибка при получении статуса', Colors.red);
       }
     } catch (e) {
-      print(e);
       _showNotification('Ошибка сети', Colors.red);
     }
   }
@@ -105,15 +104,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         serverDate = null;
       }
 
-      print(json.encode({
-        'event_id': '${widget.event_id}',
-        'birthday': serverDate,
-        'category': '${widget.category?.category}',
-        'sport_category': '${widget.sport_category?.sport_category}',
-        'number_set': '${widget.number_set?.number_set}',
-
-      }));
-
       final response = await http.post(
         Uri.parse('${DOMAIN}/api/event/take/part'),
         headers: {
@@ -131,7 +121,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
       );
       final responseData = json.decode(response.body);
       final message = responseData['message'];
-      print(responseData);
       if (response.statusCode == 200) {
         _showNotification(message, Colors.green);
         if (mounted) {
@@ -156,7 +145,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _handleError(message);
       }
     } catch (e) {
-      print(e);
       _handleError('Ошибка сети');
     } finally {
       _resetButtonStateAfterDelay();
