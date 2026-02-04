@@ -48,12 +48,20 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           MaterialPageRoute(builder: (context) => MainScreen()),
         );
-        // Здесь вы можете добавить навигацию на другой экран после успешного входа
       } else {
-        _showError('Invalid credentials');
+        String message = 'Неверный email или пароль. Проверьте данные и попробуйте снова.';
+        try {
+          final body = json.decode(response.body);
+          if (body is Map && body['message'] != null) {
+            message = body['message'].toString();
+          } else if (body is Map && body['error'] != null) {
+            message = body['error'].toString();
+          }
+        } catch (_) {}
+        _showError(message);
       }
     } catch (error) {
-      _showError('Something went wrong');
+      _showError('Ошибка соединения. Проверьте интернет и попробуйте снова.');
     } finally {
       if (mounted) {
         setState(() {
@@ -64,15 +72,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   void _showError(String message) {
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Error'),
+        title: const Text('Ошибка входа'),
         content: Text(message),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK'),
+            child: const Text('OK'),
           ),
         ],
       ),

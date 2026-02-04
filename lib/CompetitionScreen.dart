@@ -289,7 +289,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
               children: [
                 if (_uniqueCities.isNotEmpty)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 8),
                     child: Row(
                       children: [
                         Text(
@@ -1310,9 +1310,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 builder: (context) => FranceResultsPage(
                   eventId: _competitionDetails.id,
                   amount_routes: amount_routes,
-                  categoryId: category.id,
                   category: category,
-                  stage: stage
+                  stage: stage,
                 ),
               ),
             );

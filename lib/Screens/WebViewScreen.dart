@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-import 'package:flutter/material.dart';
-import 'package:webview_flutter/webview_flutter.dart';
-
 import '../MainScreen.dart';
 import '../main.dart';
 
@@ -18,6 +15,36 @@ class WebViewScreen extends StatefulWidget {
 
 class _WebViewScreenState extends State<WebViewScreen> {
   late final WebViewController _controller;
+  bool _tokenHandled = false;
+
+  bool _isOurDomain(String url) {
+    try {
+      final uri = Uri.parse(url);
+      final domainHost = Uri.parse(DOMAIN).host;
+      return uri.host == domainHost ||
+          uri.host.endsWith('.$domainHost') ||
+          url.startsWith(DOMAIN) ||
+          url.startsWith(DOMAIN.replaceFirst('https://', 'https://www.'));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String? _extractTokenFromUrl(String url) {
+    try {
+      final uri = Uri.parse(url);
+      String? token = uri.queryParameters['token'] ??
+          uri.queryParameters['api_token'] ??
+          uri.queryParameters['access_token'];
+      if (token == null && uri.fragment.isNotEmpty) {
+        final fp = Uri.splitQueryString(uri.fragment);
+        token = fp['token'] ?? fp['api_token'] ?? fp['access_token'];
+      }
+      return (token != null && token.trim().isNotEmpty) ? token.trim() : null;
+    } catch (_) {
+      return null;
+    }
+  }
 
   @override
   void initState() {
@@ -25,30 +52,40 @@ class _WebViewScreenState extends State<WebViewScreen> {
 
     // Инициализация WebViewController
     _controller = WebViewController()
-      ..setJavaScriptMode(JavaScriptMode.unrestricted) // Разрешение JavaScript
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (String url) {},
+          onPageFinished: (String url) async {
+            if (!_isOurDomain(url) || _tokenHandled) return;
+            final token = _extractTokenFromUrl(url);
+            if (token != null && token.trim().isNotEmpty && mounted) {
+              _tokenHandled = true;
+              await saveToken(token);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (context) => MainScreen()),
+              );
+            }
+          },
           onNavigationRequest: (NavigationRequest request) async {
-            // Проверяем редирект-URL
-            if (request.url.startsWith('$DOMAIN/auth/callback')) {
-              // Извлекаем токен из URL
-              final Uri uri = Uri.parse(request.url);
-              final token = uri.queryParameters['token'];
+            final url = request.url;
+            if (!_isOurDomain(url) || _tokenHandled) {
+              return NavigationDecision.navigate;
+            }
+            final token = _extractTokenFromUrl(url);
 
-              if (token != null) {
-                saveToken(token);
+            if (token != null && token.trim().isNotEmpty) {
+              _tokenHandled = true;
+              await saveToken(token);
+              if (mounted) {
                 Navigator.pushReplacement(
                   context,
                   MaterialPageRoute(builder: (context) => MainScreen()),
                 );
               }
-
-              // Запрещаем дальнейшую загрузку этого URL
               return NavigationDecision.prevent;
             }
 
-            // Разрешаем все остальные запросы
             return NavigationDecision.navigate;
           },
         ),

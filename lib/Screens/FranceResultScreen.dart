@@ -7,8 +7,18 @@ import 'package:login_app/main.dart';
 import '../models/Category.dart';
 
 
-Future<http.Response?> fetchResults({required final int eventId,required final int categoryId,required final String stage}) async {
-  final url = Uri.parse('$DOMAIN/api/results/france?event_id=$eventId&stage=$stage&category_id=$categoryId');
+Future<http.Response?> fetchResults({
+  required final int eventId,
+  required final String stage,
+  required final String categoryIdentifier,
+}) async {
+  final url = Uri.parse('$DOMAIN/api/results/france').replace(
+    queryParameters: {
+      'event_id': eventId.toString(),
+      'stage': stage,
+      'uniqid_category_id': categoryIdentifier,
+    },
+  );
   try {
     final response = await http.get(url);
     return response;
@@ -20,11 +30,15 @@ Future<http.Response?> fetchResults({required final int eventId,required final i
 class FranceResultsPage extends StatefulWidget {
   final int eventId;
   final int amount_routes;
-  final int categoryId;
-  final Category category; // Переданный eventId
-  final String stage; // Переданный eventId
+  final Category category;
+  final String stage;
 
-  FranceResultsPage({required this.eventId,required this.amount_routes,  required this.categoryId, required this.category, required this.stage});
+  FranceResultsPage({
+    required this.eventId,
+    required this.amount_routes,
+    required this.category,
+    required this.stage,
+  });
 
   @override
   _FranceResultsPageState createState() => _FranceResultsPageState();
@@ -32,53 +46,119 @@ class FranceResultsPage extends StatefulWidget {
 
 class _FranceResultsPageState extends State<FranceResultsPage> with SingleTickerProviderStateMixin {
   late TabController _tabController;
-  bool isLoading = true; // Флаг загрузки
-  bool hasError = false; // Флаг ошибки
+  bool isLoading = true;
   List results = [];
   List filteredResults = [];
-  String? searchQuery = '';
-  Category? selectedCategory;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _fetchResults();
+    _searchController.addListener(() => setState(() {}));
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List _getSearchFiltered() {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) return filteredResults;
+    return filteredResults.where((r) {
+      if (r is! Map) return false;
+      final name = _extractName(r);
+      return name.toLowerCase().contains(query);
+    }).toList();
+  }
+
+  String? _extractGender(dynamic raw) {
+    if (raw is! Map) return null;
+    final g = raw['gender'];
+    if (g != null && g.toString().isNotEmpty) return g.toString();
+    for (final key in raw.keys) {
+      if (key.toString().contains('items') && raw[key] is Map) {
+        final m = raw[key] as Map;
+        final ig = m['gender'];
+        if (ig != null && ig.toString().isNotEmpty) return ig.toString();
+      }
+    }
+    return null;
+  }
+
+  String _extractName(dynamic raw) {
+    if (raw is! Map) return '';
+    String? itemsKey;
+    for (final key in raw.keys) {
+      if (key.toString().contains('items')) {
+        itemsKey = key.toString();
+        break;
+      }
+    }
+    if (itemsKey != null && raw[itemsKey] is Map) {
+      final m = raw[itemsKey] as Map;
+      return (m['middlename'] ?? m['name'] ?? '').toString();
+    }
+    return (raw['middlename'] ?? raw['name'] ?? '').toString();
   }
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(
         title: Text(widget.category.category),
         automaticallyImplyLeading: true,
         bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(48),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.04),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                indicatorColor: Colors.transparent,
-                overlayColor:
-                    MaterialStateProperty.all(Colors.transparent),
-                indicator: BoxDecoration(
-                  borderRadius: BorderRadius.circular(999),
-                  color: Colors.white.withOpacity(0.16),
+          preferredSize: const Size.fromHeight(96),
+          child: Column(
+            children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: TextField(
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    hintText: 'Поиск по имени...',
+                    hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
+                    prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.7)),
+                    filled: true,
+                    fillColor: Colors.white.withOpacity(0.08),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  ),
+                  style: const TextStyle(color: Colors.white),
+                  onChanged: (_) => setState(() {}),
                 ),
-                labelPadding:
-                    const EdgeInsets.symmetric(horizontal: 8.0),
-                tabs: const [
-                  Tab(text: 'Мужчины'),
-                  Tab(text: 'Женщины'),
-                ],
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.04),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    indicatorColor: Colors.transparent,
+                    overlayColor: MaterialStateProperty.all(Colors.transparent),
+                    indicator: BoxDecoration(
+                      borderRadius: BorderRadius.circular(999),
+                      color: Colors.white.withOpacity(0.16),
+                    ),
+                    labelPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    tabs: const [
+                      Tab(text: 'Мужчины'),
+                      Tab(text: 'Женщины'),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -92,11 +172,15 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     );
   }
   void _fetchResults() async {
-    final int eventId = widget.eventId;
-    final String stage = widget.stage;
-    final int categoryId = widget.categoryId;
+    final categoryId = widget.category.uniqidCategoryId.isNotEmpty
+        ? widget.category.uniqidCategoryId
+        : widget.category.id.toString();
     try {
-      final data = await fetchResults(eventId: eventId, categoryId: categoryId, stage: stage);
+      final data = await fetchResults(
+        eventId: widget.eventId,
+        stage: widget.stage,
+        categoryIdentifier: categoryId,
+      );
       if (data != null && data.statusCode == 200) {
         // Декодируем JSON-ответ
         final dynamic decoded = json.decode(data.body);
@@ -160,18 +244,27 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
   }
 
   Widget buildFinalResults(String gender) {
-    final genderResults = filteredResults.where((result) {
+    final searchFiltered = _getSearchFiltered();
+    final genderResults = searchFiltered.where((result) {
       if (result is! Map) return false;
-      final g = result['gender'];
-      // Если бэк не прислал gender — показываем результат в обеих вкладках
-      if (g == null || g.toString().isEmpty) return true;
+      final g = _extractGender(result);
+      if (g == null || g.isEmpty) return false;
       return g == gender;
     }).toList();
-    final String gender_route;
-    if(gender == 'female'){
-      gender_route = 'Ж';
-    } else {
-       gender_route = 'М';
+    final String gender_route = gender == 'female' ? 'Ж' : 'М';
+
+    if (genderResults.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _searchController.text.trim().isEmpty
+                ? 'Нет результатов'
+                : 'Ничего не найдено',
+            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+          ),
+        ),
+      );
     }
 
     return ListView.builder(
@@ -202,11 +295,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
           if (itemsKey != null && raw[itemsKey] is Map) {
             data.addAll(Map<String, dynamic>.from(raw[itemsKey] as Map));
           }
-
-          // Заодно сохраняем gender, если он нужен
-          if (raw['gender'] != null) {
-            data['gender'] = raw['gender'];
-          }
+          data['gender'] = _extractGender(raw);
         }
 
         // Формируем динамические данные для маршрутов
