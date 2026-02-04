@@ -23,21 +23,48 @@ class ParticipantResult {
 
   // Фабричный метод для создания экземпляра из JSON
   factory ParticipantResult.fromJson(Map<String, dynamic> json) {
+    // Бэкенд теперь отдаёт поле place (ранее было user_place) —
+    // поддерживаем оба варианта для совместимости.
+    final dynamic rawPlace = json['place'] ?? json['user_place'];
+    int parsedPlace;
+    if (rawPlace is int) {
+      parsedPlace = rawPlace;
+    } else if (rawPlace is String) {
+      parsedPlace = int.tryParse(rawPlace) ?? 0;
+    } else {
+      parsedPlace = 0;
+    }
+
+    final dynamic rawPoints = json['points'];
+    num parsedPoints;
+    if (rawPoints is num) {
+      parsedPoints = rawPoints;
+    } else if (rawPoints is String) {
+      parsedPoints = num.tryParse(rawPoints) ?? 0;
+    } else {
+      parsedPoints = 0;
+    }
+
     return ParticipantResult(
-      user_place: json['user_place'],
-      middlename: json['middlename'],
-      category: json['category'],
-      points: json['points'],
-      gender: json['gender'],
+      user_place: parsedPlace,
+      middlename: json['middlename'] ?? '',
+      category: json['category'] ?? '',
+      points: parsedPoints,
+      gender: json['gender'] ?? '',
     );
   }
 }
 
 
 
-// Функция для получения данных участников
-Future<List<ParticipantResult>> fetchParticipants({required final int eventId,required final int categoryId}) async {
-  final Uri url = Uri.parse('$DOMAIN/api/results/festival/?event_id=$eventId&category_id=$categoryId');
+// Функция для получения данных участников фестиваля
+Future<List<ParticipantResult>> fetchParticipants({
+  required final int eventId,
+  required final String uniqidCategoryId,
+}) async {
+  final Uri url = Uri.parse(
+    '$DOMAIN/api/results/festival/?event_id=$eventId&uniqid_category_id=$uniqidCategoryId',
+  );
 
   final response = await http.get(url);
 
@@ -53,8 +80,15 @@ Future<List<ParticipantResult>> fetchParticipants({required final int eventId,re
 class ResultScreen extends StatefulWidget {
   final int eventId;
   final int categoryId;
+  // Уникальный идентификатор категории, ожидаемый бэкендом для festival-результатов
+  final String uniqidCategoryId;
   final Category category;
-  ResultScreen({required this.eventId, required this.categoryId, required this.category});
+  ResultScreen({
+    required this.eventId,
+    required this.categoryId,
+    required this.category,
+    required this.uniqidCategoryId,
+  });
 
   @override
   _ResultScreenState createState() => _ResultScreenState();
@@ -102,9 +136,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   }
   void _fetchResults() async {
     final int eventId = widget.eventId;
-    final int categoryId = widget.categoryId;
+    final String uniqidCategoryId = widget.uniqidCategoryId;
     try {
-      final data = await fetchParticipants(eventId: eventId, categoryId: categoryId);
+      final data = await fetchParticipants(
+        eventId: eventId,
+        uniqidCategoryId: uniqidCategoryId,
+      );
       if (mounted) {
         setState(() {
           results = data;

@@ -15,6 +15,16 @@ import 'models/Category.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
+bool _jsonToBool(dynamic value) {
+  if (value is bool) return value;
+  if (value is num) return value != 0;
+  if (value is String) {
+    final v = value.toLowerCase();
+    return v == 'true' || v == '1';
+  }
+  return false;
+}
+
 class Competition {
   final int id;
   final String title;
@@ -22,6 +32,7 @@ class Competition {
   final String city;
   final String contact;
   final bool is_participant;
+  final bool? is_participant_active;
   final bool is_routes_exists;
   final String poster;
   final String info_payment;
@@ -43,6 +54,7 @@ class Competition {
   final bool is_participant_paid;
   final int is_access_user_cancel_take_part;
   final int is_france_system_qualification;
+  final bool? is_access_user_edit_result;
 
   Competition({
     required this.id,
@@ -50,6 +62,7 @@ class Competition {
     required this.city,
     required this.contact,
     required this.is_participant,
+    this.is_participant_active,
     required this.is_result_in_final_exists,
     required this.amount_routes_in_qualification,
     required this.amount_routes_in_final,
@@ -64,6 +77,7 @@ class Competition {
     required this.is_input_set,
     required this.is_semifinal,
     required this.is_france_system_qualification,
+    this.is_access_user_edit_result,
     required this.is_need_send_birthday,
     required this.is_need_sport_category,
     required this.info_payment,
@@ -79,22 +93,24 @@ class Competition {
       id: json['id'],
       title: json['title'],
       city: json['city'],
-      is_participant: json['is_participant'],
-      is_result_in_final_exists: json['is_result_in_final_exists'],
+      is_participant: _jsonToBool(json['is_participant']),
+      is_participant_active: _jsonToBool(json['is_participant_active']),
+      is_result_in_final_exists: _jsonToBool(json['is_result_in_final_exists']),
       amount_routes_in_qualification: json['amount_routes_in_qualification'],
       amount_routes_in_final: json['amount_routes_in_final'] ?? 0,
       amount_routes_in_semifinal: json['amount_routes_in_semifinal'] ?? 0,
-      is_semifinal: json['is_semifinal'],
-      is_need_send_birthday: json['is_need_send_birthday'],
+      is_semifinal: _jsonToBool(json['is_semifinal']),
+      is_need_send_birthday: _jsonToBool(json['is_need_send_birthday']),
       is_need_sport_category: json['is_need_sport_category'],
-      is_routes_exists: json['is_routes_exists'],
-      is_participant_paid: json['is_participant_paid'],
+      is_routes_exists: _jsonToBool(json['is_routes_exists']),
+      is_participant_paid: _jsonToBool(json['is_participant_paid']),
       contact: json['contact'] ?? '',
       poster: json['poster'],
       is_access_user_cancel_take_part: json['is_access_user_cancel_take_part'],
       is_auto_categories: json['is_auto_categories'],
       is_input_set: json['is_input_set'],
       is_france_system_qualification: json['is_france_system_qualification'],
+      is_access_user_edit_result: _jsonToBool(json['is_access_user_edit_result']),
       description: json['description'] ?? '',
       categories: (json['categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
       sport_categories: (json['sport_categories'] as List).map((item) => Map<String, dynamic>.from(item)).toList(),
@@ -136,6 +152,9 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       },
     );
 
+    print('fetchCompetitions status: ${response.statusCode}');
+    print('fetchCompetitions body: ${response.body}');
+
     if (response.statusCode == 200) {
       final List<dynamic> data = json.decode(response.body);
 
@@ -171,6 +190,10 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
     }
   }
 
+  Future<void> _refreshCompetitions() async {
+    await fetchCompetitions();
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -196,44 +219,58 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           : TabBarView(
               controller: _tabController,
               children: [
-                buildCompetitionList(_currentCompetitions),
-                buildCompetitionList(_completedCompetitions),
+                RefreshIndicator(
+                  onRefresh: _refreshCompetitions,
+                  child: buildCompetitionList(_currentCompetitions),
+                ),
+                RefreshIndicator(
+                  onRefresh: _refreshCompetitions,
+                  child: buildCompetitionList(_completedCompetitions),
+                ),
               ],
             ),
     );
   }
 
   Widget buildCompetitionList(List<dynamic> competitions) {
-    return competitions.isEmpty
-        ? const Padding(
+    if (competitions.isEmpty) {
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: const [
+          Padding(
             padding: EdgeInsets.all(8.0),
-            child: Text('No competitions found.'),
-          )
-        : ListView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: competitions.length,
-            itemBuilder: (context, index) {
-              final Competition competition = competitions[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: ListTile(
-                  title: Text(competition.title),
-                  subtitle: Text(competition.address),
-                  trailing: Text(
-                      '${competition.start_date.toLocal().toString().split(' ')[0]}'),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (context) =>
-                              CompetitionDetailScreen(competition)),
-                    );
-                  },
+            child: Center(
+              child: Text('No competitions found.'),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return ListView.builder(
+      physics: const AlwaysScrollableScrollPhysics(),
+      itemCount: competitions.length,
+      itemBuilder: (context, index) {
+        final Competition competition = competitions[index];
+        return Card(
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: ListTile(
+            title: Text(competition.title),
+            subtitle: Text(competition.address),
+            trailing: Text(
+                '${competition.start_date.toLocal().toString().split(' ')[0]}'),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CompetitionDetailScreen(competition),
                 ),
               );
             },
-          );
+          ),
+        );
+      },
+    );
   }
 }
 class AlwaysDisabledFocusNode extends FocusNode {
@@ -595,33 +632,99 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             if (_competitionDetails.is_participant)
               Row(
                 children: [
-                  if (_competitionDetails.is_routes_exists && _competitionDetails.is_france_system_qualification == 0)
+                  if (_competitionDetails.is_routes_exists &&
+                      _competitionDetails.is_france_system_qualification == 0)
                     Expanded(
-                      child: ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 10),
-                        ),
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => ResultEntryPage(eventId: _competitionDetails.id),
+                      child: _jsonToBool(_competitionDetails.is_participant_active)
+                          ? (_jsonToBool(_competitionDetails.is_access_user_edit_result)
+                              ? ElevatedButton(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.green,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding:
+                                        const EdgeInsets.symmetric(vertical: 10),
+                                  ),
+                                  onPressed: () async {
+                                    final bool? needRefresh =
+                                        await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => ResultEntryPage(
+                                          eventId: _competitionDetails.id,
+                                          isParticipantActive: _jsonToBool(
+                                            _competitionDetails
+                                                .is_participant_active,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+
+                                    // Если с экрана внесения результатов вернулись с флагом обновления — перезапрашиваем данные события
+                                    if (needRefresh == true) {
+                                      await _refreshParticipationStatus();
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Редактировать результаты',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 12.0,
+                                    ),
+                                    textAlign: TextAlign.left,
+                                  ),
+                                )
+                              : Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      vertical: 12, horizontal: 8),
+                                  alignment: Alignment.center,
+                                  child: const Text(
+                                    'Результаты добавлены',
+                                    style: TextStyle(
+                                      color: Colors.green,
+                                      fontSize: 12.0,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ))
+                          : ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.green,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                padding:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                              onPressed: () async {
+                                final bool? needRefresh = await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ResultEntryPage(
+                                      eventId: _competitionDetails.id,
+                                      isParticipantActive: _jsonToBool(
+                                        _competitionDetails.is_participant_active,
+                                      ),
+                                    ),
+                                  ),
+                                );
+
+                                // Если с экрана внесения результатов вернулись с флагом обновления — перезапрашиваем данные события
+                                if (needRefresh == true) {
+                                  await _refreshParticipationStatus();
+                                }
+                              },
+                              child: const Text(
+                                'Внести результаты',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 12.0,
+                                ),
+                                textAlign: TextAlign.left,
+                              ),
                             ),
-                          );
-                        },
-                        child: const Text(
-                          'Внести результаты',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 12.0,
-                          ),
-                          textAlign: TextAlign.left,
-                        ),
-                      ),
                     ),
                   SizedBox(height: 8, width: _competitionDetails.is_access_user_cancel_take_part == 1 && !_competitionDetails.is_participant_paid ? 10 : 0),
                   if (_competitionDetails.is_access_user_cancel_take_part == 1 && !_competitionDetails.is_participant_paid)
@@ -830,21 +933,24 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: categoryList
-            .map((category) => _buildResultCard(
-          title: category.category.split(' ').first,
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => ResultScreen(
-                  eventId: _competitionDetails.id,
-                  categoryId: category.id,
-                  category: category,
-                ),
+            .map(
+              (category) => _buildResultCard(
+                title: category.category.split(' ').first,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ResultScreen(
+                        eventId: _competitionDetails.id,
+                        categoryId: category.id,
+                        category: category,
+                        uniqidCategoryId: category.uniqidCategoryId,
+                      ),
+                    ),
+                  );
+                },
               ),
-            );
-          },
-        ))
+            )
             .toList(),
       ),
     );
@@ -965,6 +1071,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         'Content-Type': 'application/json',
       },
     );
+
+    print('fetchCompetition status: ${response.statusCode}');
+    print('fetchCompetition body: ${response.body}');
 
     if (response.statusCode == 200) {
       final data = json.decode(response.body);

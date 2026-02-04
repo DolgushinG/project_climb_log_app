@@ -77,30 +77,47 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     final int categoryId = widget.categoryId;
     try {
       final data = await fetchResults(eventId: eventId, categoryId: categoryId, stage: stage);
-      if (data!.statusCode == 200) {
+      if (data != null && data.statusCode == 200) {
         // Декодируем JSON-ответ
-        List<dynamic> jsonResponse = json.decode(data.body);
+        final dynamic decoded = json.decode(data.body);
 
-        // Нормализация результата
+        // Нормализация результата к списку map'ов
         List normalizedResults = [];
 
-        if (jsonResponse.isNotEmpty) {
-          if (jsonResponse.first is List) {
-
+        if (decoded is List) {
+          if (decoded.isNotEmpty && decoded.first is List) {
             // Если это вложенный массив [[...]], объединяем в один список
-            for (var sublist in jsonResponse) {
+            for (var sublist in decoded) {
               if (sublist is List) {
                 normalizedResults.addAll(sublist);
               }
             }
-          } else {
-            jsonResponse.forEach((entry) {
-              entry.forEach((key, value) {
-                normalizedResults.add(value);
-              });
-            });
+          } else if (decoded.isNotEmpty && decoded.first is Map) {
+            // Список map'ов. Возможны два варианта:
+            // 1) [{...}, {...}] — уже то, что нужно
+            // 2) [{1: {...}, 10: {...}}] — нужно взять values
+            final first = decoded.first as Map;
+            final bool isNumericKeyed =
+                first.keys.isNotEmpty && first.keys.first is! String;
+
+            if (isNumericKeyed) {
+              for (final entry in decoded) {
+                if (entry is Map) {
+                  normalizedResults.addAll(entry.values);
+                }
+              }
+            } else {
+              normalizedResults = List.from(decoded);
+            }
+          }
+        } else if (decoded is Map) {
+          // Например, { "data": [ ... ] }
+          final dataField = decoded['data'];
+          if (dataField is List) {
+            normalizedResults = List.from(dataField);
           }
         }
+
         print(normalizedResults);
         if (mounted) {
           setState(() {
@@ -111,7 +128,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Что то пошло не так ' + data!.statusCode.toString()),
+            content: Text('Что то пошло не так ' + (data?.statusCode.toString() ?? '')),
             backgroundColor: Colors.red,
           ),
         );
@@ -124,7 +141,13 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
   }
 
   Widget buildFinalResults(String gender) {
-    final genderResults = filteredResults.where((result) => result['gender'] == gender).toList();
+    final genderResults = filteredResults.where((result) {
+      if (result is! Map) return false;
+      final g = result['gender'];
+      // Если бэк не прислал gender — показываем результат в обеих вкладках
+      if (g == null || g.toString().isEmpty) return true;
+      return g == gender;
+    }).toList();
     final String gender_route;
     if(gender == 'female'){
       gender_route = 'Ж';
@@ -135,15 +158,45 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     return ListView.builder(
       itemCount: genderResults.length,
       itemBuilder: (context, index) {
-        final result = genderResults[index];
+        final raw = genderResults[index];
+
+        // Бэкенд возвращает объект вида:
+        // {
+        //   "\u0000*\u0000items": { ... поля участника ... },
+        //   "\u0000*\u0000escapeWhenCastingToString": false,
+        //   "gender": "female"
+        // }
+        //
+        // Нам нужны только поля из "items" +, при желании, "gender".
+        final Map<String, dynamic> data = <String, dynamic>{};
+        if (raw is Map) {
+          // Ищем ключ, в имени которого есть "items"
+          String? itemsKey;
+          for (final key in raw.keys) {
+            final keyStr = key.toString();
+            if (keyStr.contains('items')) {
+              itemsKey = keyStr;
+              break;
+            }
+          }
+
+          if (itemsKey != null && raw[itemsKey] is Map) {
+            data.addAll(Map<String, dynamic>.from(raw[itemsKey] as Map));
+          }
+
+          // Заодно сохраняем gender, если он нужен
+          if (raw['gender'] != null) {
+            data['gender'] = raw['gender'];
+          }
+        }
 
         // Формируем динамические данные для маршрутов
         final routes = List.generate(widget.amount_routes, (i) {
           final routeIndex = i + 1;
           return {
-            'amount_try_top': result['amount_try_top_$routeIndex'] ?? 0,
+            'amount_try_top': data['amount_try_top_$routeIndex'] ?? 0,
             'route_id': gender_route+routeIndex.toString(),
-            'amount_try_zone': result['amount_try_zone_$routeIndex'] ?? 0,
+            'amount_try_zone': data['amount_try_zone_$routeIndex'] ?? 0,
           };
         });
 
@@ -167,8 +220,11 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                             style: TextStyle(fontSize: 8, color: Colors.grey),
                           ),
                           Text(
-                            '${result['place']}',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                            '${data['place'] ?? data['user_place'] ?? ''}',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 16,
+                            ),
                           ),
                         ],
                       ),
@@ -180,7 +236,8 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            result['middlename'],
+                            (data['middlename'] ?? data['name'] ?? '')
+                                .toString(),
                             style: TextStyle(fontSize: 16),
                           ),
                         ],
@@ -189,7 +246,6 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                   ],
                 ),
                 SizedBox(height: 12.0),
-
                 // Блок с бейджами
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -219,22 +275,32 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                       child: Column(
                         children: [
                           _buildBadgeTopTitle('Кол-во'),
-                          Row(
-                            children: [
-                              Column(
-                                children: [
-                                  _buildBadgeTopNumberRoute('T', 5, 5),
-                                  _buildBadgeBottom(result['amount_top'].toString(), 5, 5),
-                                ],
-                              ),
-                              SizedBox(width: 9.0),
-                              Column(
-                                children: [
-                                  _buildBadgeTopNumberRoute('Z', 5, 5),
-                                  _buildBadgeBottom(result['amount_zone'].toString(), 5, 5),
-                                ],
-                              ),
-                            ],
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Column(
+                                  children: [
+                                    _buildBadgeTopNumberRoute('T', 5, 5),
+                                    _buildBadgeBottom(
+                                        (data['amount_top'] ?? 0).toString(),
+                                        5,
+                                        5),
+                                  ],
+                                ),
+                                SizedBox(width: 9.0),
+                                Column(
+                                  children: [
+                                    _buildBadgeTopNumberRoute('Z', 5, 5),
+                                    _buildBadgeBottom(
+                                        (data['amount_zone'] ?? 0).toString(),
+                                        5,
+                                        5),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -246,22 +312,34 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                       child: Column(
                         children: [
                           _buildBadgeTopTitle('Попытки'),
-                          Row(
-                            children: [
-                              Column(
-                                children: [
-                                  _buildBadgeTopNumberRoute('T', 5, 5),
-                                  _buildBadgeBottom(result['amount_try_top'].toString(), 5, 5),
-                                ],
-                              ),
-                              SizedBox(width: 9.0),
-                              Column(
-                                children: [
-                                  _buildBadgeTopNumberRoute('Z', 5, 5),
-                                  _buildBadgeBottom(result['amount_try_zone'].toString(), 5, 5),
-                                ],
-                              ),
-                            ],
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Column(
+                                  children: [
+                                    _buildBadgeTopNumberRoute('T', 5, 5),
+                                    _buildBadgeBottom(
+                                        (data['amount_try_top'] ?? 0)
+                                            .toString(),
+                                        5,
+                                        5),
+                                  ],
+                                ),
+                                SizedBox(width: 9.0),
+                                Column(
+                                  children: [
+                                    _buildBadgeTopNumberRoute('Z', 5, 5),
+                                    _buildBadgeBottom(
+                                        (data['amount_try_zone'] ?? 0)
+                                            .toString(),
+                                        5,
+                                        5),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ],
                       ),

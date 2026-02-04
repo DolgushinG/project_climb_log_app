@@ -39,16 +39,26 @@ class Participant {
 
 
 Future<List<Participant>> fetchParticipants({
-  required final int eventId
+  required final int eventId,
+  required final String? token,
 }) async {
   final Uri url = Uri.parse('$DOMAIN/api/participants?event_id=$eventId');
 
-  final response = await http.get(url);
+  final response = await http.get(
+    url,
+    headers: {
+      if (token != null) 'Authorization': 'Bearer $token',
+      'Accept': 'application/json',
+    },
+  );
 
   if (response.statusCode == 200) {
-    List jsonResponse = json.decode(response.body);
+    final List<dynamic> jsonResponse = json.decode(response.body);
     return jsonResponse.map((data) => Participant.fromJson(data)).toList();
   } else {
+    // Логируем, чтобы понимать, что именно не нравится бэку
+    print('Failed to load participants, status: ${response.statusCode}');
+    print('Failed to load participants body: ${response.body}');
     throw Exception('Failed to load participants');
   }
 }
@@ -78,7 +88,8 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
   void _fetchParticipants() async {
     final int eventId = widget.eventId;
     try {
-      final data = await fetchParticipants(eventId: eventId);
+      final String? token = await getToken();
+      final data = await fetchParticipants(eventId: eventId, token: token);
       if (mounted) {
         setState(() {
           participants = data;
