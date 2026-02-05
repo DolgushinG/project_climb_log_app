@@ -1057,81 +1057,115 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                 ),
               ],
+              // Кнопка внесения/обновления результатов
               if (_competitionDetails.is_participant) ...[
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    if (_competitionDetails.is_routes_exists &&
-                        (!_competitionDetails.is_need_pay_for_reg ||
-                            _competitionDetails.is_participant_paid))
-                      ResultEntryButton(
-                        eventId: _competitionDetails.id,
-                        isParticipantActive: _jsonToBool(
-                            _competitionDetails.is_participant_active),
-                        isAccessUserEditResult: _jsonToBool(
-                            _competitionDetails.is_access_user_edit_result),
-                        isOpenSendResultState: _jsonToBool(
-                            _competitionDetails.is_open_send_result_state),
-                        isRoutesExists: _competitionDetails.is_routes_exists,
-                        onResultSubmitted: _refreshParticipationStatus,
-                      ),
-                    if (_competitionDetails.is_routes_exists &&
-                        _competitionDetails.is_access_user_cancel_take_part ==
-                            1 &&
-                        !_competitionDetails.is_participant_paid)
-                      const SizedBox(width: 10),
-                    if (_competitionDetails.is_access_user_cancel_take_part == 1 &&
-                        !_competitionDetails.is_participant_paid)
-                      Expanded(
-                        child: OutlinedButton(
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.redAccent,
-                            side: const BorderSide(color: Colors.redAccent),
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
+                // Условия показа по бизнес-логике:
+                // 1) Глобальный запрет выключен (is_open_send_result_state == true)
+                // 2) Пользователь зарегистрирован (is_participant == true)
+                // 3) Оплата подтверждена (для платных событий) или не требуется (для бесплатных)
+                // 4) Если результат уже есть и редактирование запрещено — кнопку не показываем.
+                Builder(
+                  builder: (context) {
+                    final bool globalAllowed =
+                        _jsonToBool(_competitionDetails.is_open_send_result_state);
+                    final bool registered = _competitionDetails.is_participant;
+                    // для платных: нужна подтверждённая оплата; для бесплатных: считаем, что ок
+                    final bool paymentConfirmed = !_competitionDetails.is_need_pay_for_reg ||
+                        _competitionDetails.is_participant_paid;
+                    // есть ли уже результат
+                    final bool resultExists =
+                        _jsonToBool(_competitionDetails.is_participant_active);
+                    // флаг разрешения редактировать существующий результат
+                    final bool editAllowed =
+                        _jsonToBool(_competitionDetails.is_access_user_edit_result);
+
+                    final bool baseConditionsOk =
+                        globalAllowed && registered && paymentConfirmed;
+
+                    // по правилам:
+                    // - если нет результата → достаточно baseConditionsOk
+                    // - если есть результат → нужен ещё editAllowed
+                    final bool canShowResultButton = baseConditionsOk &&
+                        (!resultExists || (resultExists && editAllowed));
+
+                    if (!canShowResultButton || !_competitionDetails.is_routes_exists) {
+                      return const SizedBox.shrink();
+                    }
+
+                    return Column(
+                      children: [
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            ResultEntryButton(
+                              eventId: _competitionDetails.id,
+                              // is_participant_active: true → результат существует
+                              isParticipantActive: resultExists,
+                              isAccessUserEditResult: editAllowed,
+                              isOpenSendResultState: globalAllowed,
+                              isRoutesExists: _competitionDetails.is_routes_exists,
+                              onResultSubmitted: _refreshParticipationStatus,
                             ),
-                          ),
-                          onPressed: () async {
-                            bool? confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (BuildContext context) {
-                                return AlertDialog(
-                                  title: const Text(
-                                      'Подтверждение отмены регистрации'),
-                                  content: const Text(
-                                      'Вы уверены, что хотите отменить регистрацию?'),
-                                  actions: <Widget>[
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(false),
-                                      child: const Text('Отмена'),
+                            if (_competitionDetails.is_routes_exists &&
+                                _competitionDetails.is_access_user_cancel_take_part == 1 &&
+                                !_competitionDetails.is_participant_paid)
+                              const SizedBox(width: 10),
+                            if (_competitionDetails.is_access_user_cancel_take_part == 1 &&
+                                !_competitionDetails.is_participant_paid)
+                              Expanded(
+                                child: OutlinedButton(
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.redAccent,
+                                    side: const BorderSide(color: Colors.redAccent),
+                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.of(context).pop(true),
-                                      child: const Text('Подтвердить'),
+                                  ),
+                                  onPressed: () async {
+                                    bool? confirm = await showDialog<bool>(
+                                      context: context,
+                                      builder: (BuildContext context) {
+                                        return AlertDialog(
+                                          title: const Text(
+                                              'Подтверждение отмены регистрации'),
+                                          content: const Text(
+                                              'Вы уверены, что хотите отменить регистрацию?'),
+                                          actions: <Widget>[
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(context).pop(false),
+                                              child: const Text('Отмена'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.of(context).pop(true),
+                                              child: const Text('Подтвердить'),
+                                            ),
+                                          ],
+                                        );
+                                      },
+                                    );
+                                    if (confirm == true) {
+                                      _cancelRegistration();
+                                      _refreshParticipationStatus();
+                                    }
+                                  },
+                                  child: const Text(
+                                    'Отменить регистрацию',
+                                    style: TextStyle(
+                                      fontSize: 14.0,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                  ],
-                                );
-                              },
-                            );
-                            if (confirm == true) {
-                              _cancelRegistration();
-                              _refreshParticipationStatus();
-                            }
-                          },
-                          child: const Text(
-                            'Отменить регистрацию',
-                            style: TextStyle(
-                              fontSize: 14.0,
-                              fontWeight: FontWeight.w500,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      ),
-                  ],
+                      ],
+                    );
+                  },
                 ),
               ],
             ],

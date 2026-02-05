@@ -7,6 +7,7 @@ import 'Screens/AnalyticsScreen.dart';
 import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/ChangePasswordScreen.dart';
+import 'Screens/ParticipationHistoryScreen.dart';
 import 'login.dart';
 import 'main.dart';
 
@@ -182,7 +183,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     title: 'История участия',
                     icon: Icons.history,
                     onTap: () {
-                      // Логика для истории участия
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const ParticipationHistoryScreen(),
+                        ),
+                      );
                     },
                   ),
                   ProfileActionCard(
