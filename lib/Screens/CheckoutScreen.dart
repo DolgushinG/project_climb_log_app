@@ -51,6 +51,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       _data = data;
       _remainingSeconds = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
       _isLoading = false;
+      // Синхронизируем выбранный пакет с бэком
+      _selectedPackageName = null;
+      _selectedSizes.clear();
+      final spRaw = data['selected_package'];
+      if (spRaw is List && spRaw.isNotEmpty && spRaw.first is Map) {
+        final sp = Map<String, dynamic>.from(spRaw.first as Map);
+        final spName = sp['name']?.toString();
+        if (spName != null && spName.isNotEmpty) {
+          _selectedPackageName = spName;
+        }
+      }
     });
     _startTimer();
   }
