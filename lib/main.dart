@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:login_app/MainScreen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -9,8 +10,12 @@ Future<void> main() async {
   runApp(MyApp());
 }
 
-const DOMAIN = "https://climbing-events.ru.tuna.am";
-//const DOMAIN = "https://climbing-events.ru";
+/// Базовые домены для окружений
+const String _prodDomain = "https://climbing-events.ru";
+const String _devDomain = "https://climbing-events.ru.tuna.am";
+
+/// Для релиза — прод, для дебага/локально — dev
+const String DOMAIN = kReleaseMode ? _prodDomain : _devDomain;
 
 Future<void> saveToken(String token) async {
   final prefs = await SharedPreferences.getInstance();
