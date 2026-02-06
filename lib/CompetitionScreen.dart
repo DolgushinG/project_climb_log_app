@@ -260,6 +260,21 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
+    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
+
+    List<Color> detailNavGradientColors(int index) {
+      switch (index) {
+        case 0: // Информация
+          return [accentNavColor, baseNavColor, baseNavColor];
+        case 1: // Результаты
+          return [baseNavColor, accentNavColor, baseNavColor];
+        case 2: // Статистика
+        default:
+          return [baseNavColor, baseNavColor, accentNavColor];
+      }
+    }
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -783,6 +798,20 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               ),
             ),
             const SizedBox(height: 16),
+            Row(
+              children: const [
+                Icon(Icons.info_outline, size: 18, color: Colors.white70),
+                SizedBox(width: 8),
+                Text(
+                  'О соревновании',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF0B1220),
@@ -801,26 +830,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                   const SizedBox(height: 12),
                   CompetitionInfoCard(
+                    icon: Icons.place_outlined,
                     label: 'Адрес',
                     value: _competitionDetails.address,
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Flexible(
-                        child: CompetitionInfoCard(
-                          label: 'Город',
-                          value: _competitionDetails.city,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Flexible(
-                        child: CompetitionInfoCard(
-                          label: 'Контакты',
-                          value: _competitionDetails.contact,
-                        ),
-                      ),
-                    ],
+                  CompetitionInfoCard(
+                    icon: Icons.phone_outlined,
+                    label: 'Контакты',
+                    value: _competitionDetails.contact,
+                  ),
+                  const SizedBox(height: 8),
+                  CompetitionInfoCard(
+                    icon: Icons.location_city_outlined,
+                    label: 'Город',
+                    value: _competitionDetails.city,
                   ),
                 ],
               ),
@@ -921,7 +945,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ),
                 )
               ]),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
+            Row(
+              children: const [
+                Icon(Icons.hiking_rounded, size: 18, color: Colors.white70),
+                SizedBox(width: 8),
+                Text(
+                  'Ваше участие',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             if (_competitionDetails.isCompleted) ...[
               Container(
                 width: double.infinity,
@@ -1207,6 +1245,22 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
+    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
+
+    List<Color> detailNavGradientColors(int index) {
+      switch (index) {
+        case 0: // Информация
+          return [accentNavColor, baseNavColor, baseNavColor];
+        case 1: // Результаты
+          return [baseNavColor, accentNavColor, baseNavColor];
+        case 2: // Статистика
+        default:
+          return [baseNavColor, baseNavColor, accentNavColor];
+      }
+    }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Детали соревнования'),
@@ -1241,24 +1295,45 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.info),
-            label: 'Информация',
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: detailNavGradientColors(_selectedIndex),
+              ),
+            ),
+            child: BottomNavigationBar(
+              backgroundColor: Colors.transparent,
+              items: const <BottomNavigationBarItem>[
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.info),
+                  label: 'Информация',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.emoji_events),
+                  label: 'Результаты',
+                ),
+                BottomNavigationBarItem(
+                  icon: Icon(Icons.bar_chart),
+                  label: 'Статистика',
+                ),
+              ],
+              currentIndex: _selectedIndex,
+              selectedItemColor: theme.colorScheme.primary,
+              unselectedItemColor: Colors.grey,
+              onTap: _onItemTapped,
+              selectedFontSize: 12,
+              unselectedFontSize: 11,
+              showUnselectedLabels: false,
+              type: BottomNavigationBarType.fixed,
+            ),
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events),
-            label: 'Результаты',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.bar_chart),
-            label: 'Статистика',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        selectedItemColor: Colors.blueAccent,
-        onTap: _onItemTapped,
+        ),
       ),
     );
   }
@@ -1651,8 +1726,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 class CompetitionInfoCard extends StatelessWidget {
   final String label;
   final String value;
+  final IconData? icon;
 
-  const CompetitionInfoCard({required this.label, required this.value});
+  const CompetitionInfoCard({
+    required this.label,
+    required this.value,
+    this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1666,35 +1746,57 @@ class CompetitionInfoCard extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
           color: blockBg,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: Colors.white.withOpacity(0.1),
+            color: Colors.white.withOpacity(0.08),
             width: 1,
           ),
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withOpacity(0.85),
-                letterSpacing: 0.5,
+            if (icon != null) ...[
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.06),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Icon(
+                  icon,
+                  size: 18,
+                  color: Colors.white.withOpacity(0.9),
+                ),
               ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 15,
-                color: Colors.white,
-                height: 1.35,
+              const SizedBox(width: 10),
+            ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.85),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      color: Colors.white,
+                      height: 1.35,
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

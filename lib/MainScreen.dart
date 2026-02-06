@@ -14,6 +14,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
+  final PageController _pageController = PageController();
 
   static final List<Widget> _screens = <Widget>[
     CompetitionsScreen(),
@@ -22,11 +23,13 @@ class _MainScreenState extends State<MainScreen> {
   ];
 
   void _onItemTapped(int index) {
-    if (mounted) {
-      setState(() {
-        _selectedIndex = index;
-      });
-    }
+    if (!mounted) return;
+    setState(() => _selectedIndex = index);
+    _pageController.animateToPage(
+      index,
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   Future<bool> _onWillPop() async {
@@ -53,7 +56,67 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildNavIcon(IconData icon, bool isActive) {
+    final color = isActive ? Theme.of(context).colorScheme.primary : Colors.grey;
+    return Stack(
+      alignment: Alignment.bottomCenter,
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(bottom: 4),
+          child: Icon(icon, color: color),
+        ),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          height: isActive ? 4 : 0,
+          width: isActive ? 18 : 0,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
+    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
+
+    // Смещаем акцент градиента в сторону активной вкладки
+    final List<Color> navGradientColors;
+    switch (_selectedIndex) {
+      case 0: // Соревнования – акцент слева
+        navGradientColors = [
+          accentNavColor,
+          baseNavColor,
+          baseNavColor,
+        ];
+        break;
+      case 1: // История – акцент по центру
+        navGradientColors = [
+          baseNavColor,
+          accentNavColor,
+          baseNavColor,
+        ];
+        break;
+      case 2: // Профиль – акцент справа
+      default:
+        navGradientColors = [
+          baseNavColor,
+          baseNavColor,
+          accentNavColor,
+        ];
+        break;
+    }
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -64,30 +127,55 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
-        body: IndexedStack(
-          index: _selectedIndex,
+        body: PageView(
+          controller: _pageController,
+          physics: const BouncingScrollPhysics(),
+          onPageChanged: (index) {
+            if (!mounted) return;
+            setState(() => _selectedIndex = index);
+          },
           children: _screens,
         ),
-        bottomNavigationBar: BottomNavigationBar(
-          items: const <BottomNavigationBarItem>[
-            BottomNavigationBarItem(
-              icon: Icon(Icons.emoji_events_outlined),
-              activeIcon: Icon(Icons.emoji_events_rounded),
-              label: 'Соревнования',
+        bottomNavigationBar: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: navGradientColors,
+                ),
+              ),
+              child: BottomNavigationBar(
+                backgroundColor: Colors.transparent,
+                items: <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: _buildNavIcon(Icons.emoji_events_outlined, false),
+                    activeIcon: _buildNavIcon(Icons.emoji_events_rounded, true),
+                    label: 'Соревнования',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: _buildNavIcon(Icons.history, false),
+                    activeIcon: _buildNavIcon(Icons.history_rounded, true),
+                    label: 'История',
+                  ),
+                  BottomNavigationBarItem(
+                    icon: _buildNavIcon(Icons.person_outline_rounded, false),
+                    activeIcon: _buildNavIcon(Icons.person_rounded, true),
+                    label: 'Профиль',
+                  ),
+                ],
+                currentIndex: _selectedIndex,
+                onTap: _onItemTapped,
+                selectedFontSize: 12,
+                unselectedFontSize: 11,
+                showUnselectedLabels: false,
+                type: BottomNavigationBarType.fixed,
+              ),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.history),
-              activeIcon: Icon(Icons.history_rounded),
-              label: 'История',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline_rounded),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Профиль',
-            ),
-          ],
-          currentIndex: _selectedIndex,
-          onTap: _onItemTapped,
+          ),
         ),
       ),
     );
