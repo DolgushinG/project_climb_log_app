@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
+import 'Screens/ParticipationHistoryScreen.dart';
 
 
 
@@ -15,8 +16,9 @@ class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
   static final List<Widget> _screens = <Widget>[
-    ProfileScreen(),
     CompetitionsScreen(),
+    const ParticipationHistoryScreen(),
+    ProfileScreen(),
   ];
 
   void _onItemTapped(int index) {
@@ -63,25 +65,30 @@ class _MainScreenState extends State<MainScreen> {
       },
       child: Scaffold(
         body: IndexedStack(
-        index: _selectedIndex,
-        children: _screens,
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const <BottomNavigationBarItem>[
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Профиль',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.emoji_events_outlined),
-            activeIcon: Icon(Icons.emoji_events_rounded),
-            label: 'Соревнования',
-          ),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-      ),
+          index: _selectedIndex,
+          children: _screens,
+        ),
+        bottomNavigationBar: BottomNavigationBar(
+          items: const <BottomNavigationBarItem>[
+            BottomNavigationBarItem(
+              icon: Icon(Icons.emoji_events_outlined),
+              activeIcon: Icon(Icons.emoji_events_rounded),
+              label: 'Соревнования',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.history),
+              activeIcon: Icon(Icons.history_rounded),
+              label: 'История',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline_rounded),
+              activeIcon: Icon(Icons.person_rounded),
+              label: 'Профиль',
+            ),
+          ],
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+        ),
       ),
     );
   }

@@ -167,19 +167,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     },
                   ),
                   ProfileActionCard(
-                    title: 'Настройка',
-                    icon: Icons.settings,
-                    onTap: () {
-                      // Navigator.push(
-                      //   context,
-                      //   MaterialPageRoute(
-                      //       builder: (context) => ChangePasswordScreen()
-                      //   ),
-                      // );
-                    },
-                  ),
-
-                  ProfileActionCard(
                     title: 'История участия',
                     icon: Icons.history,
                     onTap: () {
