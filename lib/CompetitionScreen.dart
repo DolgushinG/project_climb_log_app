@@ -16,8 +16,6 @@ import 'Screens/CheckoutScreen.dart';
 import 'models/Category.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:flutter/services.dart';
-
 String _normalizePosterPath(String path) {
   if (path.isEmpty) return path;
   if (path.startsWith('http')) return path;
@@ -175,20 +173,6 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   bool _isLoading = true;
   String? _selectedCity;
 
-  static const MethodChannel _tracerChannel =
-      MethodChannel('tracer_test_channel');
-
-  Future<void> _sendNativeTestCrash() async {
-    try {
-      await _tracerChannel.invokeMethod('nativeTestCrash');
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Не удалось отправить тестовый крэш: $e')),
-      );
-    }
-  }
-
   @override
   void initState() {
     super.initState();
@@ -298,13 +282,6 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Соревнования'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.bug_report),
-            tooltip: 'Отправить тестовый крэш в Tracer',
-            onPressed: _sendNativeTestCrash,
-          ),
-        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(

@@ -385,7 +385,9 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                           return Column(
                             children: [
                               _buildBadgeTopNumberRoute(route['route_id'], 5, 5),
-                              _buildBadgeTop(route['amount_try_top'].toString()),
+                              _buildBadgeTop(
+                                  route['amount_try_top'].toString(),
+                                  route['amount_try_zone'] ?? 0),
                               _buildDivider(),
                               _buildBadgeBottom(route['amount_try_zone'].toString(), 5, 5),
                             ],
@@ -532,13 +534,13 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       ),
     );
   }
-  Widget _buildBadgeTop(String value) {
-    final isZero = value == '0';
+  Widget _buildBadgeTop(String value, int amountTryZone) {
+    final isRed = value == '0' && amountTryZone == 0;
     return Container(
       width: 30,
       height: 20,
       decoration: BoxDecoration(
-        color: isZero ? Colors.red : Colors.green,
+        color: isRed ? Colors.red : Colors.green,
       ),
       child: Center(
         child: Text(
