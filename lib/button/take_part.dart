@@ -125,9 +125,12 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         }),
       );
       final responseData = json.decode(response.body);
-      final message = responseData['message'];
-      if (response.statusCode == 200) {
-        _showNotification(message, Colors.green);
+      final message = responseData['message']?.toString() ?? '';
+      final isSuccess = response.statusCode == 200 ||
+          response.statusCode == 201 ||
+          (responseData['success'] == true);
+      if (isSuccess) {
+        _showNotification(message.isNotEmpty ? message : 'Вы успешно зарегистрированы!', Colors.green);
         if (mounted) {
           setState(() {
             _isButtonDisabled = true;
@@ -150,7 +153,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           SnackBar(content: Text('Ошибка сессии')),
         );
       } else {
-        _handleError(message);
+        _handleError(message.isNotEmpty ? message : 'Ошибка регистрации');
       }
     } catch (e) {
       _handleError('Ошибка сети');

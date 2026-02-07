@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'models/Category.dart';
 import 'Screens/PublicProfileScreen.dart';
+import 'utils/display_helper.dart';
 
 
 // Структура данных для результатов участников
@@ -238,7 +239,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                result.middlename,
+                                displayValue(result.middlename),
                                 style: TextStyle(fontSize: 16),
                               ),
                             ],

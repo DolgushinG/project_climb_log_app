@@ -235,7 +235,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
         : 'Соревнование завершено';
 
     String buildPlaceText(int? place, int? total) {
-      if (place == null) return '-';
+      if (place == null) return 'Нет данных';
       if (total == null || total <= 0) return '$place место';
       return '$place место';
     }

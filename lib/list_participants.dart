@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 
 import 'models/Category.dart';
 import 'Screens/PublicProfileScreen.dart';
+import 'utils/display_helper.dart';
 
 class Participant {
 
@@ -38,7 +39,7 @@ class Participant {
       if (p != null && p > 0) parsedUserId = p;
     }
     return Participant(
-      middlename: json['middlename'],
+      middlename: json['middlename'] ?? '',
       gender: json['gender'] ?? '',
       category: json['category'] ?? '',
       city: json['city'] ?? '',
@@ -235,9 +236,9 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
                 elevation: 3,
                 margin: EdgeInsets.zero,
                 child: ListTile(
-                  title: Text('${participant.middlename}'),
-                  subtitle: Text('${participant.category} - ${participant.city}'),
-                  trailing: Text('${participant.birthday}'),
+                  title: Text(displayValue(participant.middlename)),
+                  subtitle: Text('${displayValue(participant.category)} - ${displayValue(participant.city)}'),
+                  trailing: Text(displayValue(participant.birthday)),
                 ),
               ),
             ),
@@ -289,8 +290,8 @@ class ParticipantSearchDelegate extends SearchDelegate<String> {
       itemBuilder: (context, index) {
         final participant = results[index];
         return ListTile(
-          title: Text('${participant.middlename}'),
-          subtitle: Text('${participant.category} - ${participant.city}'),
+          title: Text(displayValue(participant.middlename)),
+          subtitle: Text('${displayValue(participant.category)} - ${displayValue(participant.city)}'),
           onTap: () {
             onSelected(query);
             close(context, query);
@@ -311,8 +312,8 @@ class ParticipantSearchDelegate extends SearchDelegate<String> {
       itemBuilder: (context, index) {
         final participant = suggestions[index];
         return ListTile(
-          title: Text('${participant.middlename}'),
-          subtitle: Text('${participant.category} - ${participant.city}'),
+          title: Text(displayValue(participant.middlename)),
+          subtitle: Text('${displayValue(participant.category)} - ${displayValue(participant.city)}'),
           onTap: () {
             onSelected(participant.middlename);
             close(context, participant.middlename);

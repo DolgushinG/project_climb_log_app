@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'CompetitionScreen.dart';
 import 'main.dart';
+import 'utils/display_helper.dart';
 
 
 Future<List<Routes>> getRoutesData({
@@ -336,7 +337,7 @@ class _RouteCardState extends State<RouteCard> {
                   color: widget.route.color,
                 ),
                 const SizedBox(width: 16),
-                Text('Категория: ${widget.route.grade}', style: TextStyle(fontSize: 16)),
+                Text('Категория: ${displayValue(widget.route.grade)}', style: TextStyle(fontSize: 16)),
               ],
             ),
             const SizedBox(height: 16),

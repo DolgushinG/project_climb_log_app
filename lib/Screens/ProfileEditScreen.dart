@@ -6,6 +6,7 @@ import 'package:login_app/main.dart';
 import '../ProfileScreen.dart';
 import '../login.dart';
 import '../models/UserProfile.dart';
+import '../utils/display_helper.dart';
 import '../services/ProfileService.dart';
 
 class ProfileEditScreen extends StatefulWidget {
@@ -336,11 +337,11 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               prefixIcon: Icon(Icons.wc),
                             ),
                             child: Text(
-                              profile.gender != null
-                                  ? (profile.gender == 'male'
+                                  profile.gender == 'male'
                                   ? 'Мужской'
-                                  : 'Женский')
-                                  : '-',
+                                  : profile.gender == 'female'
+                                  ? 'Женский'
+                                  : displayValue(profile.gender),
                             ),
                           ),
                         ),
@@ -357,7 +358,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               border: OutlineInputBorder(),
                               prefixIcon: Icon(Icons.sports),
                             ),
-                            child: Text(profile.sportCategory ?? '-'),
+                            child: Text(displayValue(profile.sportCategory)),
                           ),
                         ),
                       ),

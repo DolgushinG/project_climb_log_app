@@ -11,6 +11,7 @@ import 'Screens/ParticipationHistoryScreen.dart';
 import 'Screens/AboutScreen.dart';
 import 'login.dart';
 import 'main.dart';
+import 'utils/display_helper.dart';
 
 class ProfileScreen extends StatefulWidget {
   @override
@@ -122,9 +123,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         SizedBox(height: 8),
-                        Text('Город: $city'),
-                        Text('Разряд: $rank'),
-                        Text('День рождения: $birthYear'),
+                        Text('Город: ${displayValue(city)}'),
+                        Text('Разряд: ${displayValue(rank)}'),
+                        Text('День рождения: ${displayValue(birthYear)}'),
                       ],
                     ),
                   ),

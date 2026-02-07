@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+
+import '../utils/display_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
 import 'package:login_app/Screens/PublicProfileScreen.dart';
@@ -345,7 +347,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                             style: TextStyle(fontSize: 8, color: Colors.grey),
                           ),
                           Text(
-                            '${data['place'] ?? data['user_place'] ?? ''}',
+                            displayValue((data['place'] ?? data['user_place'])?.toString()),
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -361,8 +363,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            (data['middlename'] ?? data['name'] ?? '')
-                                .toString(),
+                            displayValue((data['middlename'] ?? data['name'])?.toString()),
                             style: TextStyle(fontSize: 16),
                           ),
                         ],

@@ -304,20 +304,19 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       SizedBox(height: 32), // Отступ перед кнопками
-                      const Row(
+                      Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           SocialLoginButton(
                             imageUrl: "assets/icon-vk.png",
                             loginUrl: "$DOMAIN/auth/vkontakte/redirect", // VK
                           ),
-                          SizedBox(width: 16),
+                          const SizedBox(width: 16),
                           SocialLoginButton(
                             imageUrl: "assets/icon-telegram.png",
-                            loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=https://climbing-events.ru&embed=1&request_access=write&return_to=https://climbing-events.ru/auth/telegram/redirect",
+                            loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=${Uri.parse(DOMAIN).host}&embed=1&request_access=write&return_to=$DOMAIN/auth/telegram/redirect",
                           ),
-
-                          SizedBox(width: 16),
+                          const SizedBox(width: 16),
                           SocialLoginButton(
                             imageUrl: "assets/yandex-icon.png",
                             loginUrl: "$DOMAIN/auth/yandex/redirect", // Yandex

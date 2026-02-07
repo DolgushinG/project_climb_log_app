@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../login.dart';
 import '../main.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -50,6 +51,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     setState(() {
       _data = data;
       _remainingSeconds = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
+      // pay_time_expired=1 означает, что время уже истекло на бэке
+      if (data['pay_time_expired'] == 1) _remainingSeconds = 0;
       _isLoading = false;
       // Синхронизируем выбранный пакет с бэком
       _selectedPackageName = null;
@@ -57,9 +60,31 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final spRaw = data['selected_package'];
       if (spRaw is List && spRaw.isNotEmpty && spRaw.first is Map) {
         final sp = Map<String, dynamic>.from(spRaw.first as Map);
-        final spName = sp['name']?.toString();
+        final spName = sp['name']?.toString() ?? sp['package_name']?.toString();
         if (spName != null && spName.isNotEmpty) {
           _selectedPackageName = spName;
+        }
+        final sizesRaw = sp['sizes'];
+        if (sizesRaw is Map) {
+          for (final e in sizesRaw.entries) {
+            final k = e.key?.toString();
+            final v = e.value?.toString();
+            if (k != null && v != null && v.isNotEmpty) {
+              _selectedSizes[k] = v;
+            }
+          }
+        } else {
+          final merchRaw = sp['merch'];
+          if (merchRaw is List) {
+            for (final m in merchRaw) {
+              if (m is! Map) continue;
+              final n = m['name']?.toString();
+              final sz = m['selected_size']?.toString();
+              if (n != null && sz != null && sz.isNotEmpty) {
+                _selectedSizes[n] = sz;
+              }
+            }
+          }
         }
       }
     });
@@ -81,11 +106,78 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return '$_baseUrl${path.startsWith('/') ? '' : '/'}$path';
   }
 
-  Future<void> _loadCheckout() async {
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+  /// Получить выбранный пакет с сервера (get-package). Лёгкий запрос для обновления выбора.
+  Future<void> _fetchGetPackage() async {
+    try {
+      final token = await getToken();
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${widget.eventId}/get-package'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (r.statusCode == 401 && mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginScreen()),
+        );
+        return;
+      }
+      if (r.statusCode != 200 || !mounted) return;
+      final raw = jsonDecode(r.body);
+      final list = raw is List ? raw : [];
+      for (final row in list) {
+        if (row is! Map) continue;
+        final spRaw = row['selected_package'];
+        if (spRaw is! List || spRaw.isEmpty) continue;
+        final sp = spRaw.first;
+        if (sp is! Map) continue;
+        final pkgName = sp['package_name']?.toString();
+        if (pkgName == null || pkgName.isEmpty) continue;
+        final sizes = <String, String>{};
+        final merchRaw = sp['merch'];
+        if (merchRaw is List) {
+          for (final m in merchRaw) {
+            if (m is! Map) continue;
+            final name = m['name']?.toString();
+            final sz = m['selected_size']?.toString();
+            if (name != null && sz != null && sz.isNotEmpty) {
+              sizes[name] = sz;
+            }
+          }
+        }
+        final amount = sp['amount'];
+        if (mounted) {
+          setState(() {
+            _selectedPackageName = pkgName;
+            _selectedSizes.clear();
+            _selectedSizes.addAll(sizes);
+            if (_data != null) {
+              final newSp = <String, dynamic>{
+                'name': pkgName,
+                'package_name': pkgName,
+                'sizes': sizes,
+                'amount': amount,
+                'price': amount,
+              };
+              _data = Map<String, dynamic>.from(_data!);
+              _data!['selected_package'] = [newSp];
+            }
+          });
+        }
+        return;
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _loadCheckout({bool silent = false}) async {
+    if (!silent) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
     try {
       final token = await getToken();
       final r = await http.get(
@@ -100,8 +192,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
         if (data != null) {
           _applyData(data);
-        } else {
+          final spRaw = data['selected_package'];
+          final hasSelectedPackage = spRaw is List && spRaw.isNotEmpty;
+          if (!hasSelectedPackage && data['event'] != null) {
+            _fetchGetPackage();
+          }
+        } else if (!silent) {
           setState(() => _isLoading = false);
+        }
+      } else if (r.statusCode == 404) {
+        if (!silent) setState(() => _isLoading = false);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Регистрация отменена. Зарегистрируйтесь заново.')),
+          );
+          Navigator.pop(context);
         }
       } else {
         setState(() {
@@ -119,36 +224,76 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _startTimer() {
     _timer?.cancel();
-    if (_remainingSeconds <= 0) return;
+    if (_remainingSeconds <= 0) {
+      // Время уже истекло — отменяем регистрацию после следующего кадра
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _cancelTakePart();
+      });
+      return;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+      bool shouldCancel = false;
       setState(() {
         _remainingSeconds--;
         if (_remainingSeconds <= 0) {
           _timer?.cancel();
-          _cancelTakePart();
+          shouldCancel = true;
         }
       });
+      if (shouldCancel && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _cancelTakePart();
+        });
+      }
     });
   }
 
   Future<void> _cancelTakePart() async {
-    try {
-      final token = await getToken();
-      await http.post(
-        Uri.parse('$DOMAIN/api/event/${widget.eventId}/cancel-take-part'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-    } catch (_) {}
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Время истекло. Регистрация отменена')),
-      );
-      Navigator.pop(context);
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Время оплаты истекло'),
+        content: const Text(
+          'Оплата не была произведена. Регистрация отменена. Зарегистрируйтесь заново.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ок'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      try {
+        final token = await getToken();
+        await http.post(
+          Uri.parse('$DOMAIN/api/event/${widget.eventId}/cancel-take-part'),
+          headers: {
+            'Authorization': 'Bearer $token',
+            'Content-Type': 'application/json',
+          },
+        );
+      } catch (_) {}
+      if (mounted) Navigator.pop(context);
     }
+  }
+
+  String _formatSavePackageError(String? backendMsg) {
+    if (backendMsg == null || backendMsg.isEmpty) return 'Ошибка сохранения';
+    if (backendMsg.contains('Лимит мерча') && backendMsg.contains('исчерпан (для вашего пола)')) {
+      return 'Для вашего пола мерч закончился. Выберите другой пакет.';
+    }
+    if (backendMsg.contains('Лимит мерча') && backendMsg.contains('исчерпан')) {
+      return 'К сожалению, мерч закончился. Выберите другой пакет.';
+    }
+    if (backendMsg.contains('нужно выбрать размер')) {
+      return 'Выберите размер для мерча';
+    }
+    return backendMsg;
   }
 
   Future<void> _savePackage(String name, Map<String, String> sizes, int amount) async {
@@ -164,12 +309,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
         body: jsonEncode({'name': name, 'sizes': sizes, 'amount': amount}),
       );
-      if (r.statusCode == 200) {
-        await _loadCheckout();
+      final raw = r.body.isNotEmpty ? jsonDecode(r.body) : null;
+      final isSuccess = r.statusCode == 200 && (raw is Map && raw['success'] == true);
+      if (isSuccess) {
+        final savedName = name;
+        final savedSizes = Map<String, String>.from(sizes);
+        await _fetchGetPackage();
+        if (mounted) {
+          setState(() {
+            _selectedPackageName = savedName;
+            _selectedSizes.clear();
+            _selectedSizes.addAll(savedSizes);
+          });
+        }
+      } else if (r.statusCode == 401) {
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => LoginScreen()),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ошибка сессии. Войдите снова.')),
+          );
+        }
       } else {
-        final raw = jsonDecode(r.body);
-        final msg = raw is Map ? raw['message']?.toString() : null;
-        _showSnack(msg ?? 'Ошибка сохранения', isError: true);
+        final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
+        _showSnack(_formatSavePackageError(msg), isError: true);
       }
     } catch (e) {
       _showSnack('Ошибка: $e', isError: true);
@@ -234,7 +399,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } catch (_) {}
   }
 
-  Future<void> _uploadReceipt(File file) async {
+  Future<void> _uploadReceipt(File file, {String? filename}) async {
     if (_isUploadingReceipt) return;
     setState(() => _isUploadingReceipt = true);
     try {
@@ -244,14 +409,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         Uri.parse('$DOMAIN/api/event/${widget.eventId}/upload-receipt'),
       );
       request.headers['Authorization'] = 'Bearer $token';
-      request.files.add(await http.MultipartFile.fromPath('receipt', file.path));
+      request.files.add(await http.MultipartFile.fromPath(
+        'receipt',
+        file.path,
+        filename: filename ?? file.path.split(RegExp(r'[/\\]')).last,
+      ));
       final streamed = await request.send();
       final r = await http.Response.fromStream(streamed);
-      if (r.statusCode == 200) {
+      dynamic raw;
+      try {
+        raw = r.body.isNotEmpty ? jsonDecode(r.body) : null;
+      } catch (_) {
+        raw = null;
+      }
+      final isSuccess = r.statusCode == 200 || r.statusCode == 201 || (raw is Map && raw['success'] == true);
+      if (isSuccess) {
         _showSnack('Чек успешно загружен');
         if (mounted) Navigator.pop(context, {'receipt_uploaded': true});
       } else {
-        _showSnack('Ошибка загрузки чека', isError: true);
+        final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
+        _showSnack(msg ?? 'Ошибка загрузки чека', isError: true);
       }
     } catch (e) {
       _showSnack('Ошибка: $e', isError: true);
@@ -263,7 +440,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Future<void> _pickImage() async {
     final picker = ImagePicker();
     final x = await picker.pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (x != null) await _uploadReceipt(File(x.path));
+    if (x != null) await _uploadReceipt(File(x.path), filename: x.name);
   }
 
   Future<void> _pickFile() async {
@@ -271,8 +448,53 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       type: FileType.custom,
       allowedExtensions: ['jpg', 'jpeg', 'png', 'pdf'],
     );
-    if (result?.files.single.path != null) {
-      await _uploadReceipt(File(result!.files.single.path!));
+    if (result != null && result.files.isNotEmpty) {
+      final f = result.files.first;
+      if (f.path != null) {
+        await _uploadReceipt(File(f.path!), filename: f.name);
+      } else if (f.bytes != null) {
+        await _uploadReceiptFromBytes(f.bytes!, filename: f.name);
+      } else {
+        _showSnack('Не удалось прочитать файл', isError: true);
+      }
+    }
+  }
+
+  Future<void> _uploadReceiptFromBytes(List<int> bytes, {required String filename}) async {
+    if (_isUploadingReceipt) return;
+    setState(() => _isUploadingReceipt = true);
+    try {
+      final token = await getToken();
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$DOMAIN/api/event/${widget.eventId}/upload-receipt'),
+      );
+      request.headers['Authorization'] = 'Bearer $token';
+      request.files.add(http.MultipartFile.fromBytes(
+        'receipt',
+        bytes,
+        filename: filename.isNotEmpty ? filename : 'receipt.jpg',
+      ));
+      final streamed = await request.send();
+      final r = await http.Response.fromStream(streamed);
+      dynamic raw;
+      try {
+        raw = r.body.isNotEmpty ? jsonDecode(r.body) : null;
+      } catch (_) {
+        raw = null;
+      }
+      final isSuccess = r.statusCode == 200 || r.statusCode == 201 || (raw is Map && raw['success'] == true);
+      if (isSuccess) {
+        _showSnack('Чек успешно загружен');
+        if (mounted) Navigator.pop(context, {'receipt_uploaded': true});
+      } else {
+        final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
+        _showSnack(msg ?? 'Ошибка загрузки чека', isError: true);
+      }
+    } catch (e) {
+      _showSnack('Ошибка: $e', isError: true);
+    } finally {
+      if (mounted) setState(() => _isUploadingReceipt = false);
     }
   }
 
@@ -350,8 +572,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final yourGroup = _data?['your_group']?.toString() ?? '';
     final showPromoCode = _data?['show_promo_code'] == true;
     final selectedPackageRaw = _data?['selected_package'];
-    final selectedPackage = selectedPackageRaw is List ? List.from(selectedPackageRaw) : [];
-    final amountStartPrice = _data?['amount_start_price'] ?? 0;
+    final selectedPackage = selectedPackageRaw is List
+        ? List.from(selectedPackageRaw)
+        : (selectedPackageRaw is Map ? [selectedPackageRaw] : []);
+    final amountStartPriceRaw = _data?['amount_start_price'];
+    final amountStartPrice = amountStartPriceRaw is num
+        ? amountStartPriceRaw
+        : (int.tryParse(amountStartPriceRaw?.toString() ?? '') ?? 0);
     final isAddToListPending = _data?['is_add_to_list_pending'] == true;
     final linkPayment = event['link_payment'] ?? event['link_payment_dynamic'];
     final imgPayment = event['img_payment_dynamic'] ?? event['img_payment'];
@@ -364,6 +591,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       appBar: AppBar(
         title: const Text('Оформление'),
         backgroundColor: const Color(0xFF0B1220),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.pop(context),
+          tooltip: 'Вернуться к событию',
+        ),
       ),
       body: Container(
         color: const Color(0xFF050816),
@@ -396,13 +628,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               _buildPromoCode(),
             ],
             const SizedBox(height: 20),
-            _buildTotalPrice(amountStartPrice, selectedPackage),
+            _buildTotalPrice(amountStartPrice, selectedPackage, packages, _selectedPackageName),
             const SizedBox(height: 20),
             if (hasBill)
               _buildHasBillCard()
             else ...[
               _buildPayButton(
-                onTap: () => setState(() => _paymentBlockExpanded = !_paymentBlockExpanded),
+                packages: packages,
+                onTap: () {
+                  if (!_paymentBlockExpanded) {
+                    if (_selectedPackageName == null || _selectedPackageName!.isEmpty) {
+                      _showSnack('Сначала выберите пакет участия', isError: true);
+                      return;
+                    }
+                    if (!_hasAllSizesSelectedForPackage(_selectedPackageName!, packages)) {
+                      _showSnack('Выберите размеры мерча в выбранном пакете', isError: true);
+                      return;
+                    }
+                  }
+                  setState(() => _paymentBlockExpanded = !_paymentBlockExpanded);
+                },
               ),
               if (_paymentBlockExpanded) ...[
                 const SizedBox(height: 16),
@@ -471,7 +716,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Оплатите и прикрепите чек до: ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
+                'Оплатите и прикрепите чек до истечения времени: ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
                 style: TextStyle(color: isUrgent ? Colors.red : Colors.white, fontWeight: FontWeight.w500),
               ),
             ),
@@ -546,7 +791,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildPackageCard(Map<String, dynamic> pkg, Map merchAvailability) {
     final name = pkg['name']?.toString() ?? '';
     final priceVal = pkg['price'];
-    final price = (priceVal is num) ? priceVal.toDouble() : 0.0;
+    final price = (priceVal is num)
+        ? priceVal.toDouble()
+        : (double.tryParse(priceVal?.toString() ?? '') ?? 0.0);
     final merchRaw = pkg['merch'];
     final merch = merchRaw is List ? List.from(merchRaw) : [];
     bool isDisabled = false;
@@ -609,7 +856,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             _selectedSizes[merchName] = v ?? '';
                             _selectedPackageName = name;
                           });
-                          _savePackage(name, _selectedSizes, price.toInt());
+                          // Сохраняем только когда все размеры мерча в пакете выбраны
+                          final allSizesSelected = merch.every((m) {
+                            if (m is! Map) return true;
+                            final sList = m['sizes'];
+                            if (sList is! List || sList.isEmpty) return true;
+                            final n = m['name']?.toString() ?? '';
+                            return _selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty;
+                          });
+                          if (allSizesSelected) {
+                            final sizesToSave = <String, String>{};
+                            for (final m in merch) {
+                              if (m is! Map) continue;
+                              final n = m['name']?.toString() ?? '';
+                              if (_selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty) {
+                                sizesToSave[n] = _selectedSizes[n]!;
+                              }
+                            }
+                            _savePackage(name, sizesToSave, price.toInt());
+                          }
                         },
                       ),
                   ],
@@ -617,19 +882,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               );
             }),
             const SizedBox(height: 8),
-            ElevatedButton(
-              onPressed: isDisabled ? null : () async {
-                setState(() => _selectedPackageName = name);
-                final sizes = <String, String>{};
-                for (final m in merch) {
-                  if (m is! Map) continue;
+            Builder(
+              builder: (context) {
+                final allSizesSelected = merch.every((m) {
+                  if (m is! Map) return true;
+                  final sList = m['sizes'];
+                  if (sList is! List || sList.isEmpty) return true;
                   final n = m['name']?.toString() ?? '';
-                  if (_selectedSizes.containsKey(n)) sizes[n] = _selectedSizes[n]!;
-                }
-                await _savePackage(name, sizes, price.toInt());
+                  return _selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty;
+                });
+                return ElevatedButton(
+                  onPressed: (isDisabled || !allSizesSelected) ? null : () async {
+                    setState(() => _selectedPackageName = name);
+                    final sizes = <String, String>{};
+                    for (final m in merch) {
+                      if (m is! Map) continue;
+                      final n = m['name']?.toString() ?? '';
+                      if (_selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty) {
+                        sizes[n] = _selectedSizes[n]!;
+                      }
+                    }
+                    await _savePackage(name, sizes, price.toInt());
+                  },
+                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
+                  child: Text(_selectedPackageName == name ? 'Выбрано' : 'Выбрать'),
+                );
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
-              child: Text(_selectedPackageName == name ? 'Выбрано' : 'Выбрать'),
             ),
           ],
         ),
@@ -684,14 +962,56 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildTotalPrice(dynamic amount, List selectedPackage) {
-    int total = amount is int ? amount : (amount is num ? amount.toInt() : 0);
+  int _resolveTotalPrice(dynamic amountStartPrice, List selectedPackage, List packages, String? selectedPackageName) {
+    int total = amountStartPrice is int ? amountStartPrice : (amountStartPrice is num ? amountStartPrice.toInt() : int.tryParse(amountStartPrice?.toString() ?? '') ?? 0);
+    bool gotFromSelectedPackage = false;
     if (selectedPackage.isNotEmpty) {
       final first = selectedPackage.first;
-      if (first is Map && first['amount'] != null) {
-        total = (first['amount'] is int) ? first['amount'] as int : (first['amount'] as num).toInt();
+      if (first is Map) {
+        final amt = first['amount'] ?? first['price'] ?? first['total'];
+        if (amt != null) {
+          total = amt is int ? amt : (amt is num ? amt.toInt() : int.tryParse(amt?.toString() ?? '') ?? total);
+          gotFromSelectedPackage = true;
+        }
       }
     }
+    if (!gotFromSelectedPackage && selectedPackageName != null && selectedPackageName.isNotEmpty && packages.isNotEmpty) {
+      for (final p in packages) {
+        if (p is! Map) continue;
+        if (p['name']?.toString() == selectedPackageName) {
+          final priceVal = p['price'];
+          if (priceVal != null) {
+            total = priceVal is int ? priceVal : (priceVal is num ? priceVal.toInt() : int.tryParse(priceVal?.toString() ?? '') ?? 0);
+          }
+          break;
+        }
+      }
+    }
+    return total;
+  }
+
+  bool _hasAllSizesSelectedForPackage(String pkgName, List packages) {
+    for (final p in packages) {
+      if (p is! Map) continue;
+      if (p['name']?.toString() != pkgName) continue;
+      final merch = p['merch'];
+      if (merch is! List) return true;
+      for (final m in merch) {
+        if (m is! Map) continue;
+        final sList = m['sizes'];
+        if (sList is List && sList.isNotEmpty) {
+          final n = m['name']?.toString() ?? '';
+          if (_selectedSizes[n] == null || _selectedSizes[n]!.isEmpty) return false;
+        }
+      }
+      return true;
+    }
+    return true;
+  }
+
+  Widget _buildTotalPrice(dynamic amount, List selectedPackage, List packages, String? selectedPackageName) {
+    final hasPackage = (selectedPackageName != null && selectedPackageName.isNotEmpty) || selectedPackage.isNotEmpty;
+    final total = hasPackage ? _resolveTotalPrice(amount, selectedPackage, packages, selectedPackageName) : 0;
     return Card(
       color: const Color(0xFF0B1220),
       child: Padding(
@@ -700,14 +1020,21 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Итого:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-            Text('$total ₽', style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+            Text(
+              hasPackage ? '$total ₽' : '—',
+              style: TextStyle(
+                color: hasPackage ? Colors.white : Colors.white54,
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildPayButton({required VoidCallback onTap}) {
+  Widget _buildPayButton({required List packages, required VoidCallback onTap}) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(

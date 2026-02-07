@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../CompetitionScreen.dart';
 import '../main.dart';
+import '../utils/display_helper.dart';
 
 /// Модель ответа API публичного профиля
 class PublicProfileData {
@@ -443,7 +444,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Город: ${user.city.isNotEmpty ? user.city : 'не указан'}',
+                    'Город: ${displayValue(user.city)}',
                     style: TextStyle(
                       fontSize: 13,
                       color: Colors.white.withOpacity(0.8),
@@ -464,17 +465,14 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       ),
                     ),
                   ),
-                  if (_data!.bestGrade != null &&
-                      _data!.bestGrade!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      'Макс. категория: ${_data!.bestGrade}',
-                      style: TextStyle(
+                  const SizedBox(height: 4),
+                  Text(
+                    'Макс. категория: ${displayValue(_data!.bestGrade)}',
+                    style: TextStyle(
                         fontSize: 12,
                         color: Colors.white.withOpacity(0.8),
                       ),
                     ),
-                  ],
                 ],
               ),
             ),

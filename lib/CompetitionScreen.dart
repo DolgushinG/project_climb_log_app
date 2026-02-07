@@ -1,4 +1,4 @@
-
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
@@ -14,6 +14,7 @@ import 'list_participants.dart';
 import 'main.dart';
 import 'Screens/CheckoutScreen.dart';
 import 'models/Category.dart';
+import 'utils/display_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 String _normalizePosterPath(String path) {
@@ -596,6 +597,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   late Competition _competitionDetails; // Хранит обновленные данные соревнования
   DateTime? _selectedDate;
   bool _receiptPending = false; // Чек загружен, ожидает подтверждения
+  int _checkoutRemainingSeconds = 0;
+  Map<String, dynamic>? _checkoutData;
+  Timer? _paymentTimer;
+  bool _checkout404Received = false; // предотвращает цикл при 404
   bool _isRefreshing = false;
   Map<String, dynamic>? _competitionStats;
   bool _statsLoading = false;
@@ -605,6 +610,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   @override
   void dispose() {
+    _paymentTimer?.cancel();
     _textEditingController.dispose();
     _focusNode.dispose();
     super.dispose();
@@ -899,7 +905,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                           child: Text(
                             selectedSportCategory == null
                                 ? 'Выберите разряд'
-                                : 'Разряд: ${selectedSportCategory!.sport_category}',
+                                : 'Разряд: ${displayValue(selectedSportCategory!.sport_category)}',
                             style: const TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -925,7 +931,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         child: Text(
                           selectedCategory == null
                               ? 'Выберите категорию'
-                              : 'Категория: ${selectedCategory!.category}',
+                              : 'Категория: ${displayValue(selectedCategory!.category)}',
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -951,7 +957,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     child: Text(
                       selectedNumberSet == null
                           ? 'Выберите сет'
-                          : 'Сет: ${selectedNumberSet!.number_set}',
+                          : 'Сет: ${displayValue(selectedNumberSet!.number_set.toString())}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1028,60 +1034,143 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ),
               ),
             ] else ...[
-              Row(
-                children: [
-                  Expanded(
-                    child: TakePartButtonScreen(
-                      _competitionDetails.id,
-                      _competitionDetails.is_participant,
-                      _selectedDate,
-                      selectedCategory,
-                      selectedSportCategory,
-                      selectedNumberSet,
-                      _refreshParticipationStatus,
-                      is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
-                      onNeedCheckout: (eventId) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CheckoutScreen(eventId: eventId),
-                          ),
-                        ).then((_) => _refreshParticipationStatus());
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => ParticipantListScreen(
-                              _competitionDetails.id,
-                              _competitionDetails.categories,
+              Builder(
+                builder: (context) {
+                  final needsPayment = !_checkout404Received &&
+                      _competitionDetails.is_participant &&
+                      _competitionDetails.is_need_pay_for_reg &&
+                      !_competitionDetails.is_participant_paid &&
+                      !_receiptPending;
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (needsPayment && _checkoutRemainingSeconds > 0)
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          margin: const EdgeInsets.only(bottom: 12),
+                          decoration: BoxDecoration(
+                            color: _checkoutRemainingSeconds <= 300
+                                ? Colors.red.withOpacity(0.2)
+                                : Colors.orange.withOpacity(0.2),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _checkoutRemainingSeconds <= 300
+                                  ? Colors.red.withOpacity(0.5)
+                                  : Colors.orange.withOpacity(0.5),
                             ),
                           ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1E293B),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.timer,
+                                color: _checkoutRemainingSeconds <= 300 ? Colors.red : Colors.orange,
+                                size: 28,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Text(
+                                  'Осталось времени на оплату: ${_checkoutRemainingSeconds ~/ 60}:${(_checkoutRemainingSeconds % 60).toString().padLeft(2, '0')}',
+                                  style: TextStyle(
+                                    color: _checkoutRemainingSeconds <= 300 ? Colors.red : Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: needsPayment
+                                ? ElevatedButton(
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CheckoutScreen(
+                                            eventId: _competitionDetails.id,
+                                            initialData: _checkoutData,
+                                          ),
+                                        ),
+                                      ).then((_) => fetchCompetition());
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF16A34A),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                    ),
+                                    child: const Text(
+                                      'Продолжить оплату',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                  )
+                                : TakePartButtonScreen(
+                                    _competitionDetails.id,
+                                    _checkout404Received ? false : _competitionDetails.is_participant,
+                                    _selectedDate,
+                                    selectedCategory,
+                                    selectedSportCategory,
+                                    selectedNumberSet,
+                                    _refreshParticipationStatus,
+                                    is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
+                                    onNeedCheckout: (eventId) {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => CheckoutScreen(
+                                            eventId: eventId,
+                                            initialData: _checkoutData,
+                                          ),
+                                        ),
+                                      ).then((_) => fetchCompetition());
+                                    },
+                                  ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => ParticipantListScreen(
+                                      _competitionDetails.id,
+                                      _competitionDetails.categories,
+                                    ),
+                                  ),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF1E293B),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                              ),
+                              child: const Text(
+                                'Список участников',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
-                      child: const Text(
-                        'Список участников',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
+                    ],
+                  );
+                },
               ),
               if (_receiptPending &&
                   _competitionDetails.is_participant &&
@@ -1664,12 +1753,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             ),
           ],
           if (flashesTotal.toInt() > 0 || redpointsTotal.toInt() > 0 || zonesTotal.toInt() > 0) ...[
-            const SizedBox(height: 24),
+            const SizedBox(height: 32),
             const Text('Результаты по типам', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 12),
-            SizedBox(
-              height: 200,
-              child: _buildResultsBarChart(flashesTotal.toInt(), redpointsTotal.toInt(), zonesTotal.toInt()),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.only(top: 16),
+              child: SizedBox(
+                height: 200,
+                child: _buildResultsBarChart(flashesTotal.toInt(), redpointsTotal.toInt(), zonesTotal.toInt()),
+              ),
             ),
           ],
         ],
@@ -1829,9 +1921,18 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     await _fetchInitialParticipationStatus();
   }
 
-  /// Если участник платного соревнования и не оплатил — проверяем таймер и редиректим на Checkout
-  Future<void> _checkAndRedirectToCheckoutIfNeeded(Competition c) async {
-    if (!c.is_participant || !c.is_need_pay_for_reg || c.is_participant_paid) return;
+  /// Загружает данные checkout и обновляет таймер; при истечении — отменяет регистрацию
+  Future<void> _loadCheckoutDataIfNeeded(Competition c) async {
+    if (!c.is_participant || !c.is_need_pay_for_reg || c.is_participant_paid) {
+      if (mounted) setState(() {
+        _checkoutRemainingSeconds = 0;
+        _checkoutData = null;
+        _paymentTimer?.cancel();
+        _checkout404Received = false;
+      });
+      return;
+    }
+    if (_checkout404Received) return; // уже получили 404 — не повторяем запрос (защита от цикла)
     try {
       final token = await getToken();
       if (token == null) return;
@@ -1839,25 +1940,96 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         Uri.parse('$DOMAIN/api/event/${c.id}/checkout'),
         headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
       );
-      if (r.statusCode != 200 || !mounted) return;
+      if (!mounted) return;
+      if (r.statusCode == 404 || r.statusCode != 200) {
+        // Регистрации нет (404) — сбрасываем состояние, НЕ вызываем fetchCompetition (избегаем цикла)
+        setState(() {
+          _checkoutData = null;
+          _checkoutRemainingSeconds = 0;
+          _paymentTimer?.cancel();
+          _checkout404Received = true;
+        });
+        return;
+      }
       final raw = json.decode(r.body);
       final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
       if (data == null) return;
       final hasBill = data['has_bill'] == true;
-      final remaining = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
+      int remaining = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
+      if (data['pay_time_expired'] == 1) remaining = 0;
       if (mounted) {
-        setState(() => _receiptPending = hasBill);
-        if (hasBill) return; // Чек загружен — остаёмся на странице соревнования
-        if (remaining > 0) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => CheckoutScreen(eventId: c.id, initialData: data),
-            ),
-          ).then((_) => fetchCompetition());
+        setState(() {
+          _receiptPending = hasBill;
+          _checkoutData = data;
+          _checkoutRemainingSeconds = remaining;
+          _checkout404Received = false;
+        });
+        _paymentTimer?.cancel();
+        if (hasBill) return;
+        if (remaining <= 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _cancelTakePartFromEvent();
+          });
+        } else {
+          _startPaymentTimer();
         }
       }
     } catch (_) {}
+  }
+
+  void _startPaymentTimer() {
+    _paymentTimer?.cancel();
+    if (_checkoutRemainingSeconds <= 0) return;
+    _paymentTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      bool shouldCancel = false;
+      setState(() {
+        _checkoutRemainingSeconds--;
+        if (_checkoutRemainingSeconds <= 0) {
+          _paymentTimer?.cancel();
+          shouldCancel = true;
+        }
+      });
+      if (shouldCancel && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _cancelTakePartFromEvent();
+        });
+      }
+    });
+  }
+
+  Future<void> _cancelTakePartFromEvent() async {
+    if (!mounted) return;
+    setState(() {
+      _checkoutRemainingSeconds = 0;
+      _checkoutData = null;
+    });
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Время оплаты истекло'),
+        content: const Text(
+          'Оплата не была произведена. Регистрация отменена. Зарегистрируйтесь заново.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Ок'),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      try {
+        final token = await getToken();
+        await http.post(
+          Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/cancel-take-part'),
+          headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+        );
+      } catch (_) {}
+      if (mounted) fetchCompetition();
+    }
   }
 
   @override
@@ -1869,6 +2041,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
 // Обновить детали соревнования
   Future<void> fetchCompetition() async {
+    if (mounted) setState(() => _checkout404Received = false); // сброс при обновлении
     final String? token = await getToken();
     final response = await http.get(
       Uri.parse(DOMAIN + '/api/competitions?event_id=${_competitionDetails.id}'),
@@ -1888,7 +2061,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         setState(() {
           _competitionDetails = updatedCompetition;
         });
-        _checkAndRedirectToCheckoutIfNeeded(updatedCompetition);
+        _loadCheckoutDataIfNeeded(updatedCompetition);
       }
     } else if (response.statusCode == 401 || response.statusCode == 419) {
       Navigator.push(
