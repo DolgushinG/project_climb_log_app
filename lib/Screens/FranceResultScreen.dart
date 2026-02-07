@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
+import 'package:login_app/Screens/PublicProfileScreen.dart';
 
 import '../models/Category.dart';
 
@@ -308,10 +309,26 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
           };
         });
 
-        return Card(
-          elevation: 2,
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Padding(
+        final userId = _extractUserId(data);
+
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: userId != null
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PublicProfileScreen(userId: userId),
+                      ),
+                    );
+                  }
+                : null,
+            child: Card(
+              elevation: 2,
+              margin: EdgeInsets.zero,
+              child: Padding(
             padding: const EdgeInsets.all(12.0),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -458,10 +475,24 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
               ],
             ),
           ),
+        ),
+        ),
         );
       },
     );
   }
+
+  int? _extractUserId(Map<String, dynamic> data) {
+    final uid = data['user_id'] ?? data['id'];
+    if (uid is int && uid > 0) return uid;
+    if (uid is num && uid.toInt() > 0) return uid.toInt();
+    if (uid is String) {
+      final parsed = int.tryParse(uid);
+      if (parsed != null && parsed > 0) return parsed;
+    }
+    return null;
+  }
+
   Widget _buildBadgeTopTitle(String text) {
     return Container(
       width: 72,

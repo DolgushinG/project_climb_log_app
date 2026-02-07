@@ -15,6 +15,7 @@ import 'Screens/CheckoutScreen.dart';
 import 'models/Category.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter/services.dart';
 
 String _normalizePosterPath(String path) {
   if (path.isEmpty) return path;
@@ -47,6 +48,7 @@ class Competition {
   final List<Map<String, dynamic>> sport_categories;
   final List<Map<String, dynamic>> number_sets;
   final String address;
+  final String climbing_gym_name;
   final DateTime start_date;
   final bool isCompleted;
   final int is_auto_categories;
@@ -79,6 +81,7 @@ class Competition {
     required this.amount_routes_in_semifinal,
     required this.is_routes_exists,
     required this.address,
+    required this.climbing_gym_name,
     required this.poster,
     required this.description,
     required this.is_participant_paid,
@@ -149,6 +152,7 @@ class Competition {
           : [],
       info_payment: json['info_payment'] ?? '',
       address: json['address'] ?? '',
+      climbing_gym_name: (json['climbing_gym_name'] ?? json['climbing_gym'] ?? '').toString(),
       start_date: startDate,
       isCompleted: isCompleted,
     );
@@ -169,6 +173,20 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   List<Competition> _allCompleted = [];
   bool _isLoading = true;
   String? _selectedCity;
+
+  static const MethodChannel _tracerChannel =
+      MethodChannel('tracer_test_channel');
+
+  Future<void> _sendNativeTestCrash() async {
+    try {
+      await _tracerChannel.invokeMethod('nativeTestCrash');
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Не удалось отправить тестовый крэш: $e')),
+      );
+    }
+  }
 
   @override
   void initState() {
@@ -279,6 +297,13 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Соревнования'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.bug_report),
+            tooltip: 'Отправить тестовый крэш в Tracer',
+            onPressed: _sendNativeTestCrash,
+          ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
@@ -829,6 +854,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     ),
                   ),
                   const SizedBox(height: 12),
+                  if (_competitionDetails.climbing_gym_name.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: CompetitionInfoCard(
+                        icon: Icons.sports_outlined,
+                        label: 'Скалодром',
+                        value: _competitionDetails.climbing_gym_name,
+                      ),
+                    ),
                   CompetitionInfoCard(
                     icon: Icons.place_outlined,
                     label: 'Адрес',

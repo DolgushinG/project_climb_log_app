@@ -26,6 +26,8 @@ class ParticipationHistoryItem {
   final int? semifinalTotal;
   final int? finalPlace;
   final int? finalTotal;
+  final int? countParticipant;
+  final String? endDate;
 
   ParticipationHistoryItem({
     required this.competition,
@@ -35,6 +37,8 @@ class ParticipationHistoryItem {
     this.semifinalTotal,
     this.finalPlace,
     this.finalTotal,
+    this.countParticipant,
+    this.endDate,
   });
 
   factory ParticipationHistoryItem.fromJson(Map<String, dynamic> json) {
@@ -48,6 +52,8 @@ class ParticipationHistoryItem {
       semifinalTotal: _toInt(json['semifinal_total']),
       finalPlace: _toInt(json['final_place']),
       finalTotal: _toInt(json['final_total']),
+      countParticipant: _toInt(eventMap['count_participant']),
+      endDate: eventMap['end_date']?.toString(),
     );
   }
 }
@@ -194,6 +200,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
 
     return ListView.builder(
       physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.all(16),
       itemCount: _items.length,
       itemBuilder: (context, index) {
         final item = _items[index];
@@ -202,23 +209,40 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
     );
   }
 
+  String _formatEventDates(DateTime start, String? endDateStr) {
+    final startStr = DateFormat('dd.MM.yyyy').format(start);
+    if (endDateStr != null && endDateStr.isNotEmpty) {
+      try {
+        final endDt = DateTime.parse(endDateStr);
+        final endStr = DateFormat('dd.MM.yyyy').format(endDt);
+        return '$startStr – $endStr';
+      } catch (_) {}
+    }
+    return startStr;
+  }
+
   Widget _buildHistoryCard(ParticipationHistoryItem item) {
     final c = item.competition;
-    final dateLabel = DateFormat('dd.MM.yyyy').format(c.start_date);
+    final dateStr = _formatEventDates(c.start_date, item.endDate);
     final bool isCurrent = !c.isCompleted;
+    final statusText = isCurrent
+        ? 'Регистрация открыта'
+        : 'Соревнование завершено';
 
-    String _buildPlaceText(int? place, int? total) {
+    String buildPlaceText(int? place, int? total) {
       if (place == null) return '-';
       if (total == null || total <= 0) return '$place место';
-      return '$place место из $total';
+      return '$place место';
     }
 
+    final posterUrl = c.poster.startsWith('http')
+        ? c.poster
+        : '$DOMAIN${c.poster}';
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
         onTap: () {
           Navigator.push(
             context,
@@ -231,126 +255,137 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
           color: const Color(0xFF0B1220),
           surfaceTintColor: Colors.transparent,
           clipBehavior: Clip.antiAlias,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Row(
-              children: [
-                // Постер с фиксированной шириной, чтобы избежать проблем с AspectRatio
-                SizedBox(
-                  width: 84,
-                  child: AspectRatio(
-                    aspectRatio: 3 / 4,
-                    child: Image.network(
-                      '$DOMAIN${c.poster}',
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => Container(
-                        color: Colors.black26,
-                        child: const Icon(
-                          Icons.landscape_rounded,
-                          color: Colors.white38,
+            children: [
+              SizedBox(
+                width: 84,
+                child: AspectRatio(
+                  aspectRatio: 3 / 4,
+                  child: Image.network(
+                    posterUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: Colors.black26,
+                      child: const Icon(
+                        Icons.landscape_rounded,
+                        color: Colors.white38,
+                      ),
+                    ),
+                    loadingBuilder: (context, child, loadingProgress) {
+                      if (loadingProgress == null) return child;
+                      return Container(
+                        color: Colors.black12,
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        c.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
                         ),
                       ),
-                      loadingBuilder: (context, child, loadingProgress) {
-                        if (loadingProgress == null) return child;
-                        return Container(
-                          color: Colors.black12,
-                          child: const Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Row(
-                          children: [
-                            Expanded(
-                              child: Text(
-                                c.title,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isCurrent
-                                    ? Colors.green.withOpacity(0.18)
-                                    : Colors.grey.withOpacity(0.18),
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                isCurrent ? 'Идут' : 'Завершены',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: isCurrent ? Colors.green : Colors.grey[300],
-                                ),
-                              ),
-                            ),
-                          ],
+                      const SizedBox(height: 4),
+                      Text(
+                        '${c.city} • $dateStr',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.7),
                         ),
-                        const SizedBox(height: 6),
+                      ),
+                      if (item.countParticipant != null) ...[
+                        const SizedBox(height: 4),
                         Text(
-                          '${c.city} • $dateLabel',
+                          'Участников: ${item.countParticipant}',
                           style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.7),
+                            fontSize: 11,
+                            color: Colors.white.withOpacity(0.6),
                           ),
-                        ),
-                        const SizedBox(height: 8),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
-                          children: [
-                            Chip(
-                              backgroundColor: Colors.blue.withOpacity(0.15),
-                              label: Text(
-                                'Квалификация: ${_buildPlaceText(item.qualificationPlace, item.qualificationTotal)}',
-                                style: const TextStyle(fontSize: 11, color: Colors.white),
-                              ),
-                            ),
-                            if (c.is_semifinal)
-                              Chip(
-                                backgroundColor: Colors.orange.withOpacity(0.15),
-                                label: Text(
-                                  'Полуфинал: ${_buildPlaceText(item.semifinalPlace, item.semifinalTotal)}',
-                                  style: const TextStyle(fontSize: 11, color: Colors.white),
-                                ),
-                              ),
-                            if (c.is_result_in_final_exists)
-                              Chip(
-                                backgroundColor: Colors.purple.withOpacity(0.2),
-                                label: Text(
-                                  'Финал: ${_buildPlaceText(item.finalPlace, item.finalTotal)}',
-                                  style: const TextStyle(fontSize: 11, color: Colors.white),
-                                ),
-                              ),
-                          ],
                         ),
                       ],
-                    ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: isCurrent
+                              ? Colors.green.withOpacity(0.18)
+                              : Colors.grey.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          statusText,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: isCurrent
+                                ? Colors.green[200]
+                                : Colors.grey[300],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        children: [
+                          _buildResultChip(
+                            'Квалификация: ${buildPlaceText(item.qualificationPlace, item.qualificationTotal)}',
+                            Colors.green.withOpacity(0.15),
+                          ),
+                          if (c.is_semifinal)
+                            _buildResultChip(
+                              'Полуфинал: ${buildPlaceText(item.semifinalPlace, item.semifinalTotal)}',
+                              Colors.orange.withOpacity(0.15),
+                            ),
+                          if (c.is_result_in_final_exists)
+                            _buildResultChip(
+                              'Финал: ${buildPlaceText(item.finalPlace, item.finalTotal)}',
+                              Colors.purple.withOpacity(0.2),
+                            ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
+
+  Widget _buildResultChip(String text, Color bgColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: const TextStyle(fontSize: 11, color: Colors.white),
+      ),
+    );
   }
 }
 

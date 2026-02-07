@@ -5,6 +5,7 @@ import 'package:login_app/main.dart';
 import 'package:flutter/material.dart';
 
 import 'models/Category.dart';
+import 'Screens/PublicProfileScreen.dart';
 
 class Participant {
 
@@ -13,6 +14,7 @@ class Participant {
   final String category;
   final String gender;
   final String birthday;
+  final int? userId;
   // final String set;
 
   Participant({
@@ -21,17 +23,27 @@ class Participant {
     required this.category,
     required this.gender,
     required this.birthday,
+    this.userId,
     // required this.set,
   });
 
   // Метод для создания объекта из JSON (для получения данных из API)
   factory Participant.fromJson(Map<String, dynamic> json) {
+    int? parsedUserId;
+    final uid = json['user_id'] ?? json['id'];
+    if (uid is int && uid > 0) parsedUserId = uid;
+    if (uid is num && uid.toInt() > 0) parsedUserId = uid.toInt();
+    if (uid is String) {
+      final p = int.tryParse(uid);
+      if (p != null && p > 0) parsedUserId = p;
+    }
     return Participant(
       middlename: json['middlename'],
       gender: json['gender'] ?? '',
       category: json['category'] ?? '',
       city: json['city'] ?? '',
       birthday: json['birthday'] ?? '',
+      userId: parsedUserId,
       // set: json['set'],
     );
   }
@@ -204,13 +216,30 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
         itemCount: filteredParticipants.length,
         itemBuilder: (context, index) {
           final participant = filteredParticipants[index];
-          return Card(
-            elevation: 3,
-            margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-            child: ListTile(
-              title: Text('${participant.middlename}'),
-              subtitle: Text('${participant.category} - ${participant.city}'),
-              trailing: Text('${participant.birthday}'),
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(12),
+              onTap: participant.userId != null
+                  ? () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => PublicProfileScreen(
+                              userId: participant.userId!),
+                        ),
+                      );
+                    }
+                  : null,
+              child: Card(
+                elevation: 3,
+                margin: EdgeInsets.zero,
+                child: ListTile(
+                  title: Text('${participant.middlename}'),
+                  subtitle: Text('${participant.category} - ${participant.city}'),
+                  trailing: Text('${participant.birthday}'),
+                ),
+              ),
             ),
           );
         },

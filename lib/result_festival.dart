@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'models/Category.dart';
+import 'Screens/PublicProfileScreen.dart';
 
 
 // Структура данных для результатов участников
@@ -12,6 +13,7 @@ class ParticipantResult {
   final String category;
   final num points;
   final String gender;
+  final int? userId;
 
   ParticipantResult({
     required this.user_place,
@@ -19,6 +21,7 @@ class ParticipantResult {
     required this.category,
     required this.points,
     required this.gender,
+    this.userId,
   });
 
   // Фабричный метод для создания экземпляра из JSON
@@ -45,12 +48,22 @@ class ParticipantResult {
       parsedPoints = 0;
     }
 
+    int? parsedUserId;
+    final uid = json['user_id'] ?? json['id'];
+    if (uid is int && uid > 0) parsedUserId = uid;
+    if (uid is num && uid.toInt() > 0) parsedUserId = uid.toInt();
+    if (uid is String) {
+      final p = int.tryParse(uid);
+      if (p != null && p > 0) parsedUserId = p;
+    }
+
     return ParticipantResult(
       user_place: parsedPlace,
       middlename: json['middlename'] ?? '',
       category: json['category'] ?? '',
       points: parsedPoints,
       gender: json['gender'] ?? '',
+      userId: parsedUserId,
     );
   }
 }
@@ -179,63 +192,79 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       itemCount: genderResults.length,
       itemBuilder: (context, index) {
         final result = genderResults[index];
-        return Card(
-          elevation: 2,
-          margin: EdgeInsets.symmetric(vertical: 8, horizontal: 16),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+        return Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: result.userId != null
+                ? () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => PublicProfileScreen(userId: result.userId!),
+                      ),
+                    );
+                  }
+                : null,
+            child: Card(
+              elevation: 2,
+              margin: EdgeInsets.zero,
+              child: Padding(
+                padding: const EdgeInsets.all(12.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Место',
-                            style: TextStyle(fontSize: 8, color: Colors.grey),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Место',
+                                style: TextStyle(fontSize: 8, color: Colors.grey),
+                              ),
+                              Text(
+                                '${result.user_place}',
+                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                              ),
+                            ],
                           ),
-                          Text(
-                            '${result.user_place}',
-                            style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          flex: 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                result.middlename,
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            result.middlename,
-                            style: TextStyle(fontSize: 16),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Баллы',
+                                style: TextStyle(fontSize: 8, color: Colors.grey),
+                              ),
+                              Text(
+                                '${result.points}',
+                                style: TextStyle(fontSize: 16),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Баллы',
-                            style: TextStyle(fontSize: 8, color: Colors.grey),
-                          ),
-                          Text(
-                            '${result.points}',
-                            style: TextStyle(fontSize: 16),
-                          ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
         );

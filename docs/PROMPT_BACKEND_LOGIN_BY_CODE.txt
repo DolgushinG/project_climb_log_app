@@ -1,0 +1,34 @@
+=== ПРОМПТ ДЛЯ БЭКЕНДА: Вход по коду из почты ===
+
+Нужно реализовать вход по коду из email для мобильного приложения. Требуются 2 эндпоинта:
+
+---
+
+1. POST /api/auth/code/request
+   Отправка кода на email.
+
+   Request: {"email": "user@example.com"}
+   Response 200: {"message": "Код отправлен", "expires_in": 300}
+   Response 4xx: {"message": "текст ошибки"}
+
+   Rate limit: не чаще 1 запроса в 30 секунд на один email.
+   При 429: {"message": "Повторный запрос через 30 сек", "retry_after": 25}
+
+---
+
+2. POST /api/auth/code/verify
+   Проверка кода и выдача токена.
+
+   Request: {"email": "user@example.com", "code": "123456"}
+   Response 200: {"token": "eyJhbGciOiJIUzI1NiIs..."}  — тот же формат, что /api/auth/token
+   Response 4xx: {"message": "Неверный или истёкший код"}
+
+---
+
+Требования к коду:
+- 6 цифр
+- Время жизни 5–10 минут
+- Однократное использование
+- Ограничение попыток проверки (например, 5 попыток, потом блокировка)
+
+URL можно заменить на /api/auth/email-code/send и /api/auth/email-code/verify — главное, чтобы контракт совпадал.

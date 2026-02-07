@@ -2,6 +2,8 @@ plugins {
     id "com.android.application"
     id "kotlin-android"
     id "dev.flutter.flutter-gradle-plugin"
+    // Tracer plugin
+    id "ru.ok.tracer"
 }
 
 def keystorePropertiesFile = rootProject.file("key.properties")
@@ -11,8 +13,8 @@ if (keystorePropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.example.login_app"
-    compileSdk = 35
+    namespace = "com.climbingevents.app"
+    compileSdk = 34
     ndkVersion = "25.1.8937393"
 
     compileOptions {
@@ -25,7 +27,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.login_app"
+        applicationId = "com.climbingevents.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -56,4 +58,38 @@ android {
 
 flutter {
     source = "../.."
+}
+
+// Tracer configuration
+tracer {
+    create("defaultConfig") {
+        // TODO: замените на реальные значения из Tracer
+        pluginToken = "zOZzrZ7yzMwIXhHej94GOMxBBvOVDDLs2qHRBhQEgJj"
+        appToken = "9F7gHqIsamI3XB8gU9znZLKUEpvqyrrfJMkwDH4jQN1"
+
+        // Примеры настроек — подберите под свои нужды
+        uploadMapping = true
+        uploadNativeSymbols = true
+        uploadRetryCount = 2
+        // Если нужны нестандартные директории с либами:
+        // additionalLibrariesPath = projectDir.toString() + "/aVeryNonstandardLibsDirectory"
+    }
+}
+
+dependencies {
+    // Платформа Tracer
+    implementation platform("ru.ok.tracer:tracer-platform:1.1.7")
+
+    // Сбор и анализ крэшей и ANR
+    implementation "ru.ok.tracer:tracer-crash-report"
+    // Сбор и анализ нативных крэшей
+    implementation "ru.ok.tracer:tracer-crash-report-native"
+    // Сбор и анализ хипдампов при OOM
+    implementation "ru.ok.tracer:tracer-heap-dumps"
+    // Анализ потребления дискового места
+    implementation "ru.ok.tracer:tracer-disk-usage"
+    // Семплирующий профайлер
+    implementation "ru.ok.tracer:tracer-profiler-sampling"
+    // Systrace-профайлер
+    implementation "ru.ok.tracer:tracer-profiler-systrace"
 }
