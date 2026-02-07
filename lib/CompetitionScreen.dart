@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/Screens/FranceResultScreen.dart';
 import 'package:login_app/login.dart';
@@ -619,6 +620,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   DateTime? _selectedDate;
   bool _receiptPending = false; // Чек загружен, ожидает подтверждения
   bool _isRefreshing = false;
+  Map<String, dynamic>? _competitionStats;
+  bool _statsLoading = false;
+  String? _statsError;
   final TextEditingController _textEditingController = TextEditingController();
   final FocusNode _focusNode = AlwaysDisabledFocusNode();
 
@@ -1383,7 +1387,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return buildResults(context);
       case 2:
         return RefreshIndicator(
-          onRefresh: () async => fetchCompetition(),
+          onRefresh: () async {
+            await fetchCompetition();
+            await _fetchCompetitionStatistics();
+          },
           child: LayoutBuilder(
             builder: (context, constraints) => SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -1603,10 +1610,221 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildStatisticsSection() {
-    return Center(
-      child: Text(
-        'Statistics coming soon...',
-        style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+    if (_statsLoading && _competitionStats == null) {
+      return const Padding(
+        padding: EdgeInsets.all(32),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+    if (_statsError != null && _competitionStats == null) {
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.bar_chart, size: 64, color: Colors.grey[600]),
+              const SizedBox(height: 16),
+              Text(
+                _statsError!,
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 16, color: Colors.grey[400]),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Статистика будет доступна после реализации API на бэкенде',
+                textAlign: TextAlign.center,
+                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+    final stats = _competitionStats;
+    if (stats == null) {
+      return const SizedBox.shrink();
+    }
+    final participantsTotal = (stats['participants_total'] ?? 0) as num;
+    final participantsMale = (stats['participants_male'] ?? 0) as num;
+    final participantsFemale = (stats['participants_female'] ?? 0) as num;
+    final routesTotal = (stats['routes_total'] ?? 0) as num;
+    final flashesTotal = (stats['flashes_total'] ?? 0) as num;
+    final redpointsTotal = (stats['redpoints_total'] ?? 0) as num;
+    final zonesTotal = (stats['zones_total'] ?? 0) as num;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildStatCard(title: 'Участники', value: participantsTotal.toInt().toString(), icon: Icons.people),
+          const SizedBox(height: 12),
+          _buildStatCard(title: 'Трассы', value: routesTotal.toInt().toString(), icon: Icons.route),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: _buildStatCard(title: 'Флеши', value: flashesTotal.toInt().toString(), icon: Icons.flash_on, color: Colors.green),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _buildStatCard(title: 'Редпоинты', value: redpointsTotal.toInt().toString(), icon: Icons.star, color: Colors.amber),
+              ),
+            ],
+          ),
+          if (zonesTotal.toInt() > 0) ...[
+            const SizedBox(height: 12),
+            _buildStatCard(title: 'Зоны', value: zonesTotal.toInt().toString(), icon: Icons.flag, color: Colors.orange),
+          ],
+          if (participantsTotal.toInt() > 0 && (participantsMale.toInt() > 0 || participantsFemale.toInt() > 0)) ...[
+            const SizedBox(height: 24),
+            const Text('Участники по полу', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 180,
+              child: _buildGenderPieChart(participantsMale.toInt(), participantsFemale.toInt()),
+            ),
+          ],
+          if (flashesTotal.toInt() > 0 || redpointsTotal.toInt() > 0 || zonesTotal.toInt() > 0) ...[
+            const SizedBox(height: 24),
+            const Text('Результаты по типам', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 200,
+              child: _buildResultsBarChart(flashesTotal.toInt(), redpointsTotal.toInt(), zonesTotal.toInt()),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatCard({required String title, required String value, required IconData icon, Color? color}) {
+    final c = color ?? Theme.of(context).colorScheme.primary;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1220),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(color: c.withOpacity(0.2), borderRadius: BorderRadius.circular(10)),
+            child: Icon(icon, color: c, size: 24),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: TextStyle(fontSize: 13, color: Colors.grey[400])),
+                const SizedBox(height: 4),
+                Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGenderPieChart(int male, int female) {
+    final total = male + female;
+    if (total == 0) return const SizedBox.shrink();
+    final sections = <PieChartSectionData>[];
+    if (male > 0) {
+      sections.add(PieChartSectionData(
+        value: male.toDouble(),
+        title: 'М\n$male',
+        color: Colors.blue,
+        radius: 60,
+        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+      ));
+    }
+    if (female > 0) {
+      sections.add(PieChartSectionData(
+        value: female.toDouble(),
+        title: 'Ж\n$female',
+        color: Colors.pink,
+        radius: 60,
+        titleStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+      ));
+    }
+    return PieChart(
+      PieChartData(
+        sections: sections,
+        sectionsSpace: 2,
+        centerSpaceRadius: 30,
+      ),
+    );
+  }
+
+  Widget _buildResultsBarChart(int flashes, int redpoints, int zones) {
+    final spots = <BarChartGroupData>[];
+    final maxVal = [flashes, redpoints, zones].reduce((a, b) => a > b ? a : b);
+    if (maxVal == 0) return const SizedBox.shrink();
+    spots.add(BarChartGroupData(
+      x: 0,
+      barRods: [BarChartRodData(toY: flashes.toDouble(), color: Colors.green, width: 24, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))],
+      showingTooltipIndicators: [0],
+    ));
+    spots.add(BarChartGroupData(
+      x: 1,
+      barRods: [BarChartRodData(toY: redpoints.toDouble(), color: Colors.amber, width: 24, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))],
+      showingTooltipIndicators: [0],
+    ));
+    spots.add(BarChartGroupData(
+      x: 2,
+      barRods: [BarChartRodData(toY: zones.toDouble(), color: Colors.orange, width: 24, borderRadius: const BorderRadius.vertical(top: Radius.circular(4)))],
+      showingTooltipIndicators: [0],
+    ));
+    return BarChart(
+      BarChartData(
+        alignment: BarChartAlignment.spaceAround,
+        maxY: (maxVal * 1.2).clamp(1.0, double.infinity),
+        barGroups: spots,
+        barTouchData: BarTouchData(
+          touchTooltipData: BarTouchTooltipData(
+            getTooltipItem: (group, groupIndex, rod, rodIndex) => BarTooltipItem(
+              rod.toY.toInt().toString(),
+              const TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ),
+        titlesData: FlTitlesData(
+          show: true,
+          bottomTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              getTitlesWidget: (v, meta) {
+                switch (v.toInt()) {
+                  case 0: return const Padding(padding: EdgeInsets.only(top: 8), child: Text('Флеш', style: TextStyle(fontSize: 11)));
+                  case 1: return const Padding(padding: EdgeInsets.only(top: 8), child: Text('Редпоинт', style: TextStyle(fontSize: 11)));
+                  case 2: return const Padding(padding: EdgeInsets.only(top: 8), child: Text('Зона', style: TextStyle(fontSize: 11)));
+                  default: return const Text('');
+                }
+              },
+              reservedSize: 32,
+            ),
+          ),
+          leftTitles: AxisTitles(
+            sideTitles: SideTitles(
+              showTitles: true,
+              reservedSize: 28,
+              getTitlesWidget: (value, meta) => Text(
+                value.toInt().toString(),
+                style: const TextStyle(fontSize: 10),
+              ),
+            ),
+          ),
+          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        ),
+        gridData: FlGridData(show: true, drawVerticalLine: false),
+        borderData: FlBorderData(show: true),
       ),
     );
   }
@@ -1709,6 +1927,46 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
 
+  Future<void> _fetchCompetitionStatistics() async {
+    if (_statsLoading) return;
+    if (!mounted) return;
+    setState(() {
+      _statsLoading = true;
+      _statsError = null;
+    });
+    try {
+      final token = await getToken();
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/statistics'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (!mounted) return;
+      if (r.statusCode == 200) {
+        final data = json.decode(r.body);
+        setState(() {
+          _competitionStats = data is Map ? Map<String, dynamic>.from(data) : null;
+          _statsLoading = false;
+          _statsError = null;
+        });
+      } else {
+        setState(() {
+          _competitionStats = null;
+          _statsLoading = false;
+          _statsError = r.statusCode == 404 ? 'Эндпоинт пока не реализован' : 'Не удалось загрузить статистику';
+        });
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _competitionStats = null;
+        _statsLoading = false;
+        _statsError = 'Ошибка сети';
+      });
+    }
+  }
 
   Future<void> _cancelRegistration() async {
 
@@ -1752,6 +2010,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       setState(() {
         _selectedIndex = index;
       });
+      if (index == 2) _fetchCompetitionStatistics();
     }
   }
 

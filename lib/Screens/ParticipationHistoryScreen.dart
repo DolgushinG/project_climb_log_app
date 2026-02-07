@@ -77,12 +77,14 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
   }
 
   Future<void> _loadHistory() async {
+    if (!mounted) return;
     setState(() {
       _isLoading = true;
       _error = null;
     });
     try {
       final token = await getToken();
+      if (!mounted) return;
       if (token == null) {
         setState(() {
           _isLoading = false;
@@ -99,6 +101,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
         },
       );
 
+      if (!mounted) return;
       if (r.statusCode == 200) {
         final raw = json.decode(r.body);
         final list = raw is List ? raw : (raw is Map && raw['data'] is List ? raw['data'] : []);
@@ -129,10 +132,12 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
         });
       }
     } catch (e) {
-      setState(() {
-        _isLoading = false;
-        _error = 'Ошибка: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Ошибка: $e';
+        });
+      }
     }
   }
 

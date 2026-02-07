@@ -533,11 +533,12 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     );
   }
   Widget _buildBadgeTop(String value) {
+    final isZero = value == '0';
     return Container(
       width: 30,
       height: 20,
       decoration: BoxDecoration(
-        color: Colors.green,
+        color: isZero ? Colors.red : Colors.green,
       ),
       child: Center(
         child: Text(

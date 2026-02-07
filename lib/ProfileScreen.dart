@@ -8,6 +8,7 @@ import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/ChangePasswordScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
+import 'Screens/AboutScreen.dart';
 import 'login.dart';
 import 'main.dart';
 
@@ -210,6 +211,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         context,
                         MaterialPageRoute(
                             builder: (context) => AuthSettingScreen()
+                        ),
+                      );
+                    },
+                  ),
+                  ProfileActionCard(
+                    title: 'О приложении',
+                    icon: Icons.info_outline,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const AboutScreen(),
                         ),
                       );
                     },
