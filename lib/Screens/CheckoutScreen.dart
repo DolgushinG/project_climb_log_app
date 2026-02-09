@@ -32,7 +32,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   String? _appliedPromo;
   Map<String, String> _selectedSizes = {};
   String? _selectedPackageName;
-  bool _paymentBlockExpanded = false;
   bool _isUploadingReceipt = false;
   bool _isSavingPackage = false;
   bool _isApplyingPromo = false;
@@ -519,7 +518,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       if (r.statusCode == 200) {
         _showSnack('Оплата на месте подтверждена');
-        Navigator.pop(context);
+        if (mounted && Navigator.canPop(context)) {
+          Navigator.pop(context); // закрыть bottom sheet
+        }
+        if (mounted) Navigator.pop(context); // закрыть CheckoutScreen
       } else {
         _showSnack('Ошибка', isError: true);
       }
@@ -533,6 +535,80 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green),
     );
+  }
+
+  Future<void> _showPaymentBottomSheet({
+    required String? linkPayment,
+    required String? imgPayment,
+    required bool isPayCashToPlace,
+  }) async {
+    final result = await showModalBottomSheet<Map<String, dynamic>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        decoration: const BoxDecoration(
+          color: Color(0xFF0B1220),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: DraggableScrollableSheet(
+          initialChildSize: 0.6,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (_, scrollController) => SafeArea(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 12, bottom: 8),
+                  child: Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.white24,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                  child: Text(
+                    'Оплата и прикрепление чека',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                Flexible(
+                  child: SingleChildScrollView(
+                    controller: scrollController,
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (linkPayment != null && linkPayment.isNotEmpty)
+                          _buildPaymentLink(linkPayment),
+                        if (imgPayment != null && imgPayment.isNotEmpty)
+                          _buildQrCode(imgPayment),
+                        _buildReceiptUpload(),
+                        if (isPayCashToPlace)
+                          _buildPayOnPlaceButton(),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (mounted && result != null && result['receipt_uploaded'] == true) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -632,34 +708,24 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             const SizedBox(height: 20),
             if (hasBill)
               _buildHasBillCard()
-            else ...[
+            else
               _buildPayButton(
-                packages: packages,
                 onTap: () {
-                  if (!_paymentBlockExpanded) {
-                    if (_selectedPackageName == null || _selectedPackageName!.isEmpty) {
-                      _showSnack('Сначала выберите пакет участия', isError: true);
-                      return;
-                    }
-                    if (!_hasAllSizesSelectedForPackage(_selectedPackageName!, packages)) {
-                      _showSnack('Выберите размеры мерча в выбранном пакете', isError: true);
-                      return;
-                    }
+                  if (_selectedPackageName == null || _selectedPackageName!.isEmpty) {
+                    _showSnack('Сначала выберите пакет участия', isError: true);
+                    return;
                   }
-                  setState(() => _paymentBlockExpanded = !_paymentBlockExpanded);
+                  if (!_hasAllSizesSelectedForPackage(_selectedPackageName!, packages)) {
+                    _showSnack('Выберите размеры мерча в выбранном пакете', isError: true);
+                    return;
+                  }
+                  _showPaymentBottomSheet(
+                    linkPayment: linkPayment?.toString(),
+                    imgPayment: imgPayment?.toString(),
+                    isPayCashToPlace: isPayCashToPlace,
+                  );
                 },
               ),
-              if (_paymentBlockExpanded) ...[
-                const SizedBox(height: 16),
-                if (linkPayment != null && linkPayment.toString().isNotEmpty)
-                  _buildPaymentLink(linkPayment.toString()),
-                if (imgPayment != null && imgPayment.toString().isNotEmpty)
-                  _buildQrCode(imgPayment.toString()),
-                _buildReceiptUpload(),
-                if (isPayCashToPlace)
-                  _buildPayOnPlaceButton(),
-              ],
-            ],
           ],
         ),
       ),
@@ -1034,7 +1100,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildPayButton({required List packages, required VoidCallback onTap}) {
+  Widget _buildPayButton({required VoidCallback onTap}) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -1044,7 +1110,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text(_paymentBlockExpanded ? 'Скрыть' : 'Перейти к оплате или прикрепить чек'),
+        child: const Text('Перейти к оплате или прикрепить чек'),
       ),
     );
   }

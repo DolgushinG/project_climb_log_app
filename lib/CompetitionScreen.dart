@@ -1818,6 +1818,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                         numberSetsForWaitlist: _numberSetsForWaitlist,
                                         onWaitlistTap: _showWaitlistBottomSheet,
                                         is_in_list_pending: _competitionDetails.is_in_list_pending,
+                                        needCategory: _competitionDetails.auto_categories == MANUAL_CATEGORIES &&
+                                            _competitionDetails.categories.isNotEmpty,
+                                        needSportCategory: _competitionDetails.is_need_sport_category == 1 &&
+                                            _competitionDetails.sport_categories.isNotEmpty,
+                                        needNumberSet: _competitionDetails.is_input_set == 0 &&
+                                            _competitionDetails.number_sets.isNotEmpty,
                                       ),
                           if (!_needsBirthdayButNotFilled) const SizedBox(height: 8),
                           SizedBox(

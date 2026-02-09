@@ -35,6 +35,12 @@ class TakePartButtonScreen extends StatefulWidget {
   final VoidCallback? onWaitlistTap;
   /// Пользователь уже в листе ожидания — не показывать кнопку «Добавиться»
   final bool is_in_list_pending;
+  /// Требуется выбор категории (если доступна)
+  final bool needCategory;
+  /// Требуется выбор разряда (если доступен)
+  final bool needSportCategory;
+  /// Требуется выбор сета (если доступны)
+  final bool needNumberSet;
 
   TakePartButtonScreen(
       this.event_id,
@@ -51,6 +57,9 @@ class TakePartButtonScreen extends StatefulWidget {
       this.numberSetsForWaitlist = const [],
       this.onWaitlistTap,
       this.is_in_list_pending = false,
+      this.needCategory = false,
+      this.needSportCategory = false,
+      this.needNumberSet = false,
     });
 
   @override
@@ -110,6 +119,20 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   }
 
   Future<void> _makeRequest() async {
+    // Проверка: если категория/сет/разряд требуются, но не выбраны
+    if (widget.needCategory && (widget.category == null || widget.category!.category.isEmpty)) {
+      _showNotification('Выберите категорию для участия', Colors.orange);
+      return;
+    }
+    if (widget.needSportCategory && (widget.sport_category == null || widget.sport_category!.sport_category.isEmpty)) {
+      _showNotification('Выберите разряд для участия', Colors.orange);
+      return;
+    }
+    if (widget.needNumberSet && (widget.number_set == null)) {
+      _showNotification('Выберите сет для участия', Colors.orange);
+      return;
+    }
+
     if (mounted) {
       setState(() {
         _isButtonDisabled = true;
