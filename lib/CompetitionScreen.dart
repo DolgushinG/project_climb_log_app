@@ -13,7 +13,9 @@ import 'button/take_part.dart';
 import 'list_participants.dart';
 import 'main.dart';
 import 'Screens/CheckoutScreen.dart';
+import 'Screens/ProfileEditScreen.dart';
 import 'models/Category.dart';
+import 'services/ProfileService.dart';
 import 'utils/display_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -22,6 +24,11 @@ String _normalizePosterPath(String path) {
   if (path.startsWith('http')) return path;
   return path.startsWith('/') ? path : '/$path';
 }
+
+const int MANUAL_CATEGORIES = 0;
+const int AUTO_CATEGORIES_RESULT = 1;
+const int AUTO_CATEGORIES_YEAR = 2;
+const int AUTO_CATEGORIES_AGE = 3;
 
 bool _jsonToBool(dynamic value) {
   if (value is bool) return value;
@@ -52,6 +59,8 @@ class Competition {
   final DateTime start_date;
   final bool isCompleted;
   final int is_auto_categories;
+  final int auto_categories;
+  final String? your_group;
   final int amount_routes_in_qualification;
   final int amount_routes_in_final;
   final int amount_routes_in_semifinal;
@@ -87,6 +96,8 @@ class Competition {
     required this.is_participant_paid,
     required this.is_access_user_cancel_take_part,
     required this.is_auto_categories,
+    required this.auto_categories,
+    this.your_group,
     required this.is_input_set,
     required this.is_semifinal,
     required this.is_france_system_qualification,
@@ -134,6 +145,8 @@ class Competition {
       poster: _normalizePosterPath((json['poster'] ?? json['image'] ?? '').toString()),
       is_access_user_cancel_take_part: json['is_access_user_cancel_take_part'] ?? 0,
       is_auto_categories: json['is_auto_categories'] ?? 0,
+      auto_categories: json['auto_categories'] ?? 0,
+      your_group: json['your_group']?.toString(),
       is_input_set: json['is_input_set'] ?? 0,
       is_france_system_qualification: json['is_france_system_qualification'] ?? 0,
       is_access_user_edit_result: _jsonToBool(json['is_access_user_edit_result']),
@@ -605,6 +618,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   Map<String, dynamic>? _competitionStats;
   bool _statsLoading = false;
   String? _statsError;
+  String? _userBirthday; // день рождения из профиля
   final TextEditingController _textEditingController = TextEditingController();
   final FocusNode _focusNode = AlwaysDisabledFocusNode();
 
@@ -871,10 +885,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            if(!_competitionDetails.isCompleted && !_competitionDetails.is_participant && _competitionDetails.is_need_send_birthday)
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant &&
+                _competitionDetails.is_need_send_birthday &&
+                _competitionDetails.auto_categories != AUTO_CATEGORIES_YEAR &&
+                _competitionDetails.auto_categories != AUTO_CATEGORIES_AGE)
               Row(
                   children: [
-                    Expanded( // Используем Flexible для более гибкого контроля
+                    Expanded(
                       child: TextField(
                         focusNode: _focusNode,
                         controller: _textEditingController,
@@ -915,7 +932,126 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       ),
                     ]),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
-              if(_competitionDetails.is_auto_categories == 0)
+              if ((_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
+                      _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE) &&
+                  !_hasBirthdayFilled)
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.amber.withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.cake_outlined,
+                              size: 22,
+                              color: Colors.amber.shade300,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Для участия необходимо заполнить день рождения',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.white.withOpacity(0.9),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  TextButton.icon(
+                                    onPressed: () async {
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (context) => ProfileEditScreen(),
+                                        ),
+                                      );
+                                      if (mounted) fetchCompetition();
+                                    },
+                                    icon: const Icon(Icons.edit, size: 18, color: Color(0xFF60A5FA)),
+                                    label: const Text(
+                                      'Заполнить в профиле',
+                                      style: TextStyle(color: Color(0xFF60A5FA)),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+              if (_hasBirthdayFilled &&
+                  (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
+                      _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE))
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1D4ED8).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: const Color(0xFF1D4ED8).withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.group_rounded,
+                              size: 22,
+                              color: const Color(0xFF60A5FA),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Ваша группа',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white.withOpacity(0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _competitionDetails.your_group ?? '—',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+              if (_competitionDetails.auto_categories == MANUAL_CATEGORIES)
                 Row(
                 children: [
                   Expanded( // Используем Flexible для более гибкого контроля
@@ -1083,8 +1219,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         ),
                       Row(
                         children: [
-                          Expanded(
-                            child: needsPayment
+                          if (!_needsBirthdayButNotFilled)
+                            Expanded(
+                              child: needsPayment
                                 ? ElevatedButton(
                                     onPressed: () {
                                       Navigator.push(
@@ -1114,28 +1251,28 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                     ),
                                   )
                                 : TakePartButtonScreen(
-                                    _competitionDetails.id,
-                                    _checkout404Received ? false : _competitionDetails.is_participant,
-                                    _selectedDate,
-                                    selectedCategory,
-                                    selectedSportCategory,
-                                    selectedNumberSet,
-                                    _refreshParticipationStatus,
-                                    is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
-                                    onNeedCheckout: (eventId) {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => CheckoutScreen(
-                                            eventId: eventId,
-                                            initialData: _checkoutData,
-                                          ),
-                                        ),
-                                      ).then((_) => fetchCompetition());
-                                    },
-                                  ),
+                                        _competitionDetails.id,
+                                        _checkout404Received ? false : _competitionDetails.is_participant,
+                                        _birthdayForTakePart,
+                                        selectedCategory,
+                                        selectedSportCategory,
+                                        selectedNumberSet,
+                                        _refreshParticipationStatus,
+                                        is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
+                                        onNeedCheckout: (eventId) {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => CheckoutScreen(
+                                                eventId: eventId,
+                                                initialData: _checkoutData,
+                                              ),
+                                            ),
+                                          ).then((_) => fetchCompetition());
+                                        },
+                                      ),
                           ),
-                          const SizedBox(width: 10),
+                          if (!_needsBirthdayButNotFilled) const SizedBox(width: 10),
                           Expanded(
                             child: ElevatedButton(
                               onPressed: () {
@@ -2062,6 +2199,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           _competitionDetails = updatedCompetition;
         });
         _loadCheckoutDataIfNeeded(updatedCompetition);
+        final ac = updatedCompetition.auto_categories;
+        if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
+          _loadUserBirthday();
+        }
       }
     } else if (response.statusCode == 401 || response.statusCode == 419) {
       Navigator.push(
@@ -2075,6 +2216,38 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       );
     } else {
     }
+  }
+
+  Future<void> _loadUserBirthday() async {
+    try {
+      final profile = await ProfileService(baseUrl: DOMAIN).getProfile(context);
+      if (mounted && profile != null) {
+        setState(() {
+          _userBirthday = profile.birthday.trim().isNotEmpty ? profile.birthday : null;
+        });
+      }
+    } catch (_) {}
+  }
+
+  bool get _hasBirthdayFilled {
+    if (_userBirthday != null && _userBirthday!.trim().isNotEmpty) return true;
+    if (_selectedDate != null) return true;
+    return false;
+  }
+
+  bool get _needsBirthdayButNotFilled {
+    final ac = _competitionDetails.auto_categories;
+    return (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) && !_hasBirthdayFilled;
+  }
+
+  DateTime? get _birthdayForTakePart {
+    if (_selectedDate != null) return _selectedDate;
+    if (_userBirthday != null && _userBirthday!.trim().isNotEmpty) {
+      try {
+        return DateTime.parse(_userBirthday!);
+      } catch (_) {}
+    }
+    return null;
   }
 
   Future<void> _fetchCompetitionStatistics() async {
