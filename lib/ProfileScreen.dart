@@ -187,21 +187,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                            builder: (context) => AnalyticsScreen(
-                              analytics: {
-                                'labels': ['Jan', 'Feb', 'Mar', 'Apr', 'May'],
-                                'flashes': [10, 20, 30, 25, 40],
-                                'redpoints': [5, 15, 10, 20, 25],
-                              },
-                              analyticsProgress: {
-                                'labels': ['Week 1', 'Week 2', 'Week 3', 'Week 4'],
-                                'flashes': [12, 18, 25, 30],
-                                'redpoints': [7, 14, 18, 22],
-                              },
-                            ) // Заглушка для будущих экранов
+                          builder: (context) => const AnalyticsScreen(),
                         ),
                       );
-
                     },
                   ),
                   ProfileActionCard(

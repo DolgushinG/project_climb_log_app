@@ -55,4 +55,35 @@ class ProfileService {
 
     return response;
   }
+
+  /// Получить аналитику профиля (полуфиналы, финалы, стабильность, призы, прогресс)
+  Future<Map<String, dynamic>?> getProfileAnalytics(BuildContext context) async {
+    final String? token = await getToken();
+    final response = await http.get(
+      Uri.parse('$baseUrl/api/profile/analytics'),
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else if (response.statusCode == 401 || response.statusCode == 419) {
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сессии')),
+        );
+      }
+    } else {
+      throw Exception('Failed to load profile analytics');
+    }
+    return null;
+  }
 }
