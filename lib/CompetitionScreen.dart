@@ -40,6 +40,17 @@ bool _jsonToBool(dynamic value) {
   return false;
 }
 
+List<int>? _parseListPendingNumberSets(dynamic value) {
+  if (value == null) return null;
+  if (value is List) {
+    return value.map((e) => e is int ? e : int.tryParse(e?.toString() ?? '') ?? 0).where((e) => e > 0).toList();
+  }
+  if (value is String) {
+    return value.split(',').map((e) => int.tryParse(e.trim()) ?? 0).where((e) => e > 0).toList();
+  }
+  return null;
+}
+
 class Competition {
   final int id;
   final String title;
@@ -76,6 +87,8 @@ class Competition {
   final bool? is_send_result_state;
   final bool? is_open_send_result_state;
   final bool is_need_pay_for_reg;
+  final bool is_in_list_pending;
+  final List<int>? list_pending_number_sets;
 
   Competition({
     required this.id,
@@ -105,6 +118,8 @@ class Competition {
     this.is_send_result_state,
     this.is_open_send_result_state,
     this.is_need_pay_for_reg = false,
+    this.is_in_list_pending = false,
+    this.list_pending_number_sets,
     required this.is_need_send_birthday,
     required this.is_need_sport_category,
     required this.info_payment,
@@ -125,6 +140,14 @@ class Competition {
     final categoriesRaw = json['categories'];
     final sportCategoriesRaw = json['sport_categories'];
     final setsRaw = json['sets'];
+    final List<Map<String, dynamic>> setsList;
+    if (setsRaw is List) {
+      setsList = setsRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    } else if (setsRaw is Map && setsRaw['sets'] is List) {
+      setsList = (setsRaw['sets'] as List).map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    } else {
+      setsList = [];
+    }
 
     return Competition(
       id: json['id'],
@@ -153,6 +176,8 @@ class Competition {
       is_send_result_state: _jsonToBool(json['is_send_result_state']),
       is_open_send_result_state: _jsonToBool(json['is_open_send_result_state']),
       is_need_pay_for_reg: _jsonToBool(json['is_need_pay_for_reg']),
+      is_in_list_pending: _jsonToBool(json['is_in_list_pending']),
+      list_pending_number_sets: _parseListPendingNumberSets(json['list_pending_number_sets']),
       description: json['description'] ?? '',
       categories: (categoriesRaw is List)
           ? categoriesRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
@@ -160,9 +185,7 @@ class Competition {
       sport_categories: (sportCategoriesRaw is List)
           ? sportCategoriesRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
           : [],
-      number_sets: (setsRaw is List)
-          ? setsRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
-          : [],
+      number_sets: setsList,
       info_payment: json['info_payment'] ?? '',
       address: json['address'] ?? '',
       climbing_gym_name: (json['climbing_gym_name'] ?? json['climbing_gym'] ?? '').toString(),
@@ -630,6 +653,31 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     super.dispose();
   }
 
+  /// Есть хотя бы один занятый сет
+  bool get _hasAnyBusySet {
+    if (_competitionDetails.number_sets.isEmpty) return false;
+    final sets = _competitionDetails.number_sets.map((j) => NumberSets.fromJson(j)).toList();
+    return sets.any((s) => (s.free) <= 0);
+  }
+
+  /// Все сеты заняты
+  bool get _allSetsBusy {
+    if (_competitionDetails.number_sets.isEmpty) return false;
+    final sets = _competitionDetails.number_sets.map((j) => NumberSets.fromJson(j)).toList();
+    return sets.every((s) => (s.free) <= 0);
+  }
+
+  /// Номера сетов для add-to-list-pending
+  List<int> get _numberSetsForWaitlist {
+    if (_competitionDetails.is_input_set == 0) {
+      return selectedNumberSet != null ? [selectedNumberSet!.number_set] : [];
+    }
+    return _competitionDetails.number_sets
+        .map((j) => NumberSets.fromJson(j))
+        .map((s) => s.number_set)
+        .toList();
+  }
+
   void _showSetSelectionDialog() {
     List<NumberSets> numberSetList = _competitionDetails.number_sets.map((json) => NumberSets.fromJson(json)).toList();
     showDialog(
@@ -646,7 +694,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 child: Column(
                   children: numberSetList.map((numberSet) {
                     return RadioListTile<NumberSets>(
-                      title: Text(numberSet.time),
+                      title: Text(formatSetCompact(numberSet)),
                       value: numberSet,
                       groupValue: tempSelectedNumberSet,
                       onChanged: (NumberSets? value) {
@@ -793,6 +841,495 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     );
   }
 
+  void _showWaitlistBottomSheet({List<int>? initialNumberSets}) {
+    final busySets = _competitionDetails.number_sets
+        .map((j) => NumberSets.fromJson(j))
+        .where((s) => s.free <= 0)
+        .toList();
+    final categoryList = _competitionDetails.categories
+        .map((json) => Category.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+    final sportCategoryList = _competitionDetails.sport_categories
+        .map((json) => SportCategory.fromJson(Map<String, dynamic>.from(json)))
+        .toList();
+
+    List<NumberSets> sheetSelectedSets = [];
+    Category? sheetSelectedCategory;
+    SportCategory? sheetSelectedSportCategory;
+
+    // Предзаполнение
+    if (initialNumberSets != null && initialNumberSets.isNotEmpty) {
+      sheetSelectedSets = busySets.where((s) => initialNumberSets.contains(s.number_set)).toList();
+    }
+    if (sheetSelectedSets.isEmpty && busySets.isNotEmpty && selectedNumberSet != null && busySets.any((s) => s.id == selectedNumberSet!.id)) {
+      sheetSelectedSets = [selectedNumberSet!];
+    } else if (sheetSelectedSets.isEmpty && busySets.isNotEmpty) {
+      sheetSelectedSets = [busySets.first];
+    }
+    sheetSelectedCategory = selectedCategory;
+    sheetSelectedSportCategory = selectedSportCategory;
+
+    final needCategory = _competitionDetails.auto_categories != AUTO_CATEGORIES_YEAR &&
+        _competitionDetails.auto_categories != AUTO_CATEGORIES_AGE &&
+        categoryList.isNotEmpty;
+    final needSportCategory = _competitionDetails.is_need_sport_category == 1 && sportCategoryList.isNotEmpty;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: const Color(0xFF0B1220),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setSheetState) {
+          return Padding(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+              left: 16,
+              right: 16,
+              top: 16,
+            ),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    initialNumberSets != null ? 'Изменить данные в листе ожидания' : 'Добавиться в лист ожидания',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_competitionDetails.is_input_set == 0 && busySets.isNotEmpty) ...[
+                    const Text('Занятый сет', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    const SizedBox(height: 6),
+                    ...busySets.map((s) => CheckboxListTile(
+                      title: Text(formatSetCompact(s), style: const TextStyle(color: Colors.white)),
+                      value: sheetSelectedSets.contains(s),
+                      activeColor: Colors.orange,
+                      onChanged: (checked) {
+                        setSheetState(() {
+                          if (checked == true) {
+                            if (!sheetSelectedSets.contains(s)) sheetSelectedSets = [...sheetSelectedSets, s];
+                          } else {
+                            sheetSelectedSets = sheetSelectedSets.where((x) => x != s).toList();
+                          }
+                        });
+                      },
+                    )),
+                    const SizedBox(height: 12),
+                  ],
+                  if (needCategory) ...[
+                    const Text('Категория', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    const SizedBox(height: 6),
+                    ...categoryList.map((c) => RadioListTile<Category>(
+                      title: Text(c.category, style: const TextStyle(color: Colors.white)),
+                      value: c,
+                      groupValue: sheetSelectedCategory,
+                      onChanged: (v) => setSheetState(() => sheetSelectedCategory = v),
+                    )),
+                    const SizedBox(height: 12),
+                  ],
+                  if (needSportCategory) ...[
+                    const Text('Разряд', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    const SizedBox(height: 6),
+                    ...sportCategoryList.map((sc) => RadioListTile<SportCategory>(
+                      title: Text(sc.sport_category, style: const TextStyle(color: Colors.white)),
+                      value: sc,
+                      groupValue: sheetSelectedSportCategory,
+                      onChanged: (v) => setSheetState(() => sheetSelectedSportCategory = v),
+                    )),
+                    const SizedBox(height: 12),
+                  ],
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final numberSets = _competitionDetails.is_input_set == 0
+                          ? sheetSelectedSets.map((s) => s.number_set).toList()
+                          : busySets.map((s) => s.number_set).toList();
+
+                      if (numberSets.isEmpty && _competitionDetails.is_input_set == 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Выберите сет'), backgroundColor: Colors.orange),
+                        );
+                        return;
+                      }
+                      if (needCategory && sheetSelectedCategory == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Выберите категорию'), backgroundColor: Colors.orange),
+                        );
+                        return;
+                      }
+                      if (needSportCategory && sheetSelectedSportCategory == null) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Выберите разряд'), backgroundColor: Colors.orange),
+                        );
+                        return;
+                      }
+
+                      Navigator.pop(context);
+                      await _addToWaitlistFromSheet(
+                        numberSets,
+                        sheetSelectedCategory,
+                        sheetSelectedSportCategory,
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF16A34A),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: const Text('Подтвердить', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                  ),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _addToWaitlistFromSheet(
+    List<int> numberSets,
+    Category? category,
+    SportCategory? sportCategory,
+  ) async {
+    try {
+      final token = await getToken();
+      final serverDate = _birthdayForTakePart != null
+          ? DateFormat('yyyy-MM-dd').format(_birthdayForTakePart!)
+          : null;
+
+      final body = <String, dynamic>{'number_sets': numberSets};
+      if (serverDate != null) body['birthday'] = serverDate;
+      if (category?.category != null) body['category'] = category!.category;
+      if (sportCategory?.sport_category != null) body['sport_category'] = sportCategory!.sport_category;
+
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/add-to-list-pending'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(body),
+      );
+      final data = json.decode(response.body);
+      final message = data['message']?.toString() ?? '';
+      final success = response.statusCode == 200 && (data['success'] == true);
+
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message.isNotEmpty ? message : 'Вы добавлены в лист ожидания'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _refreshParticipationStatus();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка сети'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _removeFromListPending() async {
+    try {
+      final token = await getToken();
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/remove-from-list-pending'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({}),
+      );
+      final data = json.decode(response.body);
+      final message = data['message']?.toString() ?? '';
+      final success = response.statusCode == 200 && (data['success'] == true);
+
+      if (!mounted) return;
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(message.isNotEmpty ? message : 'Успешно удалено из листа ожидания'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        _refreshParticipationStatus();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message.isNotEmpty ? message : 'Ошибка удаления'), backgroundColor: Colors.red),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Ошибка сети'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Widget _buildListPendingBlock() {
+    final pendingSets = _competitionDetails.list_pending_number_sets ?? [];
+    final allSets = _competitionDetails.number_sets.map((j) => NumberSets.fromJson(j)).toList();
+    final setLabels = pendingSets.map((n) {
+      final list = allSets.where((x) => x.number_set == n).toList();
+      final s = list.isEmpty ? null : list.first;
+      return s != null ? formatSetCompact(s) : '№$n';
+    }).join(', ');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.orange.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.orange.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Row(
+            children: [
+              Icon(Icons.schedule, color: Colors.orange, size: 24),
+              SizedBox(width: 8),
+              Text(
+                'Лист ожидания',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+          if (setLabels.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Сеты: $setLabels',
+              style: const TextStyle(fontSize: 14, color: Colors.white70),
+            ),
+          ],
+          if (selectedCategory != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Категория: ${selectedCategory!.category}',
+              style: const TextStyle(fontSize: 14, color: Colors.white70),
+            ),
+          ],
+          if (selectedSportCategory != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Разряд: ${selectedSportCategory!.sport_category}',
+              style: const TextStyle(fontSize: 14, color: Colors.white70),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () => _showWaitlistBottomSheet(
+                    initialNumberSets: _competitionDetails.list_pending_number_sets,
+                  ),
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Изменить'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.orange,
+                    side: const BorderSide(color: Colors.orange),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () async {
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (ctx) => AlertDialog(
+                        title: const Text('Удалить из листа ожидания?'),
+                        content: const Text(
+                          'Вы будете удалены из листа ожидания. Освободившееся место смогут занять другие.',
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, false),
+                            child: const Text('Отмена'),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(ctx, true),
+                            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+                          ),
+                        ],
+                      ),
+                    );
+                    if (confirm == true) await _removeFromListPending();
+                  },
+                  icon: const Icon(Icons.person_remove, size: 18),
+                  label: const Text('Удалить'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: Colors.redAccent,
+                    side: const BorderSide(color: Colors.redAccent),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Блок сетов: компактные чипы с номером, счётчиком и прогресс-баром
+  Widget _buildSetsBlock() {
+    final sets = _competitionDetails.number_sets
+        .map((j) => NumberSets.fromJson(j))
+        .toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: const [
+            Icon(Icons.grid_view_rounded, size: 12, color: Colors.white70),
+            SizedBox(width: 4),
+            Text(
+              'Сеты',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final w = constraints.maxWidth;
+            final spacing = 3.0;
+            final count = w < 320 ? 4 : (w < 400 ? 5 : 6);
+            final itemW = (w - spacing * (count - 1)) / count;
+            return Wrap(
+              spacing: spacing,
+              runSpacing: spacing,
+              children: sets.map((s) => SizedBox(
+                width: itemW,
+                child: _buildSetCompactItem(s),
+              )).toList(),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSetCompactItem(NumberSets s) {
+    final progressClass = s.progress_class;
+    final textClass = s.text_class;
+    final progressColor = _getProgressColor(progressClass);
+    final textColor = _getTextColor(textClass);
+    final procent = s.procent.clamp(0.0, 100.0);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0B1220),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: const Color(0xFF1E293B), width: 0.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '№${s.number_set}',
+                style: const TextStyle(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF94A3B8),
+                ),
+              ),
+              Text(
+                '${s.participants_count}/${s.max_participants}',
+                style: TextStyle(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w500,
+                  color: textColor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 2),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(1),
+            child: LinearProgressIndicator(
+              value: procent / 100,
+              minHeight: 3,
+              backgroundColor: const Color(0xFF1E293B),
+              valueColor: AlwaysStoppedAnimation<Color>(progressColor),
+            ),
+          ),
+          if (s.time.isNotEmpty) ...[
+            const SizedBox(height: 1),
+            Text(
+              s.time,
+              style: const TextStyle(
+                fontSize: 8,
+                color: Color(0xFF64748B),
+              ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Color _getProgressColor(String progressClass) {
+    switch (progressClass) {
+      case 'custom-progress-high':
+        return const Color(0xFFDC3545);
+      case 'custom-progress-medium':
+        return const Color(0xFFFD7E14);
+      case 'custom-progress-low':
+      default:
+        return const Color(0xFF28A745);
+    }
+  }
+
+  Color _getTextColor(String textClass) {
+    switch (textClass) {
+      case 'text-high':
+        return const Color(0xFFDC3545);
+      case 'text-medium':
+        return const Color(0xFFFD7E14);
+      case 'text-low':
+      default:
+        return const Color(0xFF28A745);
+    }
+  }
+
   Widget _buildInformationSection() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -884,6 +1421,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ],
               ),
             ),
+            if (_competitionDetails.number_sets.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              _buildSetsBlock(),
+            ],
             const SizedBox(height: 20),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant &&
                 _competitionDetails.is_need_send_birthday &&
@@ -1093,7 +1634,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     child: Text(
                       selectedNumberSet == null
                           ? 'Выберите сет'
-                          : 'Сет: ${displayValue(selectedNumberSet!.number_set.toString())}',
+                          : 'Сет: ${formatSetCompact(selectedNumberSet!)}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1217,11 +1758,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                             ],
                           ),
                         ),
-                      Row(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          if (_competitionDetails.is_in_list_pending) _buildListPendingBlock(),
+                          if (_competitionDetails.is_in_list_pending) const SizedBox(height: 8),
                           if (!_needsBirthdayButNotFilled)
-                            Expanded(
-                              child: needsPayment
+                            needsPayment
                                 ? ElevatedButton(
                                     onPressed: () {
                                       Navigator.push(
@@ -1270,10 +1813,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                             ),
                                           ).then((_) => fetchCompetition());
                                         },
+                                        allSetsBusy: _allSetsBusy,
+                                        hasAnyBusySet: _hasAnyBusySet,
+                                        numberSetsForWaitlist: _numberSetsForWaitlist,
+                                        onWaitlistTap: _showWaitlistBottomSheet,
+                                        is_in_list_pending: _competitionDetails.is_in_list_pending,
                                       ),
-                          ),
-                          if (!_needsBirthdayButNotFilled) const SizedBox(width: 10),
-                          Expanded(
+                          if (!_needsBirthdayButNotFilled) const SizedBox(height: 8),
+                          SizedBox(
+                            width: double.infinity,
                             child: ElevatedButton(
                               onPressed: () {
                                 Navigator.push(

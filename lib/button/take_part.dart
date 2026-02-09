@@ -25,6 +25,16 @@ class TakePartButtonScreen extends StatefulWidget {
   NumberSets? number_set;
   final VoidCallback onParticipationStatusChanged;
   final void Function(int eventId)? onNeedCheckout;
+  /// Все сеты заняты — скрываем «Принять участие», только «Добавиться в лист ожидания»
+  final bool allSetsBusy;
+  /// Есть хотя бы один занятый сет — показываем кнопку «Добавиться в лист ожидания»
+  final bool hasAnyBusySet;
+  /// Номера сетов для add-to-list-pending
+  final List<int> numberSetsForWaitlist;
+  /// При нажатии «Добавиться в лист ожидания» — показать sheet вместо прямого запроса
+  final VoidCallback? onWaitlistTap;
+  /// Пользователь уже в листе ожидания — не показывать кнопку «Добавиться»
+  final bool is_in_list_pending;
 
   TakePartButtonScreen(
       this.event_id,
@@ -36,6 +46,11 @@ class TakePartButtonScreen extends StatefulWidget {
       this.onParticipationStatusChanged, {
       this.is_need_pay_for_reg = false,
       this.onNeedCheckout,
+      this.allSetsBusy = false,
+      this.hasAnyBusySet = false,
+      this.numberSetsForWaitlist = const [],
+      this.onWaitlistTap,
+      this.is_in_list_pending = false,
     });
 
   @override
@@ -46,6 +61,8 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   bool _isButtonDisabled = false;
   String _buttonText = 'Принять участие';
   bool success = false;
+  bool _waitlistButtonDisabled = false;
+  String _waitlistButtonText = 'Добавиться в лист ожидания';
 
   @override
   void initState() {
@@ -183,13 +200,97 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
     _showNotification(message, Colors.red);
   }
 
+  void _handleWaitlistError(String message) {
+    if (mounted) {
+      setState(() {
+        _waitlistButtonDisabled = false;
+        _waitlistButtonText = 'Добавиться в лист ожидания';
+      });
+    }
+    _showNotification(message, Colors.red);
+  }
+
+  Future<void> _makeAddToListPendingRequest() async {
+    if (widget.numberSetsForWaitlist.isEmpty) {
+      _showNotification('Выберите сет для добавления в лист ожидания', Colors.orange);
+      return;
+    }
+    if (mounted) {
+      setState(() {
+        _waitlistButtonDisabled = true;
+        _waitlistButtonText = 'Загрузка...';
+      });
+    }
+
+    try {
+      final String? token = await getToken();
+      final String? serverDate = widget.birthday != null
+          ? DateFormat('yyyy-MM-dd').format(widget.birthday!)
+          : null;
+
+      final body = <String, dynamic>{
+        'number_sets': widget.numberSetsForWaitlist,
+      };
+      if (serverDate != null) body['birthday'] = serverDate;
+      if (widget.category?.category != null) body['category'] = widget.category!.category;
+      if (widget.sport_category?.sport_category != null) body['sport_category'] = widget.sport_category!.sport_category;
+
+      final response = await http.post(
+        Uri.parse('${DOMAIN}/api/event/${widget.event_id}/add-to-list-pending'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode(body),
+      );
+      final responseData = json.decode(response.body);
+      final message = responseData['message']?.toString() ?? '';
+      final isSuccess = response.statusCode == 200 && (responseData['success'] == true);
+
+      if (isSuccess) {
+        _showNotification(message.isNotEmpty ? message : 'Вы добавлены в лист ожидания', Colors.green);
+        if (mounted) {
+          setState(() {
+            _waitlistButtonDisabled = true;
+            _waitlistButtonText = 'В листе ожидания';
+          });
+        }
+        widget.onParticipationStatusChanged();
+      } else if (response.statusCode == 401 || response.statusCode == 419) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => LoginScreen(),
+          ),
+        );
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ошибка сессии')),
+        );
+      } else {
+        _handleWaitlistError(message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания');
+      }
+    } catch (e) {
+      _handleWaitlistError('Ошибка сети');
+    } finally {
+      if (mounted && !_waitlistButtonDisabled) {
+        Future.delayed(const Duration(seconds: 3), () {
+          if (mounted) {
+            setState(() {
+              _waitlistButtonDisabled = false;
+              _waitlistButtonText = 'Добавиться в лист ожидания';
+            });
+          }
+        });
+      }
+    }
+  }
+
   void _resetButtonStateAfterDelay() {
     Future.delayed(Duration(seconds: 3), () {
       if (mounted) {
         setState(() {
           _isButtonDisabled = widget.is_participant;
-          _buttonText =
-          widget.is_participant ? "Вы участник" : 'Принять участие';
+          _buttonText = widget.is_participant ? 'Вы участник' : 'Принять участие';
         });
       }
     });
@@ -197,30 +298,128 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          child: ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: widget.is_participant ? Colors.grey : Colors.blue[600],
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
+    final bool showTakePart = !widget.allSetsBusy;
+    final bool showWaitlist = widget.hasAnyBusySet && !widget.is_participant && !widget.is_in_list_pending;
+    final bool canPressTakePart = !widget.is_participant;
+
+    if (showTakePart && showWaitlist) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[700],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.symmetric(vertical: 12),
               ),
-              padding: EdgeInsets.symmetric(vertical: 12),
-            ),
-            onPressed: widget.is_participant ? null : _makeRequest,
-            child: Text(
-              _buttonText,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14.0,
+              onPressed: _waitlistButtonDisabled ? null : (widget.onWaitlistTap ?? _makeAddToListPendingRequest),
+              child: Text(
+                _waitlistButtonText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                ),
+                textAlign: TextAlign.center,
               ),
-              textAlign: TextAlign.center,
             ),
           ),
-        ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.is_participant ? Colors.grey : Colors.blue[600],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
+              child: Text(
+                _buttonText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
+    if (showWaitlist)
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.orange[700],
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+            padding: EdgeInsets.symmetric(vertical: 12),
+          ),
+          onPressed: _waitlistButtonDisabled ? null : (widget.onWaitlistTap ?? _makeAddToListPendingRequest),
+          child: Text(
+            _waitlistButtonText,
+            style: TextStyle(color: Colors.white, fontSize: 14.0),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showWaitlist)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[700],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: _waitlistButtonDisabled ? null : _makeAddToListPendingRequest,
+              child: Text(
+                _waitlistButtonText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+        if (showTakePart)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.is_participant ? Colors.grey : Colors.blue[600],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                padding: EdgeInsets.symmetric(vertical: 12),
+              ),
+              onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
+              child: Text(
+                _buttonText,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.0,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
       ],
     );
   }
