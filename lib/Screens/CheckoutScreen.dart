@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../utils/network_error_helper.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final int eventId;
@@ -215,7 +216,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     } catch (e) {
       setState(() {
-        _error = 'Ошибка: $e';
+        _error = networkErrorMessage(e, 'Не удалось загрузить данные');
         _isLoading = false;
       });
     }

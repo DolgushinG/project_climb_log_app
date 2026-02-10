@@ -1,6 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:login_app/services/RustorePushService.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -11,12 +14,16 @@ class AboutScreen extends StatefulWidget {
 
 class _AboutScreenState extends State<AboutScreen> {
   PackageInfo? _packageInfo;
+  String? _pushToken;
 
   @override
   void initState() {
     super.initState();
     PackageInfo.fromPlatform().then((info) {
       if (mounted) setState(() => _packageInfo = info);
+    });
+    RustorePushService.getStoredToken().then((token) {
+      if (mounted) setState(() => _pushToken = token);
     });
   }
 
@@ -100,6 +107,49 @@ class _AboutScreenState extends State<AboutScreen> {
               value: 'climbing-events.ru',
               onTap: () => _launchUrl(context, 'https://climbing-events.ru'),
             ),
+            if (kDebugMode && _pushToken != null) ...[
+              const SizedBox(height: 24),
+              _buildSectionTitle(context, 'Тест пушей RuStore'),
+              const SizedBox(height: 8),
+              Text(
+                'Токен для тестовой отправки в RuStore Консоль:',
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: SelectableText(
+                          _pushToken!,
+                          style: theme.textTheme.bodySmall,
+                          maxLines: 3,
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.copy),
+                        onPressed: () {
+                          final token = _pushToken;
+                          if (token != null) {
+                            Clipboard.setData(ClipboardData(text: token));
+                          }
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Токен скопирован в буфер'),
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       ),

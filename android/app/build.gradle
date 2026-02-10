@@ -28,7 +28,7 @@ android {
 
     defaultConfig {
         applicationId = "com.climbingevents.app"
-        minSdk = flutter.minSdkVersion
+        minSdk = Math.max(flutter.minSdkVersion, 23)  // 23 required by flutter_rustore_push
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -48,6 +48,7 @@ android {
     buildTypes {
         release {
             signingConfig = keystorePropertiesFile.exists() ? signingConfigs.release : signingConfigs.debug
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 
@@ -77,6 +78,8 @@ tracer {
 }
 
 dependencies {
+    // RuStore Push SDK
+    implementation("ru.rustore.sdk:pushclient:6.10.0")
     // Платформа Tracer
     implementation platform("ru.ok.tracer:tracer-platform:1.1.7")
 

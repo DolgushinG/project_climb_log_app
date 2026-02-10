@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:login_app/MainScreen.dart';
+import 'package:login_app/services/RustorePushService.dart';
+import 'package:login_app/services/cache_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'login.dart';
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized(); // Инициализация Flutter
+  WidgetsFlutterBinding.ensureInitialized();
+  await RustorePushService.init();
   runApp(MyApp());
 }
 
@@ -30,7 +33,9 @@ Future<String?> getToken() async {
 Future<void> clearToken() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('token');
+  await CacheService.remove(CacheService.keyProfile);
 }
+
 
 class MyApp extends StatelessWidget {
   @override

@@ -1,7 +1,10 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:login_app/main.dart';
 import 'package:login_app/services/ProfileService.dart';
+import 'package:login_app/services/cache_service.dart';
+import 'package:login_app/utils/network_error_helper.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
@@ -16,25 +19,49 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   String? _error;
 
   Future<void> _load() async {
+    final cached = await CacheService.getStale(CacheService.keyAnalytics);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      try {
+        final data = json.decode(cached) as Map<String, dynamic>;
+        setState(() {
+          _data = data;
+          _isLoading = false;
+          _error = null;
+        });
+      } catch (_) {}
+    }
+
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    if (_data == null) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
 
     try {
       final data = await ProfileService(baseUrl: DOMAIN).getProfileAnalytics(context);
-      if (mounted) {
+      if (mounted && data != null) {
+        await CacheService.set(
+          CacheService.keyAnalytics,
+          jsonEncode(data),
+          ttl: CacheService.ttlAnalytics,
+        );
         setState(() {
           _data = data;
           _isLoading = false;
         });
+      } else if (mounted) {
+        setState(() => _isLoading = false);
       }
     } catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.toString();
           _isLoading = false;
+          // Не перезаписывать экран ошибкой, если уже показываем данные из кэша
+          if (_data == null) {
+            _error = networkErrorMessage(e, 'Не удалось загрузить данные');
+          }
         });
       }
     }
@@ -78,7 +105,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                _error!,
+                _error ?? 'Не удалось загрузить данные',
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white70,
                     ),

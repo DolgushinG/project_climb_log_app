@@ -5,6 +5,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'CompetitionScreen.dart';
 import 'main.dart';
 import 'utils/display_helper.dart';
+import 'services/cache_service.dart';
+import 'services/offline_queue_service.dart';
+import 'utils/network_error_helper.dart';
 
 
 Future<List<Routes>> getRoutesData({
@@ -52,10 +55,8 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
     );
   }
   void _submitResults() async {
-    final data = {
-      'results': selectedAttempts, // Отправка выбранных попыток
-    };
     final String? token = await getToken();
+    if (token == null) return;
     try {
       final response = await http.post(
         Uri.parse('$DOMAIN/api/event/${widget.eventId}/send/results'),
@@ -64,56 +65,100 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
         },
-        body: jsonEncode(data),
+        body: jsonEncode({'results': selectedAttempts}),
       );
 
       if (response.statusCode == 200) {
+        await OfflineQueueService.removeByEventId(widget.eventId);
         _showNotification('Успешное внесение результатов', Colors.green);
-        // После успешной отправки очищаем черновик
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('results_draft_${widget.eventId}');
         } catch (_) {}
-        // Возвращаемся на экран события и даём сигнал обновить данные
-        Navigator.pop(context, true);
-      } else {
-        try {
-          final Map<String, dynamic> body = jsonDecode(response.body);
-          final String message =
-              body['message']?.toString() ?? 'Ошибка при отправке результатов';
-          _showNotification(message, Colors.red);
-        } catch (_) {
-          _showNotification('Ошибка при отправке результатов', Colors.red);
-        }
+        if (mounted) Navigator.pop(context, true);
+        return;
+      }
+      try {
+        final Map<String, dynamic> body = jsonDecode(response.body);
+        final String message =
+            body['message']?.toString() ?? 'Ошибка при отправке результатов';
+        _showNotification(message, Colors.red);
+      } catch (_) {
+        _showNotification('Ошибка при отправке результатов', Colors.red);
       }
     } catch (e) {
+      if (isLikelyOfflineError(e)) {
+        await OfflineQueueService.enqueueSendResults(widget.eventId, selectedAttempts);
+        _showNotification(
+          'Нет интернета. Результаты сохранены и будут отправлены при подключении.',
+          Colors.orange,
+        );
+        if (mounted) Navigator.pop(context, true);
+      } else {
+        _showNotification(networkErrorMessage(e, 'Ошибка при отправке'), Colors.red);
+      }
     }
   }
 
   void _getRoutesData() async {
     final int eventId = widget.eventId;
+    final cacheKey = CacheService.keyRoutes(eventId);
+    final cached = await CacheService.getStale(cacheKey);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      try {
+        final list = json.decode(cached) as List<dynamic>;
+        final data = list
+            .map((j) => Routes.fromJson(Map<String, dynamic>.from(j as Map)))
+            .toList();
+        setState(() {
+          routes = data;
+          selectedAttempts = data
+              .map((r) => {'route_id': r.routeId, 'attempt': r.attempt})
+              .toList();
+        });
+        await _loadDraftResults();
+        await _loadServerResultsIfNeeded();
+      } catch (_) {}
+    }
     try {
       final data = await getRoutesData(eventId: eventId);
       if (mounted) {
+        await CacheService.set(
+          cacheKey,
+          jsonEncode(data.map((r) => {
+                'route_id': r.routeId,
+                'routeName': r.routeName,
+                'grade': r.grade,
+                'attempt': r.attempt,
+                if (r.color != null)
+                  'color': '#${r.color!.value.toRadixString(16).padLeft(8, '0')}',
+              }).toList()),
+          ttl: CacheService.ttlRoutes,
+        );
         setState(() {
           routes = data;
-          // Предзаполняем выбранные попытки, если с бэка пришли уже сохранённые результаты
-          selectedAttempts = routes
-              .map((r) => {
-                    'route_id': r.routeId,
-                    'attempt': r.attempt,
-                  })
+          selectedAttempts = data
+              .map((r) => {'route_id': r.routeId, 'attempt': r.attempt})
               .toList();
         });
-
-        // После загрузки трасс пробуем восстановить черновик из локального хранилища
         await _loadDraftResults();
-
-        // Если участник активен и никаких попыток нет ни в маршрутах, ни в черновике —
-        // пробуем подтянуть сохранённые результаты с бэка
         await _loadServerResultsIfNeeded();
       }
     } catch (e) {
+      if (mounted && routes.isEmpty) {
+        _showNotification(
+          networkErrorMessage(e, 'Не удалось загрузить трассы'),
+          Colors.red,
+        );
+      }
+    }
+    if (mounted) _flushPendingResults();
+  }
+
+  Future<void> _flushPendingResults() async {
+    final sent = await OfflineQueueService.flush();
+    if (sent > 0 && mounted) {
+      _showNotification('Отправлены отложенные результаты ($sent)', Colors.green);
     }
   }
 

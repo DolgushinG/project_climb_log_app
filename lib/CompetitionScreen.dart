@@ -19,6 +19,9 @@ import 'services/ProfileService.dart';
 import 'utils/display_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:login_app/services/cache_service.dart';
+import 'package:login_app/utils/network_error_helper.dart';
+import 'package:login_app/widgets/top_notification_banner.dart';
 String _normalizePosterPath(String path) {
   if (path.isEmpty) return path;
   if (path.startsWith('http')) return path;
@@ -209,12 +212,34 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   List<Competition> _allCompleted = [];
   bool _isLoading = true;
   String? _selectedCity;
+  String? _error;
+  bool _fromCache = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    fetchCompetitions();
+    _loadCompetitions();
+  }
+
+  /// Сначала показываем кэш (если есть), затем подгружаем с сети.
+  Future<void> _loadCompetitions() async {
+    final cached = await CacheService.getStale(CacheService.keyCompetitions);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      try {
+        final List<dynamic> data = json.decode(cached);
+        final List<Competition> competitions =
+            data.map((j) => Competition.fromJson(Map<String, dynamic>.from(j as Map))).toList();
+        setState(() {
+          _allCurrent = competitions.where((c) => !c.isCompleted).toList();
+          _allCompleted = competitions.where((c) => c.isCompleted).toList();
+          _isLoading = false;
+          _error = null;
+          _fromCache = true;
+        });
+      } catch (_) {}
+    }
+    await fetchCompetitions();
   }
 
   List<String> get _uniqueCities {
@@ -247,42 +272,67 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   }
 
   Future<void> fetchCompetitions() async {
-    final String? token = await getToken(); // Ваш токен авторизации
-    final response = await http.get(
-      Uri.parse(DOMAIN + '/api/competitions'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+    final String? token = await getToken();
+    try {
+      final response = await http.get(
+        Uri.parse(DOMAIN + '/api/competitions'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-
-      List<Competition> competitions =
-      data.map((json) => Competition.fromJson(json)).toList();
-
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        List<Competition> competitions =
+            data.map((j) => Competition.fromJson(Map<String, dynamic>.from(j as Map))).toList();
+        await CacheService.set(
+          CacheService.keyCompetitions,
+          response.body,
+          ttl: CacheService.ttlCompetitions,
+        );
+        if (mounted) {
+          setState(() {
+            _allCurrent = competitions.where((c) => !c.isCompleted).toList();
+            _allCompleted = competitions.where((c) => c.isCompleted).toList();
+            _isLoading = false;
+            _error = null;
+            _fromCache = false;
+          });
+        }
+        return;
+      }
+      if (response.statusCode == 401 || response.statusCode == 419) {
+        if (mounted) {
+          setState(() => _isLoading = false);
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoginScreen(),
+            ),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ошибка сессии')),
+          );
+        }
+        return;
+      }
       if (mounted) {
         setState(() {
-          _allCurrent = competitions.where((c) => !c.isCompleted).toList();
-          _allCompleted = competitions.where((c) => c.isCompleted).toList();
           _isLoading = false;
+          if (_allCurrent.isEmpty && _allCompleted.isEmpty) _error = 'Не удалось загрузить данные';
         });
       }
-    } else if (response.statusCode == 401 || response.statusCode == 419) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LoginScreen(),
-        ),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сессии')),
-      );
-    } else {
+    } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
+          if (_allCurrent.isEmpty && _allCompleted.isEmpty) {
+            _error = networkErrorMessage(e, 'Не удалось загрузить данные');
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(_error ?? '')),
+            );
+          }
         });
       }
     }
@@ -348,10 +398,42 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           ),
         ),
       ),
-      body: _isLoading
+      body: _isLoading && _allCurrent.isEmpty && _allCompleted.isEmpty
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                if (_error != null || _fromCache)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 4),
+                    child: _error != null
+                        ? TopNotificationBanner(
+                            message: _error!,
+                            icon: Icons.wifi_off_rounded,
+                            backgroundColor: const Color(0xFF78350F),
+                            iconColor: Colors.orange.shade200,
+                            textColor: Colors.white,
+                            useSafeArea: false,
+                            showCloseButton: true,
+                            onClose: () => setState(() => _error = null),
+                            trailing: TextButton(
+                              onPressed: () {
+                                setState(() => _error = null);
+                                fetchCompetitions();
+                              },
+                              child: const Text('Повторить'),
+                            ),
+                          )
+                        : TopNotificationBanner(
+                            message: 'Данные из кэша. Потяните для обновления.',
+                            icon: Icons.cloud_done_outlined,
+                            backgroundColor: const Color(0xFF27272A),
+                            iconColor: Colors.white70,
+                            textColor: Colors.white70,
+                            useSafeArea: false,
+                            showCloseButton: true,
+                            onClose: () => setState(() => _fromCache = false),
+                          ),
+                  ),
                 if (_uniqueCities.isNotEmpty)
                   Padding(
                     padding: const EdgeInsets.only(top: 20, left: 16, right: 16, bottom: 8),
@@ -1713,7 +1795,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             ] else ...[
               Builder(
                 builder: (context) {
-                  final needsPayment = !_checkout404Received &&
+                  // Показывать «Продолжить оплату» только после загрузки checkout и только если сервер вернул, что оплата нужна (есть время и нет чека).
+                  final needsPayment = _checkoutData != null &&
+                      _checkoutRemainingSeconds > 0 &&
                       _competitionDetails.is_participant &&
                       _competitionDetails.is_need_pay_for_reg &&
                       !_competitionDetails.is_participant_paid &&
@@ -2387,12 +2471,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 textAlign: TextAlign.center,
                 style: TextStyle(fontSize: 16, color: Colors.grey[400]),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Статистика будет доступна после реализации API на бэкенде',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-              ),
             ],
           ),
         ),
@@ -2732,43 +2810,71 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
 // Обновить детали соревнования
   Future<void> fetchCompetition() async {
-    if (mounted) setState(() => _checkout404Received = false); // сброс при обновлении
+    if (mounted) setState(() => _checkout404Received = false);
+    final eventId = _competitionDetails.id;
+    final cacheKey = CacheService.keyEventDetails(eventId);
+    final cached = await CacheService.getStale(cacheKey);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      try {
+        final raw = json.decode(cached);
+        final data = raw is List && raw.isNotEmpty ? raw.first : raw;
+        if (data is Map) {
+          final comp = Competition.fromJson(Map<String, dynamic>.from(data));
+          setState(() => _competitionDetails = comp);
+          _loadCheckoutDataIfNeeded(comp);
+          final ac = comp.auto_categories;
+          if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
+            _loadUserBirthday();
+          }
+        }
+      } catch (_) {}
+    }
+
     final String? token = await getToken();
-    final response = await http.get(
-      Uri.parse(DOMAIN + '/api/competitions?event_id=${_competitionDetails.id}'),
-      headers: {
-        'Authorization': 'Bearer $token',
-        'Content-Type': 'application/json',
-      },
-    );
+    try {
+      final response = await http.get(
+        Uri.parse(DOMAIN + '/api/competitions?event_id=$eventId'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Content-Type': 'application/json',
+        },
+      );
 
-
-    if (response.statusCode == 200) {
-      final raw = json.decode(response.body);
-      final data = raw is List && raw.isNotEmpty ? raw.first : raw;
-      if (data is! Map) return;
-      final Competition updatedCompetition = Competition.fromJson(Map<String, dynamic>.from(data));
-      if (mounted) {
-        setState(() {
-          _competitionDetails = updatedCompetition;
-        });
-        _loadCheckoutDataIfNeeded(updatedCompetition);
-        final ac = updatedCompetition.auto_categories;
-        if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
-          _loadUserBirthday();
+      if (response.statusCode == 200) {
+        final raw = json.decode(response.body);
+        final data = raw is List && raw.isNotEmpty ? raw.first : raw;
+        if (data is! Map) return;
+        await CacheService.set(
+          cacheKey,
+          response.body,
+          ttl: CacheService.ttlEventDetails,
+        );
+        final Competition updatedCompetition = Competition.fromJson(Map<String, dynamic>.from(data));
+        if (mounted) {
+          setState(() {
+            _competitionDetails = updatedCompetition;
+          });
+          _loadCheckoutDataIfNeeded(updatedCompetition);
+          final ac = updatedCompetition.auto_categories;
+          if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
+            _loadUserBirthday();
+          }
+        }
+      } else if (response.statusCode == 401 || response.statusCode == 419) {
+        if (mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => LoginScreen(),
+            ),
+          );
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Ошибка сессии')),
+          );
         }
       }
-    } else if (response.statusCode == 401 || response.statusCode == 419) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LoginScreen(),
-        ),
-      );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сессии')),
-      );
-    } else {
+    } catch (_) {
+      // Офлайн или ошибка сети — оставляем данные из кэша, ничего не перезаписываем
     }
   }
 
@@ -2806,15 +2912,30 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   Future<void> _fetchCompetitionStatistics() async {
     if (_statsLoading) return;
+    final eventId = _competitionDetails.id;
+    final cacheKey = CacheService.keyEventStatistics(eventId);
+    final cached = await CacheService.getStale(cacheKey);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      try {
+        final data = json.decode(cached);
+        setState(() {
+          _competitionStats = data is Map ? Map<String, dynamic>.from(data) : null;
+          _statsLoading = false;
+          _statsError = null;
+        });
+      } catch (_) {}
+    }
     if (!mounted) return;
-    setState(() {
-      _statsLoading = true;
-      _statsError = null;
-    });
+    if (_competitionStats == null) {
+      setState(() {
+        _statsLoading = true;
+        _statsError = null;
+      });
+    }
     try {
       final token = await getToken();
       final r = await http.get(
-        Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/statistics'),
+        Uri.parse('$DOMAIN/api/event/$eventId/statistics'),
         headers: {
           if (token != null) 'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -2823,6 +2944,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       if (!mounted) return;
       if (r.statusCode == 200) {
         final data = json.decode(r.body);
+        await CacheService.set(
+          cacheKey,
+          r.body,
+          ttl: CacheService.ttlEventStatistics,
+        );
         setState(() {
           _competitionStats = data is Map ? Map<String, dynamic>.from(data) : null;
           _statsLoading = false;
@@ -2830,17 +2956,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         });
       } else {
         setState(() {
-          _competitionStats = null;
           _statsLoading = false;
-          _statsError = r.statusCode == 404 ? 'Эндпоинт пока не реализован' : 'Не удалось загрузить статистику';
+          if (_competitionStats == null) _statsError = 'Не удалось загрузить данные';
         });
       }
     } catch (e) {
       if (!mounted) return;
       setState(() {
-        _competitionStats = null;
         _statsLoading = false;
-        _statsError = 'Ошибка сети';
+        if (_competitionStats == null) {
+          _statsError = networkErrorMessage(e, 'Не удалось загрузить данные');
+        }
       });
     }
   }

@@ -1,9 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
+import 'services/connectivity_service.dart';
+import 'services/cache_service.dart';
+import 'widgets/top_notification_banner.dart';
 
 
 
@@ -15,6 +19,11 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
   final PageController _pageController = PageController();
+  bool _isOnline = true;
+  bool _offlineBannerDismissed = false;
+  /// Показывать баннер «нет интернета» только когда офлайн и в кэше нет данных.
+  bool _offlineWithNoCache = false;
+  StreamSubscription<bool>? _connectivitySubscription;
 
   static final List<Widget> _screens = <Widget>[
     CompetitionsScreen(),
@@ -56,7 +65,36 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    final conn = ConnectivityService();
+    _isOnline = conn.isOnline;
+    if (!_isOnline) {
+      _checkOfflineCache();
+    }
+    _connectivitySubscription = conn.isOnlineStream.listen((online) async {
+      if (!mounted) return;
+      setState(() {
+        _isOnline = online;
+        if (online) {
+          _offlineBannerDismissed = false;
+          _offlineWithNoCache = false;
+        }
+      });
+      if (!online) await _checkOfflineCache();
+    });
+  }
+
+  Future<void> _checkOfflineCache() async {
+    final hasCache = await CacheService.hasAnyData();
+    if (mounted) {
+      setState(() => _offlineWithNoCache = !hasCache);
+    }
+  }
+
+  @override
   void dispose() {
+    _connectivitySubscription?.cancel();
     _pageController.dispose();
     super.dispose();
   }
@@ -127,14 +165,30 @@ class _MainScreenState extends State<MainScreen> {
         }
       },
       child: Scaffold(
-        body: PageView(
+        body: Stack(
+          children: [
+            PageView(
           controller: _pageController,
           physics: const BouncingScrollPhysics(),
           onPageChanged: (index) {
             if (!mounted) return;
             setState(() => _selectedIndex = index);
           },
-          children: _screens,
+              children: _screens,
+            ),
+            if (!_isOnline && _offlineWithNoCache && !_offlineBannerDismissed)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: TopNotificationBanner.offline(
+                  message: 'Нет подключения к интернету',
+                  onClose: () {
+                    if (mounted) setState(() => _offlineBannerDismissed = true);
+                  },
+                ),
+              ),
+          ],
         ),
         bottomNavigationBar: Padding(
           padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),

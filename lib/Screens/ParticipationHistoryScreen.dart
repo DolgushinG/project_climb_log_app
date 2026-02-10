@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 
 import '../CompetitionScreen.dart';
 import '../main.dart';
+import '../services/cache_service.dart';
+import '../utils/network_error_helper.dart';
 
 int? _toInt(dynamic v) {
   if (v == null) return null;
@@ -77,11 +79,32 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
   }
 
   Future<void> _loadHistory() async {
+    final cached = await CacheService.getStale(CacheService.keyHistory);
+    if (cached != null && cached.isNotEmpty && mounted) {
+      try {
+        final raw = json.decode(cached);
+        final list = raw is List ? raw : (raw is Map && raw['data'] is List ? raw['data'] : []);
+        if (list is List) {
+          final items = list
+              .whereType<Map>()
+              .map((e) => ParticipationHistoryItem.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+          setState(() {
+            _items = items;
+            _isLoading = false;
+            _error = null;
+          });
+        }
+      } catch (_) {}
+    }
+
     if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
+    if (_items.isEmpty) {
+      setState(() {
+        _isLoading = true;
+        _error = null;
+      });
+    }
     try {
       final token = await getToken();
       if (!mounted) return;
@@ -108,10 +131,15 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
         if (list is! List) {
           setState(() {
             _isLoading = false;
-            _error = 'Неожиданный формат данных';
+            if (_items.isEmpty) _error = 'Не удалось загрузить данные';
           });
           return;
         }
+        await CacheService.set(
+          CacheService.keyHistory,
+          r.body,
+          ttl: CacheService.ttlHistory,
+        );
         final items = list
             .whereType<Map>()
             .map((e) => ParticipationHistoryItem.fromJson(Map<String, dynamic>.from(e as Map)))
@@ -119,6 +147,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
         setState(() {
           _items = items;
           _isLoading = false;
+          _error = null;
         });
       } else if (r.statusCode == 401 || r.statusCode == 419) {
         setState(() {
@@ -128,14 +157,14 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
       } else {
         setState(() {
           _isLoading = false;
-          _error = 'Ошибка загрузки (${r.statusCode})';
+          if (_items.isEmpty) _error = 'Не удалось загрузить данные';
         });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          _error = 'Ошибка: $e';
+          if (_items.isEmpty) _error = networkErrorMessage(e, 'Не удалось загрузить данные');
         });
       }
     }
