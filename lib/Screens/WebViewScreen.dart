@@ -63,7 +63,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
               await saveToken(token);
               Navigator.pushAndRemoveUntil(
                 context,
-                MaterialPageRoute(builder: (context) => MainScreen()),
+                MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
                 (route) => false,
               );
             }
@@ -81,7 +81,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
               if (mounted) {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (context) => MainScreen()),
+                  MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
                   (route) => false,
                 );
               }

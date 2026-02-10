@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../login.dart';
 import '../main.dart';
+import '../services/WebAuthnService.dart';
 
 class AuthSettingScreen extends StatefulWidget {
   String? socialite;
@@ -19,6 +20,9 @@ class AuthSettingScreen extends StatefulWidget {
 class _AuthSettingScreenState extends State<AuthSettingScreen> {
   final TextEditingController _newPasswordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
+  bool _passkeyLoading = false;
+  /// true = добавлен, false = удалён/нет, null = неизвестно (пока не удаляли и не добавляли в этой сессии)
+  bool? _hasPasskey;
 
   @override
   void initState() {
@@ -131,6 +135,8 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
             children: [
               _buildProfileCard(),
               const SizedBox(height: 20),
+              _buildPasskeyCard(),
+              const SizedBox(height: 20),
               _buildLogoutCard(),
             ],
           ),
@@ -177,6 +183,141 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
     );
   }
 
+
+  Widget _buildPasskeyCard() {
+    return Card(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(15.0),
+      ),
+      elevation: 4,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                const Icon(Icons.fingerprint, color: Colors.teal),
+                const SizedBox(width: 8),
+                const Text(
+                  'Face ID / Touch ID (Passkey)',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Text(
+              _hasPasskey == false
+                  ? 'Passkey не добавлен. Добавьте для входа по Face ID / Touch ID.'
+                  : 'Добавьте Passkey для входа по биометрии или удалите его.',
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            if (_passkeyLoading)
+              const Center(child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: CircularProgressIndicator(),
+              ))
+            else
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _addPasskey,
+                      icon: const Icon(Icons.add, size: 20),
+                      label: const Text('Добавить Passkey'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: _hasPasskey == false ? null : _deletePasskey,
+                      icon: const Icon(Icons.delete_outline, size: 20),
+                      label: Text(_hasPasskey == false ? 'Нет Passkey' : 'Удалить Passkey'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        foregroundColor: Colors.red,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _addPasskey() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      _showSnackBar('Войдите в аккаунт', Colors.red);
+      return;
+    }
+    setState(() => _passkeyLoading = true);
+    try {
+      final service = WebAuthnService(baseUrl: DOMAIN);
+      await service.registerPasskey(token);
+      if (mounted) {
+        setState(() => _hasPasskey = true);
+        await setPasskeyPromptDeclined(false);
+        _showSnackBar('Passkey успешно добавлен');
+      }
+    } on WebAuthnLoginException catch (e) {
+      if (mounted) _showSnackBar(e.userMessage, Colors.red);
+    } catch (e) {
+      if (mounted) _showSnackBar('Ошибка при добавлении Passkey', Colors.red);
+    } finally {
+      if (mounted) setState(() => _passkeyLoading = false);
+    }
+  }
+
+  Future<void> _deletePasskey() async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) {
+      _showSnackBar('Войдите в аккаунт', Colors.red);
+      return;
+    }
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Удалить Passkey'),
+        content: const Text(
+          'Удалить все Passkey (Face ID / Touch ID) для этого аккаунта? '
+          'Вход по биометрии станет недоступен до повторного добавления.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Отмена'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true || !mounted) return;
+    setState(() => _passkeyLoading = true);
+    try {
+      final service = WebAuthnService(baseUrl: DOMAIN);
+      await service.deletePasskeys(token);
+      if (mounted) {
+        setState(() => _hasPasskey = false);
+        _showSnackBar('Passkey удалён');
+      }
+    } on WebAuthnLoginException catch (e) {
+      if (mounted) _showSnackBar(e.userMessage, Colors.red);
+    } catch (e) {
+      if (mounted) _showSnackBar('Ошибка при удалении Passkey', Colors.red);
+    } finally {
+      if (mounted) setState(() => _passkeyLoading = false);
+    }
+  }
 
   Widget _buildLogoutCard() {
     return Card(

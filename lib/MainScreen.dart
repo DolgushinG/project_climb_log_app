@@ -4,14 +4,19 @@ import 'package:flutter/services.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
+import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
+import 'main.dart';
 import 'services/connectivity_service.dart';
 import 'services/cache_service.dart';
 import 'widgets/top_notification_banner.dart';
 
-
-
 class MainScreen extends StatefulWidget {
+  /// Показать после входа предложение добавить Passkey (bottom sheet).
+  final bool showPasskeyPrompt;
+
+  const MainScreen({super.key, this.showPasskeyPrompt = false});
+
   @override
   _MainScreenState createState() => _MainScreenState();
 }
@@ -83,6 +88,73 @@ class _MainScreenState extends State<MainScreen> {
       });
       if (!online) await _checkOfflineCache();
     });
+    if (widget.showPasskeyPrompt) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPasskeyPrompt());
+    }
+  }
+
+  Future<void> _maybeShowPasskeyPrompt() async {
+    if (!mounted) return;
+    final declined = await wasPasskeyPromptDeclined();
+    if (!declined && mounted) {
+      _showPasskeyPromptSheet();
+    }
+  }
+
+  void _showPasskeyPromptSheet() {
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        decoration: BoxDecoration(
+          color: Theme.of(ctx).colorScheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Icon(Icons.fingerprint, size: 48, color: Theme.of(ctx).colorScheme.primary),
+              const SizedBox(height: 16),
+              Text(
+                'Вход по Face ID / Touch ID',
+                style: Theme.of(ctx).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Добавьте Passkey, чтобы входить по отпечатку или лицу без пароля.',
+                style: Theme.of(ctx).textTheme.bodyMedium?.copyWith(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => AuthSettingScreen()),
+                  );
+                },
+                icon: const Icon(Icons.add),
+                label: const Text('Добавить Passkey'),
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(vertical: 14)),
+              ),
+              const SizedBox(height: 10),
+              TextButton(
+                onPressed: () async {
+                  await setPasskeyPromptDeclined(true);
+                  if (ctx.mounted) Navigator.of(ctx).pop();
+                },
+                child: const Text('Не сейчас'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _checkOfflineCache() async {

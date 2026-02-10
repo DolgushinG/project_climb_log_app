@@ -195,7 +195,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               'Регистрация успешно выполнена', Colors.green);
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => MainScreen()),
+            MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
             (route) => false,
           );
         } else {

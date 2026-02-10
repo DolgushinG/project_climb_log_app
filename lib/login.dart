@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/Screens/RegisterScreen.dart';
+import 'package:login_app/services/WebAuthnService.dart';
 import 'dart:convert';
 import 'MainScreen.dart';
 import 'Screens/LoginByCodeScreen.dart';
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _isPasskeyLoading = false;
 
   Future<void> _login() async {
     final email = _emailController.text;
@@ -47,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => MainScreen()),
+          MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
           (route) => false,
         );
       } else {
@@ -88,6 +90,28 @@ class _LoginScreenState extends State<LoginScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _loginWithPasskey() async {
+    if (_isPasskeyLoading) return;
+    setState(() => _isPasskeyLoading = true);
+    try {
+      final service = WebAuthnService(baseUrl: DOMAIN);
+      final result = await service.loginWithPasskey();
+      await saveToken(result.token);
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: false)),
+        (route) => false,
+      );
+    } on WebAuthnLoginException catch (e) {
+      if (mounted) _showError(e.userMessage);
+    } catch (e) {
+      if (mounted) _showError('Ошибка входа по Face ID / Touch ID. Попробуйте другой способ.');
+    } finally {
+      if (mounted) setState(() => _isPasskeyLoading = false);
+    }
   }
 
   @override
@@ -268,6 +292,54 @@ class _LoginScreenState extends State<LoginScreen> {
                                 letterSpacing: 0.64,
                               ),
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      // Кнопка "Войти по Face ID / Touch ID"
+                      GestureDetector(
+                        onTap: _isPasskeyLoading ? null : _loginWithPasskey,
+                        child: Container(
+                          width: double.infinity,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: Colors.transparent,
+                            borderRadius: BorderRadius.circular(30),
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.5),
+                              width: 1,
+                            ),
+                          ),
+                          child: Center(
+                            child: _isPasskeyLoading
+                                ? const SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(
+                                        Icons.fingerprint,
+                                        color: Colors.white,
+                                        size: 22,
+                                      ),
+                                      SizedBox(width: 8),
+                                      Text(
+                                        'Войти по Face ID / Touch ID',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w500,
+                                          letterSpacing: 0.64,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                           ),
                         ),
                       ),

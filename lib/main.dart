@@ -36,6 +36,19 @@ Future<void> clearToken() async {
   await CacheService.remove(CacheService.keyProfile);
 }
 
+/// Ключ: пользователь нажал «Не сейчас» на предложении добавить Passkey после входа.
+const String _keyPasskeyPromptDeclined = 'passkey_prompt_declined';
+
+Future<bool> wasPasskeyPromptDeclined() async {
+  final prefs = await SharedPreferences.getInstance();
+  return prefs.getBool(_keyPasskeyPromptDeclined) ?? false;
+}
+
+Future<void> setPasskeyPromptDeclined(bool value) async {
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool(_keyPasskeyPromptDeclined, value);
+}
+
 
 class MyApp extends StatelessWidget {
   @override

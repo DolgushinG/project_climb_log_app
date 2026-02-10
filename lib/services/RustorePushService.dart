@@ -46,22 +46,10 @@ class RustorePushService {
         },
       );
 
-      final available = await RustorePushClient.available();
-      if (!available) {
-        if (kDebugMode) {
-          print('[RuStore Push] Push недоступен (нет RuStore или не авторизован)');
-        }
-        return;
-      }
-
-      final token = await RustorePushClient.getToken();
-      await _saveToken(token);
-      await _onTokenReceived(token);
-
-      final initialMessage = await RustorePushClient.getInitialMessage();
-      if (initialMessage != null && kDebugMode) {
-        print('[RuStore Push] getInitialMessage: ${initialMessage.notification?.title}');
-      }
+      // Не вызываем available()/getToken()/getInitialMessage() сразу: нативный
+      // RuStorePushClient.init() выполняется после setup(), и вызов методов до
+      // этого приводит к IllegalStateException. Токен придёт в onNewToken когда
+      // SDK будет готов. getInitialMessage можно запросить позже при необходимости.
     } catch (e, st) {
       if (kDebugMode) {
         print('[RuStore Push] init error: $e\n$st');

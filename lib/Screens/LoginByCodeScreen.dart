@@ -145,7 +145,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
           if (!mounted) return;
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (_) => MainScreen()),
+            MaterialPageRoute(builder: (_) => const MainScreen(showPasskeyPrompt: true)),
             (route) => false,
           );
         } else {
