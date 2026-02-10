@@ -6,6 +6,7 @@ import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
+import 'Screens/RatingScreen.dart';
 import 'Screens/RegisterScreen.dart';
 import 'login.dart';
 import 'main.dart';
@@ -72,8 +73,8 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _screens = widget.isGuest
-        ? [CompetitionsScreen(isGuest: true), const _GuestLoginScreen()]
-        : [CompetitionsScreen(), const ParticipationHistoryScreen(), ProfileScreen()];
+        ? [const RatingScreen(), CompetitionsScreen(isGuest: true), const _GuestLoginScreen()]
+        : [const RatingScreen(), CompetitionsScreen(), const ParticipationHistoryScreen(), ProfileScreen()];
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -203,13 +204,9 @@ class _MainScreenState extends State<MainScreen> {
     final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
 
     // Смещаем акцент градиента в сторону активной вкладки
-    final int tabCount = widget.isGuest ? 2 : 3;
+    final int tabCount = widget.isGuest ? 3 : 4;
     final List<Color> navGradientColors;
     if (widget.isGuest) {
-      navGradientColors = _selectedIndex == 0
-          ? [accentNavColor, baseNavColor]
-          : [baseNavColor, accentNavColor];
-    } else {
       switch (_selectedIndex) {
         case 0:
           navGradientColors = [accentNavColor, baseNavColor, baseNavColor];
@@ -219,6 +216,21 @@ class _MainScreenState extends State<MainScreen> {
           break;
         default:
           navGradientColors = [baseNavColor, baseNavColor, accentNavColor];
+          break;
+      }
+    } else {
+      switch (_selectedIndex) {
+        case 0:
+          navGradientColors = [accentNavColor, baseNavColor, baseNavColor, baseNavColor];
+          break;
+        case 1:
+          navGradientColors = [baseNavColor, accentNavColor, baseNavColor, baseNavColor];
+          break;
+        case 2:
+          navGradientColors = [baseNavColor, baseNavColor, accentNavColor, baseNavColor];
+          break;
+        default:
+          navGradientColors = [baseNavColor, baseNavColor, baseNavColor, accentNavColor];
           break;
       }
     }
@@ -274,6 +286,11 @@ class _MainScreenState extends State<MainScreen> {
                 backgroundColor: Colors.transparent,
                 items: <BottomNavigationBarItem>[
                   BottomNavigationBarItem(
+                    icon: _buildNavIcon(Icons.leaderboard_outlined, false),
+                    activeIcon: _buildNavIcon(Icons.leaderboard_rounded, true),
+                    label: 'Рейтинг',
+                  ),
+                  BottomNavigationBarItem(
                     icon: _buildNavIcon(Icons.emoji_events_outlined, false),
                     activeIcon: _buildNavIcon(Icons.emoji_events_rounded, true),
                     label: 'Соревнования',
@@ -302,7 +319,7 @@ class _MainScreenState extends State<MainScreen> {
                 },
                 selectedFontSize: 12,
                 unselectedFontSize: 11,
-                showUnselectedLabels: false,
+                showUnselectedLabels: widget.isGuest,
                 type: BottomNavigationBarType.fixed,
               ),
             ),
@@ -345,6 +362,20 @@ class _GuestLoginScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
+              TextButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const RatingScreen()),
+                  );
+                },
+                icon: const Icon(Icons.leaderboard_outlined, size: 20),
+                label: const Text('Смотреть общий рейтинг'),
+                style: TextButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                ),
+              ),
+              const SizedBox(height: 8),
               FilledButton(
                 onPressed: () {
                   Navigator.push(

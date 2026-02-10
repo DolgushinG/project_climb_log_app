@@ -1417,6 +1417,41 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
 
+  void _openPosterFullScreen(String imageUrl) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        fullscreenDialog: true,
+        builder: (context) => Scaffold(
+          backgroundColor: Colors.black,
+          appBar: AppBar(
+            backgroundColor: Colors.black,
+            iconTheme: const IconThemeData(color: Colors.white),
+            leading: IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ),
+          body: Center(
+            child: InteractiveViewer(
+              minScale: 0.5,
+              maxScale: 4.0,
+              child: CachedNetworkImage(
+                imageUrl: imageUrl,
+                fit: BoxFit.contain,
+                placeholder: (context, url) => const Center(
+                  child: CircularProgressIndicator(color: Colors.white70),
+                ),
+                errorWidget: (context, url, error) => const Center(
+                  child: Icon(Icons.error, color: Colors.red, size: 50),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildInformationSection() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -1425,24 +1460,32 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              height: 300,
-              width: MediaQuery.of(context).size.width, // Задаём ширину равную ширине экрана
-              decoration: const BoxDecoration(
-                color: Colors.blueAccent,
-              ),
-              child: CachedNetworkImage(
-                imageUrl: '$DOMAIN${_competitionDetails.poster}',
-                fit: BoxFit.cover,
-
-                placeholder: (context, url) => const Center(
-                  child: CircularProgressIndicator(), // Виджет загрузки
+            GestureDetector(
+              onTap: () => _openPosterFullScreen('$DOMAIN${_competitionDetails.poster}'),
+              child: Container(
+                width: double.infinity,
+                height: 260,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0B1220),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                errorWidget: (context, url, error) => const Center(
-                  child: Icon(
-                    Icons.error, // Иконка ошибки
-                    color: Colors.red,
-                    size: 50,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Center(
+                    child: CachedNetworkImage(
+                      imageUrl: '$DOMAIN${_competitionDetails.poster}',
+                      fit: BoxFit.contain,
+                      placeholder: (context, url) => const Center(
+                        child: CircularProgressIndicator(),
+                      ),
+                      errorWidget: (context, url, error) => const Center(
+                        child: Icon(
+                          Icons.error,
+                          color: Colors.red,
+                          size: 50,
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ),
