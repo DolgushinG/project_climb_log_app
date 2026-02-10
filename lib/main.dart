@@ -226,8 +226,8 @@ class _TokenCheckerState extends State<TokenChecker> {
         ),
       );
     }
-    // После загрузки токена выбираем страницу
-    return token == null ? StartPage() : MainScreen();
+    // После загрузки токена: без токена — гостевой режим (сразу в приложение), с токеном — полный MainScreen
+    return MainScreen(isGuest: token == null);
   }
 }
 

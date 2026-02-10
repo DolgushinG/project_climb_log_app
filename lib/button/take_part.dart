@@ -81,13 +81,12 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
 
   Future<void> _fetchParticipationStatus() async {
     final String? token = await getToken();
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
     try {
       final response = await http.get(
         Uri.parse('${DOMAIN}/api/competitions?event_id=${widget.event_id}'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       );
       final responseData = json.decode(response.body);
 

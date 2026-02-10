@@ -199,6 +199,11 @@ class Competition {
 }
 
 class CompetitionsScreen extends StatefulWidget {
+  /// Гостевой режим: запросы без токена, в детали передаётся isGuest.
+  final bool isGuest;
+
+  const CompetitionsScreen({super.key, this.isGuest = false});
+
   @override
   _CompetitionsScreenState createState() => _CompetitionsScreenState();
 }
@@ -273,13 +278,12 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
 
   Future<void> fetchCompetitions() async {
     final String? token = await getToken();
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
     try {
       final response = await http.get(
         Uri.parse(DOMAIN + '/api/competitions'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -302,7 +306,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
         }
         return;
       }
-      if (response.statusCode == 401 || response.statusCode == 419) {
+      if ((response.statusCode == 401 || response.statusCode == 419) && !widget.isGuest) {
         if (mounted) {
           setState(() => _isLoading = false);
           Navigator.push(
@@ -563,7 +567,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                 context,
                 MaterialPageRoute(
                   builder: (context) =>
-                      CompetitionDetailScreen(competition),
+                      CompetitionDetailScreen(competition, isGuest: widget.isGuest),
                 ),
               );
             },
@@ -699,8 +703,9 @@ class AlwaysDisabledFocusNode extends FocusNode {
 
 class CompetitionDetailScreen extends StatefulWidget {
   late Competition competition; // Локальная переменная состояния
+  final bool isGuest;
 
-  CompetitionDetailScreen(this.competition);
+  CompetitionDetailScreen(this.competition, {this.isGuest = false});
 
   @override
   _CompetitionDetailScreenState createState() =>
@@ -1508,7 +1513,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               _buildSetsBlock(),
             ],
             const SizedBox(height: 20),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant &&
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest &&
                 _competitionDetails.is_need_send_birthday &&
                 _competitionDetails.auto_categories != AUTO_CATEGORIES_YEAR &&
                 _competitionDetails.auto_categories != AUTO_CATEGORIES_AGE)
@@ -1528,7 +1533,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     ),
                   ]),
             const SizedBox(height: 12),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if(_competitionDetails.is_need_sport_category == 1)
                 Row(
                     children: [
@@ -1554,7 +1559,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         ),
                       ),
                     ]),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if ((_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
                       _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE) &&
                   !_hasBirthdayFilled)
@@ -1618,7 +1623,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     ),
                   ],
                 ),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if (_hasBirthdayFilled &&
                   (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
                       _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE))
@@ -1673,7 +1678,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     ),
                   ],
                 ),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if (_competitionDetails.auto_categories == MANUAL_CATEGORIES)
                 Row(
                 children: [
@@ -1700,7 +1705,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                 ]),
             const SizedBox(height: 8),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant)
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if(_competitionDetails.is_input_set == 0)
                 Row(children: [
                 Expanded(
@@ -1848,28 +1853,25 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                           if (_competitionDetails.is_in_list_pending) _buildListPendingBlock(),
                           if (_competitionDetails.is_in_list_pending) const SizedBox(height: 8),
                           if (!_needsBirthdayButNotFilled)
-                            needsPayment
+                            widget.isGuest
                                 ? ElevatedButton(
                                     onPressed: () {
                                       Navigator.push(
                                         context,
                                         MaterialPageRoute(
-                                          builder: (context) => CheckoutScreen(
-                                            eventId: _competitionDetails.id,
-                                            initialData: _checkoutData,
-                                          ),
+                                          builder: (context) => LoginScreen(),
                                         ),
                                       ).then((_) => fetchCompetition());
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF16A34A),
+                                      backgroundColor: Theme.of(context).colorScheme.primary,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(12),
                                       ),
                                       padding: const EdgeInsets.symmetric(vertical: 12),
                                     ),
                                     child: const Text(
-                                      'Продолжить оплату',
+                                      'Войти чтобы принять участие',
                                       style: TextStyle(
                                         color: Colors.white,
                                         fontSize: 14,
@@ -1877,7 +1879,36 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                       ),
                                     ),
                                   )
-                                : TakePartButtonScreen(
+                                : needsPayment
+                                    ? ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => CheckoutScreen(
+                                                eventId: _competitionDetails.id,
+                                                initialData: _checkoutData,
+                                              ),
+                                            ),
+                                          ).then((_) => fetchCompetition());
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF16A34A),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                        ),
+                                        child: const Text(
+                                          'Продолжить оплату',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      )
+                                    : TakePartButtonScreen(
                                         _competitionDetails.id,
                                         _checkout404Received ? false : _competitionDetails.is_participant,
                                         _birthdayForTakePart,
@@ -2831,13 +2862,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
 
     final String? token = await getToken();
+    final headers = <String, String>{'Content-Type': 'application/json'};
+    if (token != null) headers['Authorization'] = 'Bearer $token';
     try {
       final response = await http.get(
         Uri.parse(DOMAIN + '/api/competitions?event_id=$eventId'),
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
+        headers: headers,
       );
 
       if (response.statusCode == 200) {
@@ -2854,13 +2884,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           setState(() {
             _competitionDetails = updatedCompetition;
           });
-          _loadCheckoutDataIfNeeded(updatedCompetition);
-          final ac = updatedCompetition.auto_categories;
-          if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
-            _loadUserBirthday();
+          if (!widget.isGuest) {
+            _loadCheckoutDataIfNeeded(updatedCompetition);
+            final ac = updatedCompetition.auto_categories;
+            if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
+              _loadUserBirthday();
+            }
           }
         }
-      } else if (response.statusCode == 401 || response.statusCode == 419) {
+      } else if ((response.statusCode == 401 || response.statusCode == 419) && !widget.isGuest) {
         if (mounted) {
           Navigator.push(
             context,

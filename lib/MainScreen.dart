@@ -6,6 +6,8 @@ import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
+import 'Screens/RegisterScreen.dart';
+import 'login.dart';
 import 'main.dart';
 import 'services/connectivity_service.dart';
 import 'services/cache_service.dart';
@@ -14,8 +16,10 @@ import 'widgets/top_notification_banner.dart';
 class MainScreen extends StatefulWidget {
   /// Показать после входа предложение добавить Passkey (bottom sheet).
   final bool showPasskeyPrompt;
+  /// Гостевой режим: только соревнования + вкладка «Войти», без истории и профиля.
+  final bool isGuest;
 
-  const MainScreen({super.key, this.showPasskeyPrompt = false});
+  const MainScreen({super.key, this.showPasskeyPrompt = false, this.isGuest = false});
 
   @override
   _MainScreenState createState() => _MainScreenState();
@@ -29,12 +33,7 @@ class _MainScreenState extends State<MainScreen> {
   /// Показывать баннер «нет интернета» только когда офлайн и в кэше нет данных.
   bool _offlineWithNoCache = false;
   StreamSubscription<bool>? _connectivitySubscription;
-
-  static final List<Widget> _screens = <Widget>[
-    CompetitionsScreen(),
-    const ParticipationHistoryScreen(),
-    ProfileScreen(),
-  ];
+  late final List<Widget> _screens;
 
   void _onItemTapped(int index) {
     if (!mounted) return;
@@ -72,6 +71,9 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    _screens = widget.isGuest
+        ? [CompetitionsScreen(isGuest: true), const _GuestLoginScreen()]
+        : [CompetitionsScreen(), const ParticipationHistoryScreen(), ProfileScreen()];
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -201,30 +203,24 @@ class _MainScreenState extends State<MainScreen> {
     final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
 
     // Смещаем акцент градиента в сторону активной вкладки
+    final int tabCount = widget.isGuest ? 2 : 3;
     final List<Color> navGradientColors;
-    switch (_selectedIndex) {
-      case 0: // Соревнования – акцент слева
-        navGradientColors = [
-          accentNavColor,
-          baseNavColor,
-          baseNavColor,
-        ];
-        break;
-      case 1: // История – акцент по центру
-        navGradientColors = [
-          baseNavColor,
-          accentNavColor,
-          baseNavColor,
-        ];
-        break;
-      case 2: // Профиль – акцент справа
-      default:
-        navGradientColors = [
-          baseNavColor,
-          baseNavColor,
-          accentNavColor,
-        ];
-        break;
+    if (widget.isGuest) {
+      navGradientColors = _selectedIndex == 0
+          ? [accentNavColor, baseNavColor]
+          : [baseNavColor, accentNavColor];
+    } else {
+      switch (_selectedIndex) {
+        case 0:
+          navGradientColors = [accentNavColor, baseNavColor, baseNavColor];
+          break;
+        case 1:
+          navGradientColors = [baseNavColor, accentNavColor, baseNavColor];
+          break;
+        default:
+          navGradientColors = [baseNavColor, baseNavColor, accentNavColor];
+          break;
+      }
     }
 
     return PopScope(
@@ -283,18 +279,27 @@ class _MainScreenState extends State<MainScreen> {
                     label: 'Соревнования',
                   ),
                   BottomNavigationBarItem(
-                    icon: _buildNavIcon(Icons.history, false),
-                    activeIcon: _buildNavIcon(Icons.history_rounded, true),
-                    label: 'История',
+                    icon: _buildNavIcon(
+                      widget.isGuest ? Icons.login : Icons.history,
+                      false,
+                    ),
+                    activeIcon: _buildNavIcon(
+                      widget.isGuest ? Icons.login : Icons.history_rounded,
+                      true,
+                    ),
+                    label: widget.isGuest ? 'Войти' : 'История',
                   ),
-                  BottomNavigationBarItem(
-                    icon: _buildNavIcon(Icons.person_outline_rounded, false),
-                    activeIcon: _buildNavIcon(Icons.person_rounded, true),
-                    label: 'Профиль',
-                  ),
+                  if (!widget.isGuest)
+                    BottomNavigationBarItem(
+                      icon: _buildNavIcon(Icons.person_outline_rounded, false),
+                      activeIcon: _buildNavIcon(Icons.person_rounded, true),
+                      label: 'Профиль',
+                    ),
                 ],
                 currentIndex: _selectedIndex,
-                onTap: _onItemTapped,
+                onTap: (index) {
+                  if (index < tabCount) _onItemTapped(index);
+                },
                 selectedFontSize: 12,
                 unselectedFontSize: 11,
                 showUnselectedLabels: false,
@@ -309,6 +314,76 @@ class _MainScreenState extends State<MainScreen> {
 }
 
 
+
+/// Экран «Войти» для гостя: кнопки входа и регистрации.
+class _GuestLoginScreen extends StatelessWidget {
+  const _GuestLoginScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 48),
+              Text(
+                'Вход в приложение',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Войдите или зарегистрируйтесь, чтобы записываться на соревнования и вносить результаты.',
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.8),
+                  fontSize: 14,
+                ),
+              ),
+              const Spacer(),
+              FilledButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => LoginScreen()),
+                  );
+                },
+                style: FilledButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Войти'),
+              ),
+              const SizedBox(height: 12),
+              OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => RegistrationScreen()),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('Зарегистрироваться'),
+              ),
+              const SizedBox(height: 32),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 // Заглушка для других экранов
 class PlaceholderWidget extends StatelessWidget {
