@@ -13,8 +13,10 @@ import 'button/take_part.dart';
 import 'list_participants.dart';
 import 'main.dart';
 import 'Screens/CheckoutScreen.dart';
+import 'Screens/GymProfileScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/GroupRegisterScreen.dart';
+import 'services/GymService.dart';
 import 'models/Category.dart';
 import 'services/ProfileService.dart';
 import 'utils/display_helper.dart';
@@ -71,6 +73,7 @@ class Competition {
   final List<Map<String, dynamic>> number_sets;
   final String address;
   final String climbing_gym_name;
+  final int? climbing_gym_id;
   final DateTime start_date;
   final bool isCompleted;
   final int is_auto_categories;
@@ -108,6 +111,7 @@ class Competition {
     required this.is_routes_exists,
     required this.address,
     required this.climbing_gym_name,
+    this.climbing_gym_id,
     required this.poster,
     required this.description,
     required this.is_participant_paid,
@@ -193,6 +197,7 @@ class Competition {
       info_payment: json['info_payment'] ?? '',
       address: json['address'] ?? '',
       climbing_gym_name: (json['climbing_gym_name'] ?? json['climbing_gym'] ?? '').toString(),
+      climbing_gym_id: json['climbing_gym_id'] as int?,
       start_date: startDate,
       isCompleted: isCompleted,
     );
@@ -1462,6 +1467,136 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     );
   }
 
+  Future<void> _openGymProfile() async {
+    final gymId = _competitionDetails.climbing_gym_id;
+    if (gymId != null && gymId > 0) {
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GymProfileScreen(gymId: gymId),
+        ),
+      );
+      return;
+    }
+    final name = _competitionDetails.climbing_gym_name.trim();
+    if (name.isEmpty) return;
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Поиск скалодрома...'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+    final results = await searchGyms(name);
+    if (!mounted) return;
+    if (results.isNotEmpty) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => GymProfileScreen(gymId: results.first.id),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Профиль скалодрома временно недоступен'),
+        ),
+      );
+    }
+  }
+
+  Widget _buildGymCard(BuildContext context) {
+    const linkColor = Color(0xFF60A5FA);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openGymProfile(),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: linkColor.withOpacity(0.4),
+              width: 1.5,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: linkColor.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: const Icon(
+                Icons.sports,
+                size: 18,
+                color: linkColor,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Скалодром',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.85),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          _competitionDetails.climbing_gym_name,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            color: Color(0xFF60A5FA),
+                            height: 1.35,
+                            fontWeight: FontWeight.w500,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Color(0xFF60A5FA),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward_ios,
+                        size: 12,
+                        color: linkColor,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Нажмите для перехода в профиль скалодрома',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.white.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+    );
+  }
+
   Widget _buildInformationSection() {
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -1535,11 +1670,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   if (_competitionDetails.climbing_gym_name.isNotEmpty)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
-                      child: CompetitionInfoCard(
-                        icon: Icons.sports_outlined,
-                        label: 'Скалодром',
-                        value: _competitionDetails.climbing_gym_name,
-                      ),
+                      child: _buildGymCard(context),
                     ),
                   CompetitionInfoCard(
                     icon: Icons.place_outlined,

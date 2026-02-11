@@ -457,7 +457,13 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           children: [
             const Text('QR-код для оплаты', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
-            CachedNetworkImage(imageUrl: url, width: 160, height: 160, fit: BoxFit.contain),
+            CachedNetworkImage(
+              imageUrl: url,
+              width: 160,
+              height: 160,
+              fit: BoxFit.contain,
+              errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+            ),
           ],
         ),
       ),

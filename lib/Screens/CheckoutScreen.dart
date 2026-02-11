@@ -849,7 +849,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         backgroundColor: Colors.transparent,
         child: GestureDetector(
           onTap: () => Navigator.pop(ctx),
-          child: CachedNetworkImage(imageUrl: url, fit: BoxFit.contain),
+          child: CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.contain,
+            errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported, size: 64, color: Colors.grey),
+          ),
         ),
       ),
     );
@@ -1168,7 +1172,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           children: [
             const Text('QR-код для оплаты', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
-            CachedNetworkImage(imageUrl: url, width: 160, height: 160, fit: BoxFit.contain),
+            CachedNetworkImage(
+              imageUrl: url,
+              width: 160,
+              height: 160,
+              fit: BoxFit.contain,
+              errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+            ),
           ],
         ),
       ),
