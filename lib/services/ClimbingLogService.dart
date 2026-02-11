@@ -1,0 +1,195 @@
+import 'dart:convert';
+
+import 'package:http/http.dart' as http;
+
+import 'package:login_app/main.dart';
+import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/models/Gym.dart';
+
+/// Сервис API трекера трасс Climbing Log.
+/// Все методы с авторизацией требуют Bearer token.
+class ClimbingLogService {
+  ClimbingLogService();
+
+  Future<String?> _getToken() => getToken();
+
+  Future<List<String>> getGrades() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/grades'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null) {
+          final resp = GradesResponse.fromJson(json);
+          return resp.grades;
+        }
+      }
+    } catch (_) {}
+    return ['5', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A+'];
+  }
+
+  Future<GradesResponse> getGradesWithGroups() async {
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/grades'),
+        headers: {'Accept': 'application/json'},
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null) return GradesResponse.fromJson(json);
+      }
+    } catch (_) {}
+    return GradesResponse(
+      grades: ['5', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A+'],
+      gradeGroups: {
+        '6A-6C+': ['6A', '6A+', '6B', '6B+', '6C', '6C+'],
+        '7A-7C+': ['7A', '7A+', '7B', '7B+', '7C', '7C+'],
+        '8A-8C+': ['8A', '8A+', '8B', '8B+', '8C', '8C+'],
+      },
+    );
+  }
+
+  Future<bool> saveSession(ClimbingSessionRequest request) async {
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/climbing-logs'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Обновить сессию. Требует id в истории от бэкенда.
+  Future<bool> updateSession(int id, ClimbingSessionRequest request) async {
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final response = await http.put(
+        Uri.parse('$DOMAIN/api/climbing-logs/$id'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode(request.toJson()),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Удалить сессию.
+  Future<bool> deleteSession(int id) async {
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$DOMAIN/api/climbing-logs/$id'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Залы, на которых пользователь уже тренировался (для подсказок).
+  Future<List<UsedGym>> getUsedGyms() async {
+    final token = await _getToken();
+    if (token == null) return [];
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/used-gyms'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final raw = jsonDecode(response.body);
+        if (raw is List && raw.isNotEmpty) {
+          return raw
+              .map((e) =>
+                  UsedGym.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      }
+    } catch (_) {}
+    return _buildUsedGymsFromHistory(await getHistory());
+  }
+
+  List<UsedGym> _buildUsedGymsFromHistory(List<HistorySession> sessions) {
+    final seen = <int>{};
+    final result = <UsedGym>[];
+    for (final s in sessions) {
+      if (s.gymId != null && s.gymId! > 0 && !seen.contains(s.gymId)) {
+        seen.add(s.gymId!);
+        result.add(UsedGym(
+          id: s.gymId!,
+          name: s.gymName.replaceAll(RegExp(r'\s*\([^)]*\)\s*$'), '').trim(),
+          city: null,
+          lastUsed: s.date,
+        ));
+      }
+    }
+    return result;
+  }
+
+  Future<ClimbingProgress?> getProgress() async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/progress'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null) return ClimbingProgress.fromJson(json);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<List<HistorySession>> getHistory() async {
+    final token = await _getToken();
+    if (token == null) return [];
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/history'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final raw = jsonDecode(response.body);
+        if (raw is List) {
+          return raw
+              .map((e) =>
+                  HistorySession.fromJson(Map<String, dynamic>.from(e as Map)))
+              .toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+}

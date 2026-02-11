@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
+import 'Screens/ClimbingLogScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
 import 'Screens/RatingScreen.dart';
 import 'Screens/RegisterScreen.dart';
@@ -73,8 +74,8 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _screens = widget.isGuest
-        ? [const RatingScreen(), CompetitionsScreen(isGuest: true), const _GuestLoginScreen()]
-        : [const RatingScreen(), CompetitionsScreen(), const ParticipationHistoryScreen(), ProfileScreen()];
+        ? [ClimbingLogScreen(isGuest: true), const RatingScreen(), CompetitionsScreen(isGuest: true), const _GuestLoginScreen()]
+        : [ClimbingLogScreen(isGuest: false), const RatingScreen(), CompetitionsScreen(), const ParticipationHistoryScreen(), ProfileScreen()];
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -204,21 +205,9 @@ class _MainScreenState extends State<MainScreen> {
     final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
 
     // Смещаем акцент градиента в сторону активной вкладки
-    final int tabCount = widget.isGuest ? 3 : 4;
+    final int tabCount = widget.isGuest ? 4 : 5;
     final List<Color> navGradientColors;
     if (widget.isGuest) {
-      switch (_selectedIndex) {
-        case 0:
-          navGradientColors = [accentNavColor, baseNavColor, baseNavColor];
-          break;
-        case 1:
-          navGradientColors = [baseNavColor, accentNavColor, baseNavColor];
-          break;
-        default:
-          navGradientColors = [baseNavColor, baseNavColor, accentNavColor];
-          break;
-      }
-    } else {
       switch (_selectedIndex) {
         case 0:
           navGradientColors = [accentNavColor, baseNavColor, baseNavColor, baseNavColor];
@@ -231,6 +220,24 @@ class _MainScreenState extends State<MainScreen> {
           break;
         default:
           navGradientColors = [baseNavColor, baseNavColor, baseNavColor, accentNavColor];
+          break;
+      }
+    } else {
+      switch (_selectedIndex) {
+        case 0:
+          navGradientColors = [accentNavColor, baseNavColor, baseNavColor, baseNavColor, baseNavColor];
+          break;
+        case 1:
+          navGradientColors = [baseNavColor, accentNavColor, baseNavColor, baseNavColor, baseNavColor];
+          break;
+        case 2:
+          navGradientColors = [baseNavColor, baseNavColor, accentNavColor, baseNavColor, baseNavColor];
+          break;
+        case 3:
+          navGradientColors = [baseNavColor, baseNavColor, baseNavColor, accentNavColor, baseNavColor];
+          break;
+        default:
+          navGradientColors = [baseNavColor, baseNavColor, baseNavColor, baseNavColor, accentNavColor];
           break;
       }
     }
@@ -285,6 +292,11 @@ class _MainScreenState extends State<MainScreen> {
               child: BottomNavigationBar(
                 backgroundColor: Colors.transparent,
                 items: <BottomNavigationBarItem>[
+                  BottomNavigationBarItem(
+                    icon: _buildNavIcon(Icons.route_outlined, false),
+                    activeIcon: _buildNavIcon(Icons.route_rounded, true),
+                    label: 'Тренировки',
+                  ),
                   BottomNavigationBarItem(
                     icon: _buildNavIcon(Icons.leaderboard_outlined, false),
                     activeIcon: _buildNavIcon(Icons.leaderboard_rounded, true),
