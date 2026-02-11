@@ -6,7 +6,7 @@ import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ClimbingLogScreen.dart';
-import 'Screens/ParticipationHistoryScreen.dart';
+import 'Screens/GymsListScreen.dart';
 import 'Screens/RatingScreen.dart';
 import 'Screens/RegisterScreen.dart';
 import 'login.dart';
@@ -74,8 +74,8 @@ class _MainScreenState extends State<MainScreen> {
   void initState() {
     super.initState();
     _screens = widget.isGuest
-        ? [ClimbingLogScreen(isGuest: true), const RatingScreen(), CompetitionsScreen(isGuest: true), const _GuestLoginScreen()]
-        : [ClimbingLogScreen(isGuest: false), const RatingScreen(), CompetitionsScreen(), const ParticipationHistoryScreen(), ProfileScreen()];
+        ? [ClimbingLogScreen(isGuest: true), const RatingScreen(), CompetitionsScreen(isGuest: true), const GymsListScreen(), const _GuestLoginScreen()]
+        : [ClimbingLogScreen(isGuest: false), const RatingScreen(), CompetitionsScreen(), const GymsListScreen(), ProfileScreen()];
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -308,15 +308,9 @@ class _MainScreenState extends State<MainScreen> {
                     label: 'Соревнования',
                   ),
                   BottomNavigationBarItem(
-                    icon: _buildNavIcon(
-                      widget.isGuest ? Icons.login : Icons.history,
-                      false,
-                    ),
-                    activeIcon: _buildNavIcon(
-                      widget.isGuest ? Icons.login : Icons.history_rounded,
-                      true,
-                    ),
-                    label: widget.isGuest ? 'Войти' : 'История',
+                    icon: _buildNavIcon(Icons.business_outlined, false),
+                    activeIcon: _buildNavIcon(Icons.business_rounded, true),
+                    label: 'Скалодромы',
                   ),
                   if (!widget.isGuest)
                     BottomNavigationBarItem(

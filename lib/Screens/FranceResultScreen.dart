@@ -260,11 +260,19 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            _searchController.text.trim().isEmpty
-                ? 'Нет результатов'
-                : 'Ничего не найдено',
-            style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              const SizedBox(height: 16),
+              Text(
+                _searchController.text.trim().isEmpty
+                    ? 'Нет результатов'
+                    : 'Ничего не найдено',
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
           ),
         ),
       );

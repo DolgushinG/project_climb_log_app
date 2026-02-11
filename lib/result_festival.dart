@@ -114,6 +114,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
   List<ParticipantResult> filteredResults = [];
   String? searchQuery = '';
   Category? selectedCategory;
+  bool _isLoading = true;
 
   @override
   void initState() {
@@ -181,13 +182,38 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
         setState(() {
           results = data;
           filteredResults = results;
+          _isLoading = false;
         });
       }
     } catch (e) {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
   Widget _buildResultList(String gender) {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
     final genderResults = filteredResults.where((result) => result.gender == gender).toList();
+
+    if (genderResults.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              const SizedBox(height: 16),
+              Text(
+                'Нет результатов',
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return ListView.builder(
       itemCount: genderResults.length,

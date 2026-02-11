@@ -148,3 +148,88 @@ class GymSearchItem {
         city: json['city']?.toString(),
       );
 }
+
+/// Элемент списка скалодромов (GET /api/gyms)
+class GymListItem {
+  final int id;
+  final String name;
+  final String? city;
+  final String? address;
+  final String? phone;
+  final String? url;
+  final String? hours;
+  final int sumLikes;
+  final String profileUrl;
+
+  GymListItem({
+    required this.id,
+    required this.name,
+    this.city,
+    this.address,
+    this.phone,
+    this.url,
+    this.hours,
+    this.sumLikes = 0,
+    required this.profileUrl,
+  });
+
+  factory GymListItem.fromJson(Map<String, dynamic> json) => GymListItem(
+        id: json['id'] as int,
+        name: (json['name'] ?? '').toString(),
+        city: json['city']?.toString(),
+        address: json['address']?.toString(),
+        phone: json['phone']?.toString(),
+        url: json['url']?.toString(),
+        hours: json['hours']?.toString(),
+        sumLikes: json['sum_likes'] as int? ?? 0,
+        profileUrl: (json['profile_url'] ?? '').toString(),
+      );
+}
+
+/// Пагинация списка скалодромов
+class GymsPagination {
+  final int currentPage;
+  final int lastPage;
+  final int perPage;
+  final int total;
+
+  GymsPagination({
+    required this.currentPage,
+    required this.lastPage,
+    required this.perPage,
+    required this.total,
+  });
+
+  factory GymsPagination.fromJson(Map<String, dynamic> json) => GymsPagination(
+        currentPage: json['current_page'] as int? ?? 1,
+        lastPage: json['last_page'] as int? ?? 1,
+        perPage: json['per_page'] as int? ?? 12,
+        total: json['total'] as int? ?? 0,
+      );
+
+  bool get hasMore => currentPage < lastPage;
+}
+
+/// Ответ API списка скалодромов
+class GymsListResponse {
+  final List<GymListItem> gyms;
+  final GymsPagination pagination;
+
+  GymsListResponse({required this.gyms, required this.pagination});
+
+  factory GymsListResponse.fromJson(Map<String, dynamic> json) =>
+      GymsListResponse(
+        gyms: (json['gyms'] as List<dynamic>?)
+                ?.map((e) =>
+                    GymListItem.fromJson(Map<String, dynamic>.from(e as Map)))
+                .toList() ??
+            [],
+        pagination: GymsPagination.fromJson(
+          Map<String, dynamic>.from(
+            (json['pagination'] as Map?) ?? {},
+          ),
+        ),
+      );
+
+  bool get hasMore => pagination.hasMore;
+}

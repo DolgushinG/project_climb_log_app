@@ -2593,6 +2593,25 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     List<Category> categoryList = _competitionDetails.categories
         .map((json) => Category.fromJson(json))
         .toList();
+    if (categoryList.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              const SizedBox(height: 16),
+              Text(
+                'Нет категорий с результатами',
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(
@@ -2635,6 +2654,25 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     List<Category> categoryList = _competitionDetails.categories
         .map((json) => Category.fromJson(json))
         .toList();
+    if (categoryList.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              const SizedBox(height: 16),
+              Text(
+                'Нет категорий с результатами',
+                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      );
+    }
     return Padding(
       padding: const EdgeInsets.all(16.0),
       child: Column(

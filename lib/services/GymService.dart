@@ -3,6 +3,41 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
 import 'package:login_app/models/Gym.dart';
 
+/// Список скалодромов с пагинацией и фильтрами (GET /api/gyms)
+Future<GymsListResponse?> fetchGyms({
+  int page = 1,
+  int perPage = 12,
+  String? search,
+  String? city,
+  String? country,
+}) async {
+  try {
+    final uri = Uri.parse('$DOMAIN/api/gyms').replace(
+      queryParameters: {
+        'page': page.toString(),
+        'per_page': perPage.toString(),
+        if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+        if (city != null && city.trim().isNotEmpty) 'city': city.trim(),
+        if (country != null && country.trim().isNotEmpty)
+          'country': country.trim(),
+      },
+    );
+
+    final response = await http.get(
+      uri,
+      headers: {'Accept': 'application/json'},
+    );
+
+    if (response.statusCode == 200) {
+      final json = jsonDecode(response.body) as Map<String, dynamic>;
+      return GymsListResponse.fromJson(json);
+    }
+    return null;
+  } catch (_) {
+    return null;
+  }
+}
+
 /// Данные страницы скалодрома
 class GymProfileData {
   final Gym gym;
