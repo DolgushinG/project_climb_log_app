@@ -362,20 +362,6 @@ class _GuestLoginScreen extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              TextButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const RatingScreen()),
-                  );
-                },
-                icon: const Icon(Icons.leaderboard_outlined, size: 20),
-                label: const Text('Смотреть общий рейтинг'),
-                style: TextButton.styleFrom(
-                  foregroundColor: Colors.white70,
-                ),
-              ),
-              const SizedBox(height: 8),
               FilledButton(
                 onPressed: () {
                   Navigator.push(

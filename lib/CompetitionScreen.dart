@@ -14,6 +14,7 @@ import 'list_participants.dart';
 import 'main.dart';
 import 'Screens/CheckoutScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
+import 'Screens/GroupRegisterScreen.dart';
 import 'models/Category.dart';
 import 'services/ProfileService.dart';
 import 'utils/display_helper.dart';
@@ -2015,6 +2016,40 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                               ),
                             ),
                           ),
+                          if (!widget.isGuest) ...[
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  final result = await Navigator.push<bool>(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => GroupRegisterScreen(eventId: _competitionDetails.id),
+                                    ),
+                                  );
+                                  if (result == true && mounted) {
+                                    fetchCompetition();
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF1D4ED8),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                ),
+                                child: const Text(
+                                  'Заявить группу',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ],
@@ -2079,24 +2114,23 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     final bool canShowResultButton = baseConditionsOk &&
                         (!resultExists || (resultExists && editAllowed));
 
-                    if (!canShowResultButton || !_competitionDetails.is_routes_exists) {
-                      return const SizedBox.shrink();
-                    }
+                    if (widget.isGuest) return const SizedBox.shrink();
 
                     return Column(
                       children: [
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            ResultEntryButton(
-                              eventId: _competitionDetails.id,
-                              // is_participant_active: true → результат существует
-                              isParticipantActive: resultExists,
-                              isAccessUserEditResult: editAllowed,
-                              isOpenSendResultState: globalAllowed,
-                              isRoutesExists: _competitionDetails.is_routes_exists,
-                              onResultSubmitted: _refreshParticipationStatus,
-                            ),
+                            if (canShowResultButton && _competitionDetails.is_routes_exists)
+                              ResultEntryButton(
+                                eventId: _competitionDetails.id,
+                                // is_participant_active: true → результат существует
+                                isParticipantActive: resultExists,
+                                isAccessUserEditResult: editAllowed,
+                                isOpenSendResultState: globalAllowed,
+                                isRoutesExists: _competitionDetails.is_routes_exists,
+                                onResultSubmitted: _refreshParticipationStatus,
+                              ),
                             if (_competitionDetails.is_routes_exists &&
                                 _competitionDetails.is_access_user_cancel_take_part == 1 &&
                                 !_competitionDetails.is_participant_paid)
