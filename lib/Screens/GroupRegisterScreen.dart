@@ -10,6 +10,7 @@ import '../login.dart';
 import '../main.dart';
 import '../utils/network_error_helper.dart';
 import 'GroupCheckoutScreen.dart';
+import 'GroupDocumentsScreen.dart';
 import 'ProfileEditScreen.dart';
 
 const String _draftKeyPrefix = 'group_register_draft_';
@@ -468,11 +469,19 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       if (r.statusCode == 201 || r.statusCode == 200) {
         await _clearDraft();
         final goToCheckout = raw is Map && raw['go_to_group_checkout'] == true;
+        final goToDocuments = raw is Map && raw['go_to_group_documents'] == true;
         if (goToCheckout && mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
               builder: (context) => GroupCheckoutScreen(eventId: widget.eventId),
+            ),
+          );
+        } else if (goToDocuments && mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => GroupDocumentsScreen(eventId: widget.eventId, eventTitle: _data?['event']?['title']?.toString()),
             ),
           );
         } else {
@@ -552,7 +561,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     final relatedUsersRaw = _data?['related_users'];
     final relatedUsers = relatedUsersRaw is List ? relatedUsersRaw : [];
     final showContactMsg = !_hasContact;
-    final showContactDocumentsMsg = _data?['show_msg_about_need_contact_admin_documents'] == true;
+    final groupDocumentsAlready = _data?['group_documents_already'] == true;
 
     return Scaffold(
       appBar: AppBar(
@@ -626,6 +635,52 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               ),
               const SizedBox(height: 20),
             ],
+            if (groupDocumentsAlready || _hasUnpaidGroup)
+              Material(
+                color: const Color(0xFF1E3A5F).withOpacity(0.4),
+                borderRadius: BorderRadius.circular(16),
+                child: InkWell(
+                  onTap: () async {
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => GroupDocumentsScreen(
+                          eventId: widget.eventId,
+                          eventTitle: eventTitle,
+                        ),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.description, color: Color(0xFF3B82F6), size: 32),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Документы участников',
+                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Загрузить документы для участников группы',
+                                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            if (groupDocumentsAlready || _hasUnpaidGroup) const SizedBox(height: 20),
             if (showContactMsg)
               _buildWarningCard(
                 'Заполните контактные данные в профиле для групповой регистрации.',
@@ -638,8 +693,6 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 },
                 actionText: 'Заполнить профиль',
               ),
-            if (showContactDocumentsMsg)
-              _buildWarningCard('Свяжитесь с администратором по поводу документов.'),
             const SizedBox(height: 20),
             const Text(
               'Ранее заявленные участники',

@@ -1,4 +1,9 @@
-
+int? _parseInt(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  return int.tryParse(value.toString());
+}
 
 class NumberSets {
   final int number_set;
@@ -7,6 +12,10 @@ class NumberSets {
   final int max_participants;
   final String day_of_week;
   final List<dynamic>? allow_years;
+  /// Год рождения от (для ограничения по возрасту)
+  final int? allow_years_from;
+  /// Год рождения до (для ограничения по возрасту)
+  final int? allow_years_to;
 
   /// Количество участников (для блока сетов)
   final int participants_count;
@@ -30,6 +39,8 @@ class NumberSets {
     required this.max_participants,
     required this.day_of_week,
     required this.allow_years,
+    this.allow_years_from,
+    this.allow_years_to,
     this.participants_count = 0,
     this.free = 0,
     this.procent = 0,
@@ -45,6 +56,8 @@ class NumberSets {
       max_participants: json['max_participants'] ?? 0,
       day_of_week: (json['day_of_week'] ?? '').toString(),
       allow_years: json['allow_years'] ?? [],
+      allow_years_from: _parseInt(json['allow_years_from']),
+      allow_years_to: _parseInt(json['allow_years_to']),
       participants_count: json['participants_count'] ?? 0,
       free: json['free'] ?? 0,
       procent: (json['procent'] ?? 0).toDouble(),
@@ -56,6 +69,28 @@ class NumberSets {
   bool operator == (Object other) {
     if (identical(this, other)) return true;
     return other is NumberSets && other.id == id;
+  }
+
+  /// Проверяет, подходит ли год рождения пользователя под ограничения сета.
+  /// Если оба allow_years_from и allow_years_to null — сет без ограничений по возрасту.
+  bool matchesBirthYear(int? birthYear) {
+    if (birthYear == null) return true;
+    if (allow_years_from == null && allow_years_to == null) return true;
+    if (allow_years_from != null && birthYear < allow_years_from!) return false;
+    if (allow_years_to != null && birthYear > allow_years_to!) return false;
+    return true;
+  }
+
+  /// Проверяет, пересекается ли диапазон годов категории с ограничениями сета.
+  /// catYearFrom/catYearTo — год рождения от/до из категории (your_group).
+  bool matchesCategoryYearRange(int? catYearFrom, int? catYearTo) {
+    if (catYearFrom == null && catYearTo == null) return true;
+    if (allow_years_from == null && allow_years_to == null) return true;
+    final setFrom = allow_years_from ?? 0;
+    final setTo = allow_years_to ?? 9999;
+    final from = catYearFrom ?? 0;
+    final to = catYearTo ?? 9999;
+    return setFrom <= to && setTo >= from;
   }
 
   @override

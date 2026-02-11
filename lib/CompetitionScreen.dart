@@ -741,24 +741,23 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     super.dispose();
   }
 
-  /// Есть хотя бы один занятый сет
+  /// Есть хотя бы один занятый сет (из доступных по возрасту)
   bool get _hasAnyBusySet {
-    if (_competitionDetails.number_sets.isEmpty) return false;
-    final sets = _competitionDetails.number_sets.map((j) => NumberSets.fromJson(j)).toList();
+    final sets = _setsFilteredByAge;
     return sets.any((s) => (s.free) <= 0);
   }
 
-  /// Все сеты заняты
+  /// Все сеты заняты (из доступных по возрасту)
   bool get _allSetsBusy {
-    if (_competitionDetails.number_sets.isEmpty) return false;
-    final sets = _competitionDetails.number_sets.map((j) => NumberSets.fromJson(j)).toList();
-    return sets.every((s) => (s.free) <= 0);
+    final sets = _setsFilteredByAge;
+    return sets.isNotEmpty && sets.every((s) => (s.free) <= 0);
   }
 
   /// Номера сетов для add-to-list-pending
   List<int> get _numberSetsForWaitlist {
     if (_competitionDetails.is_input_set == 0) {
-      return selectedNumberSet != null ? [selectedNumberSet!.number_set] : [];
+      final s = _effectiveSelectedNumberSet;
+      return s != null ? [s.number_set] : [];
     }
     return _competitionDetails.number_sets
         .map((j) => NumberSets.fromJson(j))
@@ -767,12 +766,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   void _showSetSelectionDialog() {
-    List<NumberSets> numberSetList = _competitionDetails.number_sets.map((json) => NumberSets.fromJson(json)).toList();
+    final numberSetList = _setsFilteredByAge;
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        // Локальная переменная для временного хранения выбора
-        NumberSets? tempSelectedNumberSet = selectedNumberSet;
+        // Локальная переменная для временного хранения выбора (только если сет ещё в списке по возрасту)
+        NumberSets? tempSelectedNumberSet = numberSetList.any((s) => s.id == selectedNumberSet?.id)
+            ? selectedNumberSet
+            : null;
 
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -930,10 +931,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   void _showWaitlistBottomSheet({List<int>? initialNumberSets}) {
-    final busySets = _competitionDetails.number_sets
-        .map((j) => NumberSets.fromJson(j))
-        .where((s) => s.free <= 0)
-        .toList();
+    final busySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
     final categoryList = _competitionDetails.categories
         .map((json) => Category.fromJson(Map<String, dynamic>.from(json)))
         .toList();
@@ -1284,11 +1282,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     );
   }
 
-  /// Блок сетов: компактные чипы с номером, счётчиком и прогресс-баром
+  /// Блок сетов: компактные чипы с номером, счётчиком и прогресс-баром (отфильтрованы по возрасту)
   Widget _buildSetsBlock() {
-    final sets = _competitionDetails.number_sets
-        .map((j) => NumberSets.fromJson(j))
+    final sets = _setsFilteredByAge;
+    final allSets = _competitionDetails.number_sets
+        .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
         .toList();
+    final hasAgeRestrictedSets = allSets.any((s) => s.allow_years_from != null || s.allow_years_to != null);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1307,6 +1307,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           ],
         ),
         const SizedBox(height: 6),
+        if (sets.isEmpty && hasAgeRestrictedSets)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              'Нет сетов для вашей возрастной группы',
+              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
+            ),
+          )
+        else
         LayoutBuilder(
           builder: (context, constraints) {
             final w = constraints.maxWidth;
@@ -1763,9 +1772,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       ),
                     ),
                     child: Text(
-                      selectedNumberSet == null
+                      _effectiveSelectedNumberSet == null
                           ? 'Выберите сет'
-                          : 'Сет: ${formatSetCompact(selectedNumberSet!)}',
+                          : 'Сет: ${formatSetCompact(_effectiveSelectedNumberSet!)}',
                       style: const TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -1958,7 +1967,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                         _birthdayForTakePart,
                                         selectedCategory,
                                         selectedSportCategory,
-                                        selectedNumberSet,
+                                        _effectiveSelectedNumberSet,
                                         _refreshParticipationStatus,
                                         is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
                                         onNeedCheckout: (eventId) {
@@ -1982,7 +1991,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                         needSportCategory: _competitionDetails.is_need_sport_category == 1 &&
                                             _competitionDetails.sport_categories.isNotEmpty,
                                         needNumberSet: _competitionDetails.is_input_set == 0 &&
-                                            _competitionDetails.number_sets.isNotEmpty,
+                                            _setsFilteredByAge.isNotEmpty,
                                       ),
                           if (!_needsBirthdayButNotFilled) const SizedBox(height: 8),
                           SizedBox(
@@ -3017,6 +3026,52 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       } catch (_) {}
     }
     return null;
+  }
+
+  /// Год рождения пользователя (для фильтрации сетов по возрасту)
+  int? get _userBirthYear {
+    final b = _birthdayForTakePart;
+    return b != null ? b.year : null;
+  }
+
+  /// Диапазон годов категории из your_group (allow_year_from, allow_year_to)
+  (int?, int?) _getCategoryYearRange() {
+    final yg = _competitionDetails.your_group;
+    if (yg == null || yg.isEmpty) return (null, null);
+    for (final c in _competitionDetails.categories) {
+      final m = c is Map ? c : Map<String, dynamic>.from(c as Map);
+      if ((m['category'] ?? '').toString().trim() == yg.trim()) {
+        final from = m['allow_year_from'];
+        final to = m['allow_year_to'];
+        int? fromInt = from is int ? from : (from != null ? int.tryParse(from.toString()) : null);
+        int? toInt = to is int ? to : (to != null ? int.tryParse(to.toString()) : null);
+        return (fromInt, toInt);
+      }
+    }
+    return (null, null);
+  }
+
+  /// Выбранный сет, если он всё ещё доступен по возрасту
+  NumberSets? get _effectiveSelectedNumberSet {
+    final s = selectedNumberSet;
+    if (s == null) return null;
+    return _setsFilteredByAge.any((x) => x.id == s.id) ? s : null;
+  }
+
+  /// Сеты, отфильтрованные по возрасту пользователя (allow_years_from, allow_years_to)
+  List<NumberSets> get _setsFilteredByAge {
+    final all = _competitionDetails.number_sets
+        .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
+    final birthYear = _userBirthYear;
+    if (birthYear != null) {
+      return all.where((s) => s.matchesBirthYear(birthYear)).toList();
+    }
+    final (catFrom, catTo) = _getCategoryYearRange();
+    if (catFrom != null || catTo != null) {
+      return all.where((s) => s.matchesCategoryYearRange(catFrom, catTo)).toList();
+    }
+    return all;
   }
 
   Future<void> _fetchCompetitionStatistics() async {

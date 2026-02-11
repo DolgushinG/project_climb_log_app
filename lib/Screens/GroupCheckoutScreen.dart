@@ -11,6 +11,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../login.dart';
 import '../main.dart';
 import '../utils/network_error_helper.dart';
+import 'GroupDocumentsScreen.dart';
 
 class GroupCheckoutScreen extends StatefulWidget {
   final int eventId;
@@ -221,7 +222,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
       final isSuccess = r.statusCode == 200 || r.statusCode == 201 || (raw is Map && raw['success'] == true);
       if (isSuccess) {
         _showSnack(raw is Map ? (raw['message']?.toString() ?? 'Чек загружен') : 'Чек загружен');
-        await _loadData();
+        await _loadData(silent: true);
+        if (group && mounted && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       } else {
         final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
         _showSnack(msg ?? 'Ошибка загрузки чека', isError: true);
@@ -666,6 +670,52 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                   style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
+            Material(
+              color: const Color(0xFF1E3A5F).withOpacity(0.4),
+              borderRadius: BorderRadius.circular(16),
+              child: InkWell(
+                onTap: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => GroupDocumentsScreen(
+                        eventId: widget.eventId,
+                        eventTitle: eventTitle,
+                      ),
+                    ),
+                  );
+                  if (mounted) _loadData(silent: true);
+                },
+                borderRadius: BorderRadius.circular(16),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.description, color: Color(0xFF3B82F6), size: 32),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Документы участников',
+                              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Загрузить документы для участников группы',
+                              style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
             if (groupIsNotPaid) ...[
               _buildHowToPayGroup(),
               const SizedBox(height: 16),

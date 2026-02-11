@@ -958,21 +958,44 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   final n = m['name']?.toString() ?? '';
                   return _selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty;
                 });
-                return ElevatedButton(
-                  onPressed: (isDisabled || !allSizesSelected) ? null : () async {
-                    setState(() => _selectedPackageName = name);
-                    final sizes = <String, String>{};
-                    for (final m in merch) {
-                      if (m is! Map) continue;
-                      final n = m['name']?.toString() ?? '';
-                      if (_selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty) {
-                        sizes[n] = _selectedSizes[n]!;
-                      }
-                    }
-                    await _savePackage(name, sizes, price.toInt());
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF16A34A)),
-                  child: Text(_selectedPackageName == name ? 'Выбрано' : 'Выбрать'),
+                final isSelected = _selectedPackageName == name;
+                return SizedBox(
+                  width: double.infinity,
+                  child: isSelected
+                      ? ElevatedButton.icon(
+                          onPressed: null,
+                          icon: const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                          label: const Text('Выбрано', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF16A34A),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        )
+                      : OutlinedButton.icon(
+                          onPressed: (isDisabled || !allSizesSelected)
+                              ? null
+                              : () async {
+                                  setState(() => _selectedPackageName = name);
+                                  final sizes = <String, String>{};
+                                  for (final m in merch) {
+                                    if (m is! Map) continue;
+                                    final n = m['name']?.toString() ?? '';
+                                    if (_selectedSizes[n] != null && _selectedSizes[n]!.isNotEmpty) {
+                                      sizes[n] = _selectedSizes[n]!;
+                                    }
+                                  }
+                                  await _savePackage(name, sizes, price.toInt());
+                                },
+                          icon: const Icon(Icons.add_shopping_cart, size: 20),
+                          label: const Text('Выбрать', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: const Color(0xFF60A5FA),
+                            side: const BorderSide(color: Color(0xFF60A5FA), width: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
                 );
               },
             ),

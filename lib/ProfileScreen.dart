@@ -6,6 +6,7 @@ import 'dart:convert';
 import 'Screens/AnalyticsScreen.dart';
 import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
+import 'Screens/RelatedUsersScreen.dart';
 import 'Screens/ChangePasswordScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
 import 'Screens/AboutScreen.dart';
@@ -225,6 +226,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         context,
                         MaterialPageRoute(
                           builder: (context) => ChangePasswordScreen()
+                        ),
+                      );
+                    },
+                  ),
+                  ProfileActionCard(
+                    title: 'Заявленные',
+                    icon: Icons.people,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const RelatedUsersScreen(),
                         ),
                       );
                     },
