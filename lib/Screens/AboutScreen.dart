@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:flutter/services.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -49,7 +51,7 @@ class _AboutScreenState extends State<AboutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('О приложении'),
+        title: Text('О приложении', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
@@ -60,7 +62,7 @@ class _AboutScreenState extends State<AboutScreen> {
             Icon(
               Icons.emoji_events_rounded,
               size: 72,
-              color: theme.colorScheme.primary,
+              color: AppColors.mutedGold,
             ),
             const SizedBox(height: 16),
             Text(

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:login_app/theme/app_theme.dart';
 
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
@@ -23,31 +25,35 @@ class ClimbingLogScreen extends StatelessWidget {
     return DefaultTabController(
       length: 4,
       child: Scaffold(
+        backgroundColor: AppColors.anthracite,
         appBar: AppBar(
+          backgroundColor: AppColors.cardDark,
           automaticallyImplyLeading: false,
-          title: const Text('Тренировки'),
+          title: Text('Тренировки', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: AppColors.rowAlt,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: TabBar(
                   indicatorColor: Colors.transparent,
                   overlayColor: MaterialStateProperty.all(Colors.transparent),
+                  labelColor: AppColors.mutedGold,
+                  unselectedLabelColor: Colors.white70,
                   indicator: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
-                    color: Colors.white.withOpacity(0.16),
+                    color: AppColors.mutedGold.withOpacity(0.3),
                   ),
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 8),
-                  tabs: const [
-                    Tab(text: 'Обзор'),
-                    Tab(text: 'Тренировка'),
-                    Tab(text: 'Прогресс'),
-                    Tab(text: 'История'),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                  tabs: [
+                    Tab(child: FittedBox(child: Text('Обзор', style: GoogleFonts.unbounded(fontSize: 13)))),
+                    Tab(child: FittedBox(child: Text('Тренировка', style: GoogleFonts.unbounded(fontSize: 13)))),
+                    Tab(child: FittedBox(child: Text('Прогресс', style: GoogleFonts.unbounded(fontSize: 13)))),
+                    Tab(child: FittedBox(child: Text('История', style: GoogleFonts.unbounded(fontSize: 13)))),
                   ],
                 ),
               ),

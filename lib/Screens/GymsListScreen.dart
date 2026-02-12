@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../models/Gym.dart';
+import '../theme/app_theme.dart';
 import '../services/GymService.dart';
 import 'GymProfileScreen.dart';
 
@@ -130,9 +132,10 @@ class _GymsListScreenState extends State<GymsListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Список скалодромов'),
+        title: Text('Список скалодромов', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
       ),
-      backgroundColor: const Color(0xFF050816),
+      backgroundColor: AppColors.anthracite,
       body: Column(
         children: [
           _buildSearchBar(),
@@ -153,17 +156,14 @@ class _GymsListScreenState extends State<GymsListScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
             controller: _searchController,
-            style: const TextStyle(color: Colors.white),
+            style: GoogleFonts.unbounded(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Поиск по названию, городу, адресу...',
-              hintStyle: TextStyle(color: Colors.white.withOpacity(0.5)),
-              prefixIcon: Icon(Icons.search, color: Colors.white.withOpacity(0.7)),
+              hintStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+              prefixIcon: Icon(Icons.search, color: AppColors.mutedGold),
               filled: true,
-              fillColor: Colors.white.withOpacity(0.08),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
+              fillColor: AppColors.rowAlt,
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             ),
           ),
@@ -185,10 +185,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               'Найдено скалодромов: ${_pagination!.total}',
-              style: TextStyle(
-                fontSize: 13,
-                color: Colors.white.withOpacity(0.6),
-              ),
+              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
             ),
           ),
       ],
@@ -200,7 +197,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
-        label: Text(label),
+        label: Text(label, style: GoogleFonts.unbounded(fontSize: 13)),
         selected: isSelected,
         onSelected: (selected) {
           setState(() {
@@ -208,17 +205,15 @@ class _GymsListScreenState extends State<GymsListScreen> {
             _load(page: 1);
           });
         },
-        backgroundColor: Colors.white.withOpacity(0.08),
-        selectedColor: Theme.of(context).colorScheme.primary.withOpacity(0.3),
-        checkmarkColor: Theme.of(context).colorScheme.primary,
-        labelStyle: TextStyle(
+        backgroundColor: AppColors.rowAlt,
+        selectedColor: AppColors.mutedGold.withOpacity(0.3),
+        checkmarkColor: AppColors.mutedGold,
+        labelStyle: GoogleFonts.unbounded(
           color: isSelected ? Colors.white : Colors.white70,
           fontSize: 13,
         ),
         side: BorderSide(
-          color: isSelected
-              ? Theme.of(context).colorScheme.primary
-              : Colors.white24,
+          color: isSelected ? AppColors.mutedGold : Colors.white24,
         ),
       ),
     );
@@ -274,31 +269,28 @@ class _GymsListScreenState extends State<GymsListScreen> {
           ),
         );
       },
-      child: Card(
-        color: const Color(0xFF0B1220),
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: BorderSide(color: Colors.white.withOpacity(0.06)),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        padding: const EdgeInsets.all(16),
+        child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
-                  Container(
+                    Container(
                     width: 48,
                     height: 48,
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: AppColors.rowAlt,
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.sports,
                       size: 28,
-                      color: Colors.white70,
+                      color: AppColors.mutedGold,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -308,7 +300,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                       children: [
                         Text(
                           gym.name,
-                          style: const TextStyle(
+                          style: GoogleFonts.unbounded(
                             fontSize: 17,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -318,10 +310,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                           const SizedBox(height: 4),
                           Text(
                             gym.city!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.white.withOpacity(0.7),
-                            ),
+                            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
                           ),
                         ],
                       ],
@@ -334,22 +323,19 @@ class _GymsListScreenState extends State<GymsListScreen> {
                         Icon(
                           Icons.favorite,
                           size: 16,
-                          color: Colors.red.shade300,
+                          color: AppColors.mutedGold,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           '${gym.sumLikes}',
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Colors.white.withOpacity(0.8),
-                          ),
+                          style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
                         ),
                       ],
                     ),
-                  Icon(
+                  const Icon(
                     Icons.arrow_forward_ios,
                     size: 14,
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.8),
+                    color: AppColors.mutedGold,
                   ),
                 ],
               ),
@@ -361,7 +347,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                     Icon(
                       Icons.place_outlined,
                       size: 16,
-                      color: Colors.white.withOpacity(0.5),
+                      color: AppColors.mutedGold,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -369,10 +355,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                         gym.address!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.white.withOpacity(0.7),
-                        ),
+                        style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
                       ),
                     ),
                   ],
@@ -385,15 +368,12 @@ class _GymsListScreenState extends State<GymsListScreen> {
                     Icon(
                       Icons.phone_outlined,
                       size: 14,
-                      color: Colors.white.withOpacity(0.5),
+                      color: AppColors.mutedGold,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       gym.phone!,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
+                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -401,7 +381,6 @@ class _GymsListScreenState extends State<GymsListScreen> {
             ],
           ),
         ),
-      ),
     );
   }
 
@@ -412,23 +391,23 @@ class _GymsListScreenState extends State<GymsListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.wifi_off_rounded, size: 48, color: Colors.white38),
+            Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.mutedGold.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 16,
-              ),
+              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 24),
-            FilledButton.icon(
+            ElevatedButton.icon(
               onPressed: () => _load(page: 1),
               icon: const Icon(Icons.refresh),
-              label: const Text('Повторить'),
-              style: FilledButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              label: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mutedGold,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
             ),
           ],
@@ -444,25 +423,18 @@ class _GymsListScreenState extends State<GymsListScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.business_outlined, size: 64, color: Colors.white38),
+            Icon(Icons.business_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
             const SizedBox(height: 16),
             Text(
               'Скалодромы не найдены',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               'Попробуйте изменить запрос поиска',
               textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.6),
-                fontSize: 14,
-              ),
+              style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
             ),
           ],
         ),

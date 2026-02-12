@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/MainScreen.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/RegisterScreen.dart';
 import 'package:login_app/login.dart';
 
@@ -12,6 +14,7 @@ class ClimbingLogLandingScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: CustomScrollView(
           slivers: [
@@ -26,13 +29,13 @@ class ClimbingLogLandingScreen extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Theme.of(context).colorScheme.primary.withOpacity(0.2),
+                            color: AppColors.mutedGold.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
                             Icons.route,
                             size: 28,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: AppColors.mutedGold,
                           ),
                         ),
                         const SizedBox(width: 16),
@@ -42,18 +45,12 @@ class ClimbingLogLandingScreen extends StatelessWidget {
                             children: [
                               Text(
                                 'Climbing Log',
-                                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
+                                style: AppTypography.sectionTitle(),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Трекер тренировок',
-                                style: TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
+                                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -71,28 +68,24 @@ class ClimbingLogLandingScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.orange.withOpacity(0.4),
-                    ),
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: AppColors.mutedGold.withOpacity(0.4),
+                  ),
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.info_outline,
-                        color: Colors.orange,
+                        color: AppColors.mutedGold,
                         size: 24,
                       ),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Доступно после авторизации',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w500,
-                            fontSize: 15,
-                          ),
+                          style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                         ),
                       ),
                     ],
@@ -105,10 +98,7 @@ class ClimbingLogLandingScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
                 child: Text(
                   'Возможности',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                  style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ),
@@ -142,20 +132,20 @@ class ClimbingLogLandingScreen extends StatelessWidget {
                   children: [
                     SizedBox(
                       width: double.infinity,
-                      child: FilledButton(
+                      child: ElevatedButton(
                         onPressed: () {
                           Navigator.push(
                             context,
                             MaterialPageRoute(builder: (context) => LoginScreen()),
                           );
                         },
-                        style: FilledButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.mutedGold,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Войти'),
+                        child: Text('Войти', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                       ),
                     ),
                     const SizedBox(height: 12),
@@ -171,12 +161,12 @@ class ClimbingLogLandingScreen extends StatelessWidget {
                           );
                         },
                         style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
+                          foregroundColor: AppColors.mutedGold,
+                          side: const BorderSide(color: AppColors.mutedGold),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        child: const Text('Зарегистрироваться'),
+                        child: Text('Зарегистрироваться', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                       ),
                     ),
                   ],
@@ -209,14 +199,13 @@ class _FeatureTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0B1220),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white12),
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: Theme.of(context).colorScheme.primary, size: 24),
+            Icon(icon, color: AppColors.mutedGold, size: 24),
             const SizedBox(width: 14),
             Expanded(
               child: Column(
@@ -224,20 +213,12 @@ class _FeatureTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
+                    style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      color: Colors.white70,
-                      fontSize: 13,
-                      height: 1.35,
-                    ),
+                    style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13, height: 1.35),
                   ),
                 ],
               ),

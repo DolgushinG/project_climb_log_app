@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/Screens/FranceResultScreen.dart';
 import 'package:login_app/login.dart';
@@ -23,6 +24,7 @@ import 'utils/display_helper.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:login_app/services/cache_service.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/utils/network_error_helper.dart';
 import 'package:login_app/widgets/top_notification_banner.dart';
 String _normalizePosterPath(String path) {
@@ -374,9 +376,8 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
-    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
+    final baseNavColor = AppColors.surfaceDark;
+    final accentNavColor = AppColors.mutedGold.withOpacity(0.35);
 
     List<Color> detailNavGradientColors(int index) {
       switch (index) {
@@ -392,7 +393,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Соревнования'),
+        title: Text('Соревнования', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
@@ -409,7 +410,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                     MaterialStateProperty.all(Colors.transparent),
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  color: Colors.white.withOpacity(0.16),
+                  color: AppColors.mutedGold.withOpacity(0.25),
                 ),
                 labelPadding:
                     const EdgeInsets.symmetric(horizontal: 8.0),
@@ -433,7 +434,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                         ? TopNotificationBanner(
                             message: _error!,
                             icon: Icons.wifi_off_rounded,
-                            backgroundColor: const Color(0xFF78350F),
+                            backgroundColor: AppColors.graphite,
                             iconColor: Colors.orange.shade200,
                             textColor: Colors.white,
                             useSafeArea: false,
@@ -450,7 +451,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                         : TopNotificationBanner(
                             message: 'Данные из кэша. Потяните для обновления.',
                             icon: Icons.cloud_done_outlined,
-                            backgroundColor: const Color(0xFF27272A),
+                            backgroundColor: AppColors.graphite,
                             iconColor: Colors.white70,
                             textColor: Colors.white70,
                             useSafeArea: false,
@@ -490,7 +491,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                     fontSize: 14,
                                   ),
                                 ),
-                                dropdownColor: const Color(0xFF1E293B),
+                                dropdownColor: AppColors.graphite,
                                 icon: Icon(Icons.arrow_drop_down, color: Colors.white.withOpacity(0.7)),
                                 items: [
                                   DropdownMenuItem<String?>(
@@ -572,8 +573,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       itemCount: competitions.length,
       itemBuilder: (context, index) {
         final Competition competition = competitions[index];
-        final String dateLabel =
-            DateFormat('dd.MM.yyyy').format(competition.start_date);
+        final String dateLabel = formatDatePremium(competition.start_date);
         final bool isCurrent = !competition.isCompleted;
 
         return Padding(
@@ -592,7 +592,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
               );
             },
             child: Card(
-              color: const Color(0xFF0B1220),
+              color: AppColors.cardDark,
               surfaceTintColor: Colors.transparent,
               clipBehavior: Clip.antiAlias,
               child: SizedBox(
@@ -605,7 +605,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                       child: CachedNetworkImage(
                         imageUrl: '$DOMAIN${competition.poster}',
                         fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
+                        alignment: Alignment.centerRight,
                         placeholder: (context, url) => Container(
                           color: Colors.black12,
                           child: const Center(
@@ -635,7 +635,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                     competition.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
+                                    style: GoogleFonts.unbounded(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
@@ -657,7 +657,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                   ),
                                   child: Text(
                                     isCurrent ? 'Идут' : 'Завершены',
-                                    style: TextStyle(
+                                    style: GoogleFonts.unbounded(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
                                       color: isCurrent
@@ -682,10 +682,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                     '${competition.city}, ${competition.address}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white70,
-                                    ),
+                                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
                                   ),
                                 ),
                               ],
@@ -695,10 +692,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                               children: [
                                 Text(
                                   dateLabel,
-                                  style: const TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.white70,
-                                  ),
+                                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
                                 ),
                               ],
                             ),
@@ -797,12 +791,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите сет'),
+              title: Text('Выберите сет', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: SingleChildScrollView(
                 child: Column(
                   children: numberSetList.map((numberSet) {
                     return RadioListTile<NumberSets>(
-                      title: Text(formatSetCompact(numberSet)),
+                      title: Text(formatSetCompact(numberSet), style: GoogleFonts.unbounded(color: Colors.white)),
                       value: numberSet,
                       groupValue: tempSelectedNumberSet,
                       onChanged: (NumberSets? value) {
@@ -816,22 +810,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Закрыть окно без сохранения
-                  },
-                  child: Text('Отмена'),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Обновляем состояние главного виджета
-                    if (mounted) {
-                      setState(() {
-                        selectedNumberSet = tempSelectedNumberSet;
-                      });
-                    }
-                    Navigator.pop(context); // Закрыть окно
+                    if (mounted) setState(() => selectedNumberSet = tempSelectedNumberSet);
+                    Navigator.pop(context);
                   },
-                  child: Text('Сохранить'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -851,12 +839,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите категорию'),
+              title: Text('Выберите категорию', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: SingleChildScrollView(
                 child: Column(
                   children: categoryList.map((category) {
                     return RadioListTile<Category>(
-                      title: Text(category.category),
+                      title: Text(category.category, style: GoogleFonts.unbounded(color: Colors.white)),
                       value: category,
                       groupValue: tempSelectedCategory,
                       onChanged: (Category? value) {
@@ -870,22 +858,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Закрыть окно без сохранения
-                  },
-                  child: Text('Отмена'),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Обновляем состояние главного виджета
-                    if (mounted) {
-                      setState(() {
-                        selectedCategory = tempSelectedCategory;
-                      });
-                    }
-                    Navigator.pop(context); // Закрыть окно
+                    if (mounted) setState(() => selectedCategory = tempSelectedCategory);
+                    Navigator.pop(context);
                   },
-                  child: Text('Сохранить'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -905,12 +887,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите разряд'),
+              title: Text('Выберите разряд', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: SingleChildScrollView(
                 child: Column(
                   children: categoryList.map((sport_category) {
                     return RadioListTile<SportCategory>(
-                      title: Text(sport_category.sport_category),
+                      title: Text(sport_category.sport_category, style: GoogleFonts.unbounded(color: Colors.white)),
                       value: sport_category,
                       groupValue: tempSelectedSportCategory,
                       onChanged: (SportCategory? value) {
@@ -924,22 +906,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Закрыть окно без сохранения
-                  },
-                  child: Text('Отмена'),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    // Обновляем состояние главного виджета
-                    if (mounted) {
-                      setState(() {
-                        selectedSportCategory = tempSelectedSportCategory;
-                      });
-                    }
-                    Navigator.pop(context); // Закрыть окно
+                    if (mounted) setState(() => selectedSportCategory = tempSelectedSportCategory);
+                    Navigator.pop(context);
                   },
-                  child: Text('Сохранить'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -982,7 +958,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0B1220),
+      backgroundColor: AppColors.cardDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1002,7 +978,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 children: [
                   Text(
                     initialNumberSets != null ? 'Изменить данные в листе ожидания' : 'Добавиться в лист ожидания',
-                    style: const TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -1010,10 +986,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_competitionDetails.is_input_set == 0 && busySets.isNotEmpty) ...[
-                    const Text('Занятый сет', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    Text('Занятый сет', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
                     const SizedBox(height: 6),
                     ...busySets.map((s) => CheckboxListTile(
-                      title: Text(formatSetCompact(s), style: const TextStyle(color: Colors.white)),
+                      title: Text(formatSetCompact(s), style: GoogleFonts.unbounded(color: Colors.white)),
                       value: sheetSelectedSets.contains(s),
                       activeColor: Colors.orange,
                       onChanged: (checked) {
@@ -1029,10 +1005,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     const SizedBox(height: 12),
                   ],
                   if (needCategory) ...[
-                    const Text('Категория', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    Text('Категория', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
                     const SizedBox(height: 6),
                     ...categoryList.map((c) => RadioListTile<Category>(
-                      title: Text(c.category, style: const TextStyle(color: Colors.white)),
+                      title: Text(c.category, style: GoogleFonts.unbounded(color: Colors.white)),
                       value: c,
                       groupValue: sheetSelectedCategory,
                       onChanged: (v) => setSheetState(() => sheetSelectedCategory = v),
@@ -1040,10 +1016,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     const SizedBox(height: 12),
                   ],
                   if (needSportCategory) ...[
-                    const Text('Разряд', style: TextStyle(fontSize: 14, color: Colors.white70)),
+                    Text('Разряд', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
                     const SizedBox(height: 6),
                     ...sportCategoryList.map((sc) => RadioListTile<SportCategory>(
-                      title: Text(sc.sport_category, style: const TextStyle(color: Colors.white)),
+                      title: Text(sc.sport_category, style: GoogleFonts.unbounded(color: Colors.white)),
                       value: sc,
                       groupValue: sheetSelectedSportCategory,
                       onChanged: (v) => setSheetState(() => sheetSelectedSportCategory = v),
@@ -1093,12 +1069,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
+                      backgroundColor: AppColors.mutedGold,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: const Text('Подтвердить', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                    child: Text('Подтвердить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -1242,17 +1218,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(
+          Row(
             children: [
-              Icon(Icons.schedule, color: Colors.orange, size: 24),
-              SizedBox(width: 8),
+              const Icon(Icons.schedule, color: Colors.orange, size: 24),
+              const SizedBox(width: 8),
               Text(
                 'Лист ожидания',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ],
           ),
@@ -1260,21 +1232,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             const SizedBox(height: 8),
             Text(
               'Сеты: $setLabels',
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
+              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
             ),
           ],
           if (selectedCategory != null) ...[
             const SizedBox(height: 4),
             Text(
               'Категория: ${selectedCategory!.category}',
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
+              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
             ),
           ],
           if (selectedSportCategory != null) ...[
             const SizedBox(height: 4),
             Text(
               'Разряд: ${selectedSportCategory!.sport_category}',
-              style: const TextStyle(fontSize: 14, color: Colors.white70),
+              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
             ),
           ],
           const SizedBox(height: 12),
@@ -1285,12 +1257,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   onPressed: () => _showWaitlistBottomSheet(
                     initialNumberSets: _competitionDetails.list_pending_number_sets,
                   ),
-                  icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('Изменить'),
+                  icon: const Icon(Icons.edit, size: 18, color: AppColors.mutedGold),
+                  label: Text('Изменить', style: GoogleFonts.unbounded(fontSize: 14, color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.orange,
-                    side: const BorderSide(color: Colors.orange),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    foregroundColor: AppColors.mutedGold,
+                    side: const BorderSide(color: AppColors.mutedGold),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -1301,18 +1274,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: const Text('Удалить из листа ожидания?'),
-                        content: const Text(
+                        title: Text('Удалить из листа ожидания?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                        content: Text(
                           'Вы будете удалены из листа ожидания. Освободившееся место смогут занять другие.',
+                          style: GoogleFonts.unbounded(color: Colors.white70),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: const Text('Отмена'),
+                            child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: const Text('Удалить', style: TextStyle(color: Colors.red)),
+                            child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.red, fontWeight: FontWeight.w500)),
                           ),
                         ],
                       ),
@@ -1320,11 +1294,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     if (confirm == true) await _removeFromListPending();
                   },
                   icon: const Icon(Icons.person_remove, size: 18),
-                  label: const Text('Удалить'),
+                  label: Text('Удалить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                     side: const BorderSide(color: Colors.redAccent),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                 ),
               ),
@@ -1347,15 +1322,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: const [
-            Icon(Icons.grid_view_rounded, size: 12, color: Colors.white70),
-            SizedBox(width: 4),
+          children: [
+            const Icon(Icons.grid_view_rounded, size: 14, color: AppColors.mutedGold),
+            const SizedBox(width: 6),
             Text(
               'Сеты',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
+              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),
@@ -1365,7 +1337,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               'Нет сетов для вашей возрастной группы',
-              style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.7)),
+              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
             ),
           )
         else
@@ -1397,11 +1369,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     final procent = s.procent.clamp(0.0, 100.0);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1220),
-        borderRadius: BorderRadius.circular(4),
-        border: Border.all(color: const Color(0xFF1E293B), width: 0.5),
+        color: AppColors.rowAlt,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.graphite, width: 0.5),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -1411,42 +1383,38 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                '№${s.number_set}',
-                style: const TextStyle(
-                  fontSize: 9,
-                  fontWeight: FontWeight.w600,
-                  color: Color(0xFF94A3B8),
+              Flexible(
+                child: Text(
+                  '№${s.number_set}',
+                  style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
-              Text(
-                '${s.participants_count}/${s.max_participants}',
-                style: TextStyle(
-                  fontSize: 8,
-                  fontWeight: FontWeight.w500,
-                  color: textColor,
+              const SizedBox(width: 2),
+              Flexible(
+                child: Text(
+                  '${s.participants_count}/${s.max_participants}',
+                  style: GoogleFonts.unbounded(fontSize: 9, fontWeight: FontWeight.w500, color: textColor),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           ClipRRect(
-            borderRadius: BorderRadius.circular(1),
+            borderRadius: BorderRadius.circular(2),
             child: LinearProgressIndicator(
               value: procent / 100,
-              minHeight: 3,
-              backgroundColor: const Color(0xFF1E293B),
+              minHeight: 4,
+              backgroundColor: AppColors.graphite,
               valueColor: AlwaysStoppedAnimation<Color>(progressColor),
             ),
           ),
           if (s.time.isNotEmpty) ...[
-            const SizedBox(height: 1),
+            const SizedBox(height: 2),
             Text(
               s.time,
-              style: const TextStyle(
-                fontSize: 8,
-                color: Color(0xFF64748B),
-              ),
+              style: GoogleFonts.unbounded(fontSize: 9, color: AppColors.graphite),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
@@ -1533,7 +1501,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Поиск скалодрома...', style: TextStyle(color: Colors.white)),
-          backgroundColor: const Color(0xFF1E293B),
+          backgroundColor: AppColors.graphite,
           duration: const Duration(seconds: 1),
         ),
       );
@@ -1558,7 +1526,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildGymCard(BuildContext context) {
-    const linkColor = Color(0xFF60A5FA);
+    const linkColor = AppColors.mutedGold;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1613,11 +1581,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                           _competitionDetails.climbing_gym_name,
                           style: const TextStyle(
                             fontSize: 15,
-                            color: Color(0xFF60A5FA),
+                            color: AppColors.mutedGold,
                             height: 1.35,
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
-                            decorationColor: Color(0xFF60A5FA),
+                            decorationColor: AppColors.mutedGold,
                           ),
                         ),
                       ),
@@ -1661,7 +1629,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 width: double.infinity,
                 height: 260,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0B1220),
+                  color: AppColors.cardDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: ClipRRect(
@@ -1687,22 +1655,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             ),
             const SizedBox(height: 16),
             Row(
-              children: const [
-                Icon(Icons.info_outline, size: 18, color: Colors.white70),
-                SizedBox(width: 8),
+              children: [
+                const Icon(Icons.info_outline, size: 18, color: Colors.white70),
+                const SizedBox(width: 8),
                 Text(
                   'О соревновании',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             Container(
               decoration: BoxDecoration(
-                color: const Color(0xFF0B1220),
+                color: AppColors.cardDark,
                 borderRadius: BorderRadius.circular(16),
               ),
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
@@ -1711,9 +1676,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 children: [
                   Text(
                     _competitionDetails.title,
-                    style: const TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -1761,7 +1727,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         onTap: () => _selectDate(context),
                         decoration: InputDecoration(
                           labelText: 'Выберите дату',
-                          border: OutlineInputBorder(),
+                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          filled: true,
+                          fillColor: AppColors.rowAlt,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                         ),
                       ),
                     ),
@@ -1775,7 +1744,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         child:  ElevatedButton(
                           onPressed: _showSportCategorySelectionDialog,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF1D4ED8),
+                            backgroundColor: AppColors.mutedGold,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -1785,10 +1754,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                             selectedSportCategory == null
                                 ? 'Выберите разряд'
                                 : 'Разряд: ${displayValue(selectedSportCategory!.sport_category)}',
-                            style: const TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                            ),
+                            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
                           ),
                         ),
                       ),
@@ -1842,10 +1808,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                       );
                                       if (mounted) fetchCompetition();
                                     },
-                                    icon: const Icon(Icons.edit, size: 18, color: Color(0xFF60A5FA)),
-                                    label: const Text(
+                                    icon: const Icon(Icons.edit, size: 18, color: AppColors.mutedGold),
+                                    label: Text(
                                       'Заполнить в профиле',
-                                      style: TextStyle(color: Color(0xFF60A5FA)),
+                                      style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ],
@@ -1867,10 +1833,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       child: Container(
                         padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF1D4ED8).withOpacity(0.2),
+                          color: AppColors.mutedGold.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFF1D4ED8).withOpacity(0.5),
+                            color: AppColors.mutedGold.withOpacity(0.5),
                             width: 1,
                           ),
                         ),
@@ -1879,7 +1845,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                             Icon(
                               Icons.group_rounded,
                               size: 22,
-                              color: const Color(0xFF60A5FA),
+                              color: AppColors.mutedGold,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1920,7 +1886,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       child:  ElevatedButton(
                         onPressed: _showCategorySelectionDialog,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1D4ED8),
+                          backgroundColor: AppColors.mutedGold,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -1930,10 +1896,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                           selectedCategory == null
                               ? 'Выберите категорию'
                               : 'Категория: ${displayValue(selectedCategory!.category)}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
                         ),
                       ),
                   ),
@@ -1946,7 +1909,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   child: ElevatedButton(
                     onPressed: _showSetSelectionDialog,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1D4ED8),
+                      backgroundColor: AppColors.mutedGold,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -1956,25 +1919,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       _effectiveSelectedNumberSet == null
                           ? 'Выберите сет'
                           : 'Сет: ${formatSetCompact(_effectiveSelectedNumberSet!)}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
                     ),
                 ),
                 )
               ]),
             const SizedBox(height: 24),
             Row(
-              children: const [
-                Icon(Icons.hiking_rounded, size: 18, color: Colors.white70),
-                SizedBox(width: 8),
+              children: [
+                const Icon(Icons.hiking_rounded, size: 18, color: Colors.white70),
+                const SizedBox(width: 8),
                 Text(
                   'Ваше участие',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ],
             ),
@@ -1989,14 +1946,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: Colors.grey.withOpacity(0.3)),
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     'Соревнование завершено',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white70,
-                    ),
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
                   ),
                 ),
               ),
@@ -2015,19 +1968,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     );
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1E293B),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    backgroundColor: AppColors.graphite,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
-                  child: const Text(
+                  child: Text(
                     'Список участников',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                    ),
+                    style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -2098,19 +2046,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                       ).then((_) => fetchCompetition());
                                     },
                                     style: ElevatedButton.styleFrom(
-                                      backgroundColor: Theme.of(context).colorScheme.primary,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      backgroundColor: AppColors.mutedGold,
+                                      foregroundColor: Colors.white,
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                      padding: const EdgeInsets.symmetric(vertical: 14),
                                     ),
-                                    child: const Text(
+                                    child: Text(
                                       'Войти чтобы принять участие',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                      ),
+                                      style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                                     ),
                                   )
                                 : needsPayment
@@ -2127,21 +2070,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                           ).then((_) => fetchCompetition());
                                         },
                                         style: ElevatedButton.styleFrom(
-                                          backgroundColor: const Color(0xFF16A34A),
+                                          backgroundColor: AppColors.mutedGold,
                                           foregroundColor: Colors.white,
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(12),
-                                          ),
-                                          padding: const EdgeInsets.symmetric(vertical: 12),
+                                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                          padding: const EdgeInsets.symmetric(vertical: 14),
                                         ),
-                                        child: const Text(
-                                          'Продолжить оплату',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
+                                    child: Text(
+                                      'Продолжить оплату',
+                                      style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                                    ),
                                       )
                                     : TakePartButtonScreen(
                                         _competitionDetails.id,
@@ -2191,19 +2128,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF1E293B),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                backgroundColor: AppColors.graphite,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                padding: const EdgeInsets.symmetric(vertical: 14),
                               ),
-                              child: const Text(
+                              child: Text(
                                 'Список участников',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -2224,18 +2156,17 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                   }
                                 },
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1D4ED8),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  backgroundColor: AppColors.mutedGold,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
                                 ),
-                                child: const Text(
+                                child: Text(
                                   'Заявить группу',
-                                  style: TextStyle(
+                                  style: GoogleFonts.unbounded(
                                     color: Colors.white,
                                     fontSize: 14,
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
@@ -2334,29 +2265,32 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                     foregroundColor: Colors.redAccent,
                                     side: const BorderSide(color: Colors.redAccent),
                                     padding: const EdgeInsets.symmetric(vertical: 12),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                   ),
                                   onPressed: () async {
                                     bool? confirm = await showDialog<bool>(
                                       context: context,
                                       builder: (BuildContext context) {
                                         return AlertDialog(
-                                          title: const Text(
-                                              'Подтверждение отмены регистрации'),
-                                          content: const Text(
-                                              'Вы уверены, что хотите отменить регистрацию?'),
+                                          backgroundColor: AppColors.cardDark,
+                                          title: Text(
+                                            'Подтверждение отмены регистрации',
+                                            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                                          ),
+                                          content: Text(
+                                            'Вы уверены, что хотите отменить регистрацию?',
+                                            style: GoogleFonts.unbounded(color: Colors.white70),
+                                          ),
                                           actions: <Widget>[
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.of(context).pop(false),
-                                              child: const Text('Отмена'),
+                                              child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                                             ),
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.of(context).pop(true),
-                                              child: const Text('Подтвердить'),
+                                              child: Text('Подтвердить', style: GoogleFonts.unbounded(color: Colors.redAccent, fontWeight: FontWeight.w600)),
                                             ),
                                           ],
                                         );
@@ -2367,12 +2301,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                       _refreshParticipationStatus();
                                     }
                                   },
-                                  child: const Text(
+                                  child: Text(
                                     'Отменить регистрацию',
-                                    style: TextStyle(
-                                      fontSize: 14.0,
-                                      fontWeight: FontWeight.w500,
-                                    ),
+                                    style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -2423,9 +2354,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
-    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
+    final baseNavColor = AppColors.surfaceDark;
+    final accentNavColor = AppColors.mutedGold.withOpacity(0.35);
 
     List<Color> detailNavGradientColors(int index) {
       switch (index) {
@@ -2441,7 +2371,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Детали соревнования'),
+        title: Text('Детали соревнования', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         actions: [
           IconButton(
             icon: _isRefreshing
@@ -2502,7 +2432,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 ),
               ],
               currentIndex: _selectedIndex,
-              selectedItemColor: theme.colorScheme.primary,
+              selectedItemColor: AppColors.mutedGold,
               unselectedItemColor: Colors.grey,
               onTap: _onItemTapped,
               selectedFontSize: 12,
@@ -2557,7 +2487,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text('Результаты'),
+          title: Text('Результаты', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Padding(
@@ -2573,8 +2503,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       MaterialStateProperty.all(Colors.transparent),
                   indicator: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
-                    color: Colors.white.withOpacity(0.16),
+                    color: AppColors.mutedGold.withOpacity(0.25),
                   ),
+                  labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                  unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                   labelPadding:
                       const EdgeInsets.symmetric(horizontal: 8.0),
                   tabs: [
@@ -2651,11 +2583,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.3)),
               const SizedBox(height: 16),
               Text(
                 'Нет категорий с результатами',
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                style: AppTypography.secondary(),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -2712,11 +2644,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.3)),
               const SizedBox(height: 16),
               Text(
                 'Нет категорий с результатами',
-                style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 16),
+                style: AppTypography.secondary(),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -2750,35 +2682,28 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildResultCard({required String title, required VoidCallback onTap}) {
-    return Card(
-      color: const Color(0xFF0B1220),
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.0),
-      ),
-      elevation: 0.0,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12.0),
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 14.0,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: AppTypography.athleteName().copyWith(fontSize: 15),
               ),
-              const Icon(
+              Icon(
                 Icons.arrow_forward_ios_rounded,
-                size: 16,
-                color: Colors.white70,
+                size: 14,
+                color: AppColors.mutedGold.withOpacity(0.7),
               ),
             ],
           ),
@@ -2880,7 +2805,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0B1220),
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -3472,17 +3397,16 @@ class CompetitionInfoCard extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.85),
-                      letterSpacing: 0.5,
+                      color: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: const TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 15,
                       color: Colors.white,
                       height: 1.35,

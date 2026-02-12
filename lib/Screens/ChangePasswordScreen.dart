@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../login.dart';
+import '../theme/app_theme.dart';
 import '../main.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -70,9 +72,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: const Text(
+        title: Text(
           'Изменение пароля',
-          style: TextStyle(fontSize: 22, color: Colors.black),
+          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -92,71 +94,81 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
 
 
   Widget _buildChangePasswordForm() {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
       ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'Изменить пароль',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _newPasswordController,
-                obscureText: true,
-                decoration: InputDecoration(
-                  labelText: 'Новый пароль',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  prefixIcon: const Icon(Icons.lock),
+      padding: const EdgeInsets.all(20.0),
+      child: Form(
+        key: _formKey,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Изменить пароль',
+              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            TextFormField(
+              controller: _newPasswordController,
+              obscureText: true,
+              style: GoogleFonts.unbounded(color: Colors.white),
+              decoration: InputDecoration(
+                labelText: 'Новый пароль',
+                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                filled: true,
+                fillColor: AppColors.rowAlt,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                  borderSide: BorderSide.none,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Пожалуйста введите пароль';
-                  }
-                  if (value.length < 6) {
-                    return 'Минимальная длина пароля 6 символов';
-                  }
-                  return null;
-                },
+                prefixIcon: Icon(Icons.lock, color: AppColors.mutedGold),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Пожалуйста введите пароль';
+                }
+                if (value.length < 6) {
+                  return 'Минимальная длина пароля 6 символов';
+                }
+                return null;
+              },
+            ),
               const SizedBox(height: 15),
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
+                style: GoogleFonts.unbounded(color: Colors.white),
                 decoration: InputDecoration(
-                  labelText: 'Подтверждение пароля',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                  prefixIcon: const Icon(Icons.lock_outline),
+                labelText: 'Подтверждение пароля',
+                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                filled: true,
+                fillColor: AppColors.rowAlt,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10.0),
+                  borderSide: BorderSide.none,
                 ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Пожалуйста введите подтверждение пароля';
-                  }
-                  if (value != _newPasswordController.text) {
-                    return 'Пароли не совпадают';
-                  }
-                  return null;
-                },
+                prefixIcon: Icon(Icons.lock_outline, color: AppColors.mutedGold),
               ),
+              validator: (value) {
+                if (value == null || value.isEmpty) {
+                  return 'Пожалуйста введите подтверждение пароля';
+                }
+                if (value != _newPasswordController.text) {
+                  return 'Пароли не совпадают';
+                }
+                return null;
+              },
+            ),
               const SizedBox(height: 20),
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _changePassword,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: AppColors.mutedGold,
+                    foregroundColor: AppColors.anthracite,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10),
@@ -164,13 +176,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : const Text('Изменить пароль', style: TextStyle(fontSize: 16, color: Colors.white)),
+                      : Text('Изменить пароль', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.anthracite)),
                 ),
               ),
             ],
           ),
         ),
-      ),
     );
   }
 

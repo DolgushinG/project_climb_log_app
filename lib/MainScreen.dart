@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'CompetitionScreen.dart';
+import 'theme/app_theme.dart';
 import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ClimbingLogScreen.dart';
@@ -113,7 +114,7 @@ class _MainScreenState extends State<MainScreen> {
       builder: (ctx) => Container(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
         decoration: BoxDecoration(
-          color: Theme.of(ctx).colorScheme.surface,
+          color: AppColors.cardDark,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
@@ -121,7 +122,7 @@ class _MainScreenState extends State<MainScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.fingerprint, size: 48, color: Theme.of(ctx).colorScheme.primary),
+              Icon(Icons.fingerprint, size: 48, color: AppColors.mutedGold),
               const SizedBox(height: 16),
               Text(
                 'Вход по Face ID / Touch ID',
@@ -201,8 +202,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
-    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
+    final baseNavColor = AppColors.surfaceDark;
+    final accentNavColor = AppColors.mutedGold.withOpacity(0.35);
 
     // Смещаем акцент градиента в сторону активной вкладки
     final int tabCount = widget.isGuest ? 4 : 5;
@@ -354,18 +355,12 @@ class _GuestLoginScreen extends StatelessWidget {
               const SizedBox(height: 48),
               Text(
                 'Вход в приложение',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: AppTypography.sectionTitle(),
               ),
               const SizedBox(height: 8),
               Text(
                 'Войдите или зарегистрируйтесь, чтобы записываться на соревнования и вносить результаты.',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
+                style: AppTypography.secondary(),
               ),
               const Spacer(),
               FilledButton(

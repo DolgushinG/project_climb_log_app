@@ -1,6 +1,8 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:intl/intl.dart'; // Для форматирования даты
 import 'package:login_app/main.dart';
 import '../ProfileScreen.dart';
@@ -141,12 +143,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите пол'),
+              title: Text('Выберите пол', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: genderOptions.keys.map((genderText) {
                   return RadioListTile<String>(
-                    title: Text(genderText),
+                    title: Text(genderText, style: GoogleFonts.unbounded(color: Colors.white)),
                     value: genderOptions[genderText]!,
                     groupValue: tempSelectedGender,
                     onChanged: (String? value) {
@@ -159,19 +161,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Закрыть окно без сохранения
-                  },
-                  child: Text('Отмена'),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    setState(() {
-                      selectedGender = tempSelectedGender;
-                    });
-                    Navigator.pop(context); // Закрыть окно
+                    setState(() => selectedGender = tempSelectedGender);
+                    Navigator.pop(context);
                   },
-                  child: Text('Сохранить'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -192,12 +191,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите разряд'),
+              title: Text('Выберите разряд', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: categories.map((category) {
                   return RadioListTile<String>(
-                    title: Text(category),
+                    title: Text(category, style: GoogleFonts.unbounded(color: Colors.white)),
                     value: category,
                     groupValue: tempSelectedCategory,
                     onChanged: (String? value) {
@@ -210,19 +209,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               ),
               actions: [
                 TextButton(
-                  onPressed: () {
-                    Navigator.pop(context); // Закрыть окно без сохранения
-                  },
-                  child: Text('Отмена'),
+                  onPressed: () => Navigator.pop(context),
+                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
-                    setState(() {
-                      selectedSportCategory = tempSelectedCategory;
-                    });
-                    Navigator.pop(context); // Закрыть окно
+                    setState(() => selectedSportCategory = tempSelectedCategory);
+                    Navigator.pop(context);
                   },
-                  child: Text('Сохранить'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -237,21 +233,21 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: Text('Изменение данных профиля'),
+        title: Text('Изменение данных профиля', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
       ),
-      body: Card(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(15.0),
-        ),
-        elevation: 4,
+      body: Container(
         margin: const EdgeInsets.all(16.0),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: FutureBuilder<UserProfile?>(
           future: _profileFuture,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              return Center(child: CircularProgressIndicator());
+              return Center(child: CircularProgressIndicator(color: AppColors.mutedGold));
             } else if (snapshot.hasError) {
-              return Center(child: Text('Ошибка при загрузке данных'));
+              return Center(child: Text('Ошибка при загрузке данных', style: GoogleFonts.unbounded(color: Colors.white70)));
             } else if (snapshot.hasData) {
               final profile = snapshot.data!;
 
@@ -316,12 +312,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           controller: _textEditingController,
                           readOnly: true,
                           onTap: () => _selectDate(context),
+                          style: GoogleFonts.unbounded(color: Colors.white),
                           decoration: InputDecoration(
                             labelText: 'Дата рождения',
-                            border: OutlineInputBorder(),
-                            prefixIcon: Icon(Icons.calendar_today),
+                            labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                            filled: true,
+                            fillColor: AppColors.rowAlt,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                            prefixIcon: Icon(Icons.calendar_today, color: AppColors.mutedGold),
                           ),
-
                         ),
                       ),
 
@@ -333,15 +332,19 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Пол',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.wc),
+                              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                              filled: true,
+                              fillColor: AppColors.rowAlt,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                              prefixIcon: Icon(Icons.wc, color: AppColors.mutedGold),
                             ),
                             child: Text(
-                                  profile.gender == 'male'
+                              profile.gender == 'male'
                                   ? 'Мужской'
                                   : profile.gender == 'female'
-                                  ? 'Женский'
-                                  : displayValue(profile.gender),
+                                      ? 'Женский'
+                                      : displayValue(profile.gender),
+                              style: GoogleFonts.unbounded(color: Colors.white),
                             ),
                           ),
                         ),
@@ -355,10 +358,16 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Разряд',
-                              border: OutlineInputBorder(),
-                              prefixIcon: Icon(Icons.sports),
+                              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                              filled: true,
+                              fillColor: AppColors.rowAlt,
+                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                              prefixIcon: Icon(Icons.sports, color: AppColors.mutedGold),
                             ),
-                            child: Text(displayValue(profile.sportCategory)),
+                            child: Text(
+                              displayValue(profile.sportCategory),
+                              style: GoogleFonts.unbounded(color: Colors.white),
+                            ),
                           ),
                         ),
                       ),
@@ -376,14 +385,15 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         child: ElevatedButton(
                           onPressed: () => _saveChanges(profile),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
+                            backgroundColor: AppColors.mutedGold,
+                            foregroundColor: AppColors.anthracite,
                             padding: const EdgeInsets.symmetric(vertical: 15),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
                           ),
-                          child: const Text('Сохранить',
-                              style: TextStyle(fontSize: 16, color: Colors.white)),
+                          child: Text('Сохранить',
+                              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.anthracite)),
                         ),
                       ),
                     ],
@@ -391,7 +401,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
               );
             } else {
-              return Center(child: Text('Нет данных'));
+              return Center(child: Text('Нет данных', style: GoogleFonts.unbounded(color: Colors.white70)));
             }
           },
         ),
@@ -407,10 +417,14 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: TextFormField(
         initialValue: initialValue,
         onChanged: onChanged,
+        style: GoogleFonts.unbounded(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          border: OutlineInputBorder(),
-          prefixIcon: Icon(icon),
+          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+          filled: true,
+          fillColor: AppColors.rowAlt,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+          prefixIcon: Icon(icon, color: AppColors.mutedGold),
         ),
         keyboardType: isEmail ? TextInputType.emailAddress : TextInputType.text,
       ),

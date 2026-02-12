@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';
 
@@ -45,6 +47,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -56,10 +59,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                   child: Text(
                     'Прогресс',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -121,39 +121,21 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [
-                        Color(0xFF1E3A5F),
-                        Color(0xFF312E81),
-                        Color(0xFF4C1D95),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFF6366F1).withOpacity(0.3),
-                      width: 1,
-                    ),
+                    color: AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'Максимальный грейд',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 12,
-                        ),
+                        style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         p.maxGrade!,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w700,
-                        ),
+                        style: GoogleFonts.unbounded(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 12),
                       _GradientProgressBar(
@@ -169,10 +151,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                       const SizedBox(height: 6),
                       Text(
                         '${p.progressPercentage}% по шкале',
-                        style: TextStyle(
-                          color: Colors.white54,
-                          fontSize: 12,
-                        ),
+                        style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12),
                       ),
                     ],
                   ),
@@ -181,9 +160,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
               ],
               Text(
                 'Всего трасс: $totalRoutes',
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white70,
-                    ),
+                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
               ),
               const SizedBox(height: 12),
             ],
@@ -208,13 +185,9 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                   children: [
                     SizedBox(
                       width: 44,
-                      child: Text(
+                      child:                       Text(
                         grade,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 14,
-                        ),
+                        style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                     ),
                     Expanded(
@@ -228,11 +201,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                     const SizedBox(width: 12),
                     Text(
                       '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
+                      style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                   ],
                 ),
@@ -273,7 +242,7 @@ class _GradientProgressBar extends StatelessWidget {
                 width: constraints.maxWidth,
                 height: height,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0B1220),
+                  color: AppColors.cardDark,
                   borderRadius: BorderRadius.circular(borderRadius),
                 ),
               ),

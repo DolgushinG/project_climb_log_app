@@ -3,10 +3,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../MainScreen.dart';
 import '../main.dart';
+import '../theme/app_theme.dart';
 
 class LoginByCodeScreen extends StatefulWidget {
   const LoginByCodeScreen({Key? key}) : super(key: key);
@@ -184,12 +186,12 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Ошибка'),
-        content: Text(message),
+        title: Text('Ошибка', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(message, style: GoogleFonts.unbounded(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('OK'),
+            child: Text('OK', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -218,10 +220,10 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                 const SizedBox(height: 24),
                 Text(
                   'Вход по коду',
-                  style: TextStyle(
+                  style: GoogleFonts.unbounded(
                     color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 26,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -229,8 +231,8 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                   _isEmailStep
                       ? 'Введите email, на который придёт код'
                       : 'Введите код из письма',
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
+                  style: GoogleFonts.unbounded(
+                    color: Colors.white70,
                     fontSize: 14,
                   ),
                 ),
@@ -246,10 +248,10 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
 
   Widget _buildEmailStep() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: ShapeDecoration(
-        color: Colors.white.withOpacity(0.3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -257,52 +259,39 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Colors.white, fontSize: 16),
+            style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
             decoration: InputDecoration(
               labelText: 'Email',
-              labelStyle: TextStyle(color: Colors.white.withOpacity(0.9)),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.white.withOpacity(0.7)),
+              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+              filled: true,
+              fillColor: AppColors.rowAlt,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
               ),
-              focusedBorder: const UnderlineInputBorder(
-                borderSide: BorderSide(color: Colors.blue),
-              ),
+              prefixIcon: Icon(Icons.email_outlined, color: AppColors.mutedGold),
             ),
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: _isRequestingCode ? null : _requestCode,
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: _isRequestingCode
-                      ? [Colors.grey, Colors.grey.shade600]
-                      : [Colors.blue, const Color(0xFF43E6FA)],
-                ),
-                borderRadius: BorderRadius.circular(30),
+          SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _isRequestingCode ? null : _requestCode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mutedGold,
+                foregroundColor: AppColors.anthracite,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Center(
-                child: _isRequestingCode
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Отправить код',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+              child: _isRequestingCode
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
                       ),
-              ),
+                    )
+                  : Text('Отправить код', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -312,20 +301,17 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
 
   Widget _buildCodeStep() {
     return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: ShapeDecoration(
-        color: Colors.white.withOpacity(0.3),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Text(
             _emailController.text.trim(),
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.9),
-              fontSize: 14,
-            ),
+            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 20),
           _CodeInputField(
@@ -335,39 +321,25 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
             onChanged: _onCodeChanged,
           ),
           const SizedBox(height: 24),
-          GestureDetector(
-            onTap: _isVerifying ? null : _verifyCode,
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: _isVerifying
-                      ? [Colors.grey, Colors.grey.shade600]
-                      : [Colors.blue, const Color(0xFF43E6FA)],
-                ),
-                borderRadius: BorderRadius.circular(30),
+          SizedBox(
+            height: 48,
+            child: ElevatedButton(
+              onPressed: _isVerifying ? null : _verifyCode,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.mutedGold,
+                foregroundColor: AppColors.anthracite,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: Center(
-                child: _isVerifying
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
-                        ),
-                      )
-                    : const Text(
-                        'Подтвердить',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                        ),
+              child: _isVerifying
+                  ? const SizedBox(
+                      width: 24,
+                      height: 24,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
                       ),
-              ),
+                    )
+                  : Text('Подтвердить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 16),
@@ -378,10 +350,8 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                 _resendCooldown > 0
                     ? 'Перезапросить код через $_resendCooldown сек'
                     : 'Перезапросить код',
-                style: TextStyle(
-                  color: _resendCooldown > 0
-                      ? Colors.white.withOpacity(0.5)
-                      : Colors.white,
+                style: GoogleFonts.unbounded(
+                  color: _resendCooldown > 0 ? Colors.white54 : Colors.white,
                   fontSize: 14,
                 ),
               ),
@@ -393,10 +363,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
             child: Center(
               child: Text(
                 'Изменить email',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 14,
-                ),
+                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
               ),
             ),
           ),
@@ -456,19 +423,17 @@ class _CodeInputFieldState extends State<_CodeInputField> {
           height: 52,
           margin: EdgeInsets.only(right: i < widget.codeLength - 1 ? _boxGap : 0),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: AppColors.rowAlt,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: digit.isNotEmpty
-                  ? Colors.blue
-                  : Colors.white.withOpacity(0.5),
+              color: digit.isNotEmpty ? AppColors.mutedGold : AppColors.graphite,
               width: 1.5,
             ),
           ),
           child: Center(
             child: Text(
               digit,
-              style: const TextStyle(
+              style: GoogleFonts.unbounded(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
@@ -503,7 +468,7 @@ class _CodeInputFieldState extends State<_CodeInputField> {
                 LengthLimitingTextInputFormatter(widget.codeLength),
               ],
               textAlign: TextAlign.center,
-              style: const TextStyle(color: Colors.transparent, fontSize: 22),
+              style: GoogleFonts.unbounded(color: Colors.transparent, fontSize: 22),
               decoration: const InputDecoration(
                 counterText: '',
                 border: InputBorder.none,

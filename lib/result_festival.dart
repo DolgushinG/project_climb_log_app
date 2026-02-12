@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'main.dart';
 import 'models/Category.dart';
 import 'Screens/PublicProfileScreen.dart';
+import 'theme/app_theme.dart';
 import 'utils/display_helper.dart';
 
 
@@ -130,7 +132,10 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.category.category.split(' ').first),
+        title: Text(
+          widget.category.category.split(' ').first,
+          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18),
+        ),
         automaticallyImplyLeading: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
@@ -148,8 +153,10 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                     MaterialStateProperty.all(Colors.transparent),
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  color: Colors.white.withOpacity(0.16),
+                  color: AppColors.mutedGold.withOpacity(0.25),
                 ),
+                labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                 labelPadding:
                     const EdgeInsets.symmetric(horizontal: 8.0),
                 tabs: const [
@@ -202,7 +209,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.3)),
               const SizedBox(height: 16),
               Text(
                 'Нет результатов',
@@ -219,8 +226,12 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       itemCount: genderResults.length,
       itemBuilder: (context, index) {
         final result = genderResults[index];
+        final place = result.user_place;
+        final isMedal = place >= 1 && place <= 3;
+        final hasAlternateBg = index.isEven;
+
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: result.userId != null
@@ -233,64 +244,67 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                     );
                   }
                 : null,
-            child: Card(
-              elevation: 2,
-              margin: EdgeInsets.zero,
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            child: Container(
+              decoration: BoxDecoration(
+                color: hasAlternateBg ? AppColors.cardDark : AppColors.rowAlt,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 16,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Text(
+                        formatPlace(place),
+                        style: AppTypography.rankNumber(),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
+                        SizedBox(
+                          width: 36,
+                          child: isMedal
+                              ? Icon(
+                                  Icons.emoji_events_outlined,
+                                  size: 20,
+                                  color: AppColors.mutedGold,
+                                )
+                              : Text(
+                                  formatPlace(place),
+                                  style: AppTypography.scoreBadge().copyWith(
+                                    fontSize: 12,
+                                    color: Colors.white.withOpacity(0.4),
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(width: 16),
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Место',
-                                style: TextStyle(fontSize: 8, color: Colors.grey),
-                              ),
-                              Text(
-                                '${result.user_place}',
-                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                              ),
-                            ],
+                          child: Text(
+                            displayValue(result.middlename),
+                            style: AppTypography.athleteName(),
                           ),
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          flex: 2,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                displayValue(result.middlename),
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: BorderRadius.circular(8),
                           ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Баллы',
-                                style: TextStyle(fontSize: 8, color: Colors.grey),
-                              ),
-                              Text(
-                                '${result.points}',
-                                style: TextStyle(fontSize: 16),
-                              ),
-                            ],
+                          child: Text(
+                            '${result.points}',
+                            style: AppTypography.scoreBadge().copyWith(fontSize: 14),
                           ),
                         ),
                       ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           ),

@@ -11,9 +11,11 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/models/NumberSets.dart';
 import 'dart:convert';
 
+import 'package:google_fonts/google_fonts.dart';
 import '../login.dart';
 import '../models/Category.dart';
 import '../models/SportCategory.dart';
+import '../theme/app_theme.dart';
 
 class TakePartButtonScreen extends StatefulWidget {
   final int event_id;
@@ -330,22 +332,17 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         children: [
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[700],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 12),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.mutedGold,
+                side: const BorderSide(color: AppColors.mutedGold),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _waitlistButtonDisabled ? null : (widget.onWaitlistTap ?? _makeAddToListPendingRequest),
               child: Text(
                 _waitlistButtonText,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.0,
-                ),
-                textAlign: TextAlign.center,
+                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -354,20 +351,15 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.is_participant ? Colors.grey : Colors.blue[600],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: widget.is_participant ? AppColors.graphite : AppColors.mutedGold,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
               child: Text(
                 _buttonText,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.0,
-                ),
-                textAlign: TextAlign.center,
+                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -378,19 +370,17 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
     if (showWaitlist)
       return SizedBox(
         width: double.infinity,
-        child: ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.orange[700],
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-            padding: EdgeInsets.symmetric(vertical: 12),
+        child: OutlinedButton(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.mutedGold,
+            side: const BorderSide(color: AppColors.mutedGold),
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           onPressed: _waitlistButtonDisabled ? null : (widget.onWaitlistTap ?? _makeAddToListPendingRequest),
           child: Text(
             _waitlistButtonText,
-            style: TextStyle(color: Colors.white, fontSize: 14.0),
-            textAlign: TextAlign.center,
+            style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       );
@@ -401,22 +391,17 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         if (showWaitlist)
           SizedBox(
             width: double.infinity,
-            child: ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange[700],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 12),
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.mutedGold,
+                side: const BorderSide(color: AppColors.mutedGold),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
               onPressed: _waitlistButtonDisabled ? null : _makeAddToListPendingRequest,
               child: Text(
                 _waitlistButtonText,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.0,
-                ),
-                textAlign: TextAlign.center,
+                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -425,20 +410,15 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
             width: double.infinity,
             child: ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: widget.is_participant ? Colors.grey : Colors.blue[600],
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: widget.is_participant ? AppColors.graphite : AppColors.mutedGold,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
               child: Text(
                 _buttonText,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14.0,
-                ),
-                textAlign: TextAlign.center,
+                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),

@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/RegisterScreen.dart';
 import 'package:login_app/services/WebAuthnService.dart';
 import 'dart:convert';
@@ -80,12 +82,13 @@ class _LoginScreenState extends State<LoginScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ошибка входа'),
-        content: Text(message),
+        backgroundColor: AppColors.cardDark,
+        title: Text('Ошибка входа', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(message, style: GoogleFonts.unbounded(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text('OK', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -124,294 +127,191 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          image: DecorationImage(
-            image: AssetImage("assets/poster.png"),
-            fit: BoxFit.cover,
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              child: Column(
+      backgroundColor: AppColors.anthracite,
+      appBar: AppBar(
+        backgroundColor: AppColors.cardDark,
+        title: Text('Вход', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+      ),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Заголовок
                 Text(
                   'CLIMBING EVENTS.',
-                  style: TextStyle(
+                  style: GoogleFonts.unbounded(
                     color: Colors.white,
-                    fontSize: 32,
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.28,
+                    fontSize: 28,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
                   ),
                 ),
-                SizedBox(height: 20), // Отступ между заголовком и формой
-                // Форма
+                const SizedBox(height: 32),
                 Container(
-                  width: MediaQuery.of(context).size.width * 0.9,
-                  padding: EdgeInsets.all(20),
-                  decoration: ShapeDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    color: AppColors.cardDark,
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Email
+                      TextFormField(
+                        controller: _emailController,
+                        style: GoogleFonts.unbounded(color: Colors.white),
+                        keyboardType: TextInputType.emailAddress,
+                        decoration: InputDecoration(
+                          labelText: 'Email',
+                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          prefixIcon: Icon(Icons.email_outlined, color: AppColors.mutedGold, size: 22),
+                          filled: true,
+                          fillColor: AppColors.rowAlt,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        style: GoogleFonts.unbounded(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'Пароль',
+                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          prefixIcon: Icon(Icons.lock_outline, color: AppColors.mutedGold, size: 22),
+                          filled: true,
+                          fillColor: AppColors.rowAlt,
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        ),
+                      ),
                       Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: TextFormField(
-                          controller: _emailController,
-                          style: TextStyle(color: Colors.white), // Белый текст
-                          decoration: InputDecoration(
-                            labelText: 'Email',
-                            labelStyle: TextStyle(color: Colors.white),
-                            filled: true,
-                            fillColor: Colors.transparent,
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white),
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.blue),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Пароль
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        child: TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          style: TextStyle(color: Colors.white), // Белый текст
-                          decoration: InputDecoration(
-                            labelText: 'Пароль',
-                            labelStyle: TextStyle(color: Colors.white),
-                            filled: true,
-                            fillColor: Colors.transparent,
-                            enabledBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white),
-                            ),
-                            focusedBorder: UnderlineInputBorder(
-                              borderSide: BorderSide(color: Colors.blue),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Ссылка "Забыл пароль?"
-                      Align(
-                        alignment: Alignment.center,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => PasswordRecoveryScreen(),
-                                ),
-                              );
-                            },
-                            child: const Text(
-                              'Забыл пароль?',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
+                        padding: const EdgeInsets.only(top: 8),
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => PasswordRecoveryScreen(),
                               ),
-                            ),
+                            );
+                          },
+                          child: Text(
+                            'Забыл пароль?',
+                            style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
-
-                      SizedBox(height: 40), // Отступ перед кнопкой
-                      // Кнопка входа
-                      GestureDetector(
-                        onTap: _login,
-                        child: Container(
-                          width: double.infinity,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [Colors.blue, Color(0xFF43E6FA)],
-                            ),
-                            borderRadius: BorderRadius.circular(30),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _login,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.mutedGold,
+                            foregroundColor: AppColors.anthracite,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: const Center(
-                            child: Text(
-                              'Вход',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.64,
-                              ),
-                            ),
-                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  height: 24,
+                                  width: 24,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.anthracite),
+                                )
+                              : Text('Вход', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // Кнопка "Гостевой режим"
-                      GestureDetector(
-                        onTap: () {
-                          Navigator.pushAndRemoveUntil(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MainScreen(isGuest: true),
-                            ),
-                            (route) => false,
-                          );
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Гостевой режим',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.64,
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainScreen(isGuest: true),
                               ),
-                            ),
+                              (route) => false,
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.mutedGold,
+                            side: const BorderSide(color: AppColors.mutedGold),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
+                          child: Text('Гостевой режим', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 12),
-                      // Кнопка "Вход по коду" (прозрачная)
-                      GestureDetector(
-                        onTap: () {
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginByCodeScreen(),
+                              ),
+                            );
+                          },
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.mutedGold,
+                            side: const BorderSide(color: AppColors.mutedGold),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('Вход по коду', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: OutlinedButton.icon(
+                          onPressed: _isPasskeyLoading ? null : _loginWithPasskey,
+                          icon: _isPasskeyLoading
+                              ? const SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
+                                )
+                              : const Icon(Icons.fingerprint, color: AppColors.mutedGold, size: 22),
+                          label: Text(
+                            'Войти по Face ID / Touch ID',
+                            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.mutedGold,
+                            side: const BorderSide(color: AppColors.mutedGold),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextButton(
+                        onPressed: () {
                           Navigator.push(
                             context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginByCodeScreen(),
-                            ),
+                            MaterialPageRoute(builder: (context) => RegistrationScreen()),
                           );
                         },
-                        child: Container(
-                          width: double.infinity,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
-                              width: 1,
-                            ),
-                          ),
-                          child: const Center(
-                            child: Text(
-                              'Вход по коду',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w500,
-                                letterSpacing: 0.64,
-                              ),
-                            ),
-                          ),
+                        child: Text(
+                          'Регистрация',
+                          style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      const SizedBox(height: 12),
-                      // Кнопка "Войти по Face ID / Touch ID"
-                      GestureDetector(
-                        onTap: _isPasskeyLoading ? null : _loginWithPasskey,
-                        child: Container(
-                          width: double.infinity,
-                          height: 48,
-                          decoration: BoxDecoration(
-                            color: Colors.transparent,
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(
-                              color: Colors.white.withOpacity(0.5),
-                              width: 1,
-                            ),
-                          ),
-                          child: Center(
-                            child: _isPasskeyLoading
-                                ? const SizedBox(
-                                    width: 24,
-                                    height: 24,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      color: Colors.white,
-                                    ),
-                                  )
-                                : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
-                                      Icon(
-                                        Icons.fingerprint,
-                                        color: Colors.white,
-                                        size: 22,
-                                      ),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        'Войти по Face ID / Touch ID',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w500,
-                                          letterSpacing: 0.64,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 28),
-                      Align(
-                        alignment: Alignment.center,
-                        child: Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: GestureDetector(
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (context) => RegistrationScreen()), // Переход на LoginScreen
-                              );
-                            },
-                            child: const Text(
-                              'Регистрация',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w400,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 32),// Отступ перед кнопками соцсетей
+                      const SizedBox(height: 28),
                       Text(
                         'Или войти с помощью',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          letterSpacing: 0.64,
-                        ),
+                        style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                       ),
-                      SizedBox(height: 32), // Отступ перед кнопками
+                      const SizedBox(height: 20),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -436,7 +336,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               ],
             ),
-            )
           ),
         ),
       ),
@@ -467,10 +366,18 @@ class SocialLoginButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: () => _openWebView(context),
-      child: Image.asset(
-        imageUrl,
-        width: 50,
-        height: 50,
+      child: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: AppColors.rowAlt,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(10),
+        child: Image.asset(
+          imageUrl,
+          fit: BoxFit.contain,
+        ),
       ),
     );
   }

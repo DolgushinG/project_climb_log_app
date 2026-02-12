@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/ResultsEntryScreen.dart';
+import 'package:login_app/theme/app_theme.dart';
 
 /// Универсальная кнопка «Внести результаты» / «Редактировать результаты».
 /// Показывается участнику, когда есть трассы и разрешено редактирование.
@@ -53,7 +55,7 @@ class ResultEntryButton extends StatelessWidget {
               }
             : null,
         style: ElevatedButton.styleFrom(
-          backgroundColor: _canEdit ? const Color(0xFF16A34A) : Colors.grey,
+          backgroundColor: _canEdit ? AppColors.mutedGold : Colors.grey,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -62,7 +64,7 @@ class ResultEntryButton extends StatelessWidget {
         ),
         child: Text(
           _buttonText,
-          style: TextStyle(
+          style: GoogleFonts.unbounded(
             color: _canEdit ? Colors.white : Colors.white70,
             fontSize: 14,
             fontWeight: FontWeight.w600,

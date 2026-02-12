@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/login.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:http/http.dart' as http;
 import '../MainScreen.dart';
 import '../main.dart';
@@ -21,9 +23,9 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   bool _isPrivacyAccepted = false;
   String? _selectedGender;
 
-  void _showSnackBar(String message, [Color backgroundColor = Colors.blue]) {
+  void _showSnackBar(String message, [Color? backgroundColor]) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(content: Text(message), backgroundColor: backgroundColor ?? AppColors.mutedGold),
     );
   }
 
@@ -41,10 +43,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
             return Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.8), // Прозрачный белый фон
+                color: AppColors.cardDark,
                 borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(30),
-                  topRight: Radius.circular(30),
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -69,10 +71,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                   ),
                   ListTile(
-                    leading: const Icon(Icons.male, color: Colors.blue),
-                    title: const Text(
+                    leading: const Icon(Icons.male, color: AppColors.mutedGold),
+                    title: Text(
                       'Мужской',
-                      style: TextStyle(fontSize: 18),
+                      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
                     ),
                     onTap: () {
                       setState(() {
@@ -81,12 +83,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       Navigator.pop(context);
                     },
                   ),
-                  const Divider(),
+                  Divider(color: Colors.white24),
                   ListTile(
-                    leading: const Icon(Icons.female, color: Colors.pink),
-                    title: const Text(
+                    leading: const Icon(Icons.female, color: AppColors.mutedGold),
+                    title: Text(
                       'Женский',
-                      style: TextStyle(fontSize: 18),
+                      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
                     ),
                     onTap: () {
                       setState(() {
@@ -114,17 +116,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white),
-        // Белый цвет лейблов
+        labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
+        fillColor: AppColors.rowAlt,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
-      style: const TextStyle(color: Colors.white),
-      // Белый текст ввода
+      style: GoogleFonts.unbounded(color: Colors.white),
       keyboardType: keyboardType,
       validator: validator,
     );
@@ -142,16 +140,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       obscureText: true,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: const TextStyle(color: Colors.white),
+        labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
         filled: true,
-        fillColor: Colors.white.withOpacity(0.2),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide.none,
-        ),
-        suffixIcon: Icon(Icons.visibility),
+        fillColor: AppColors.rowAlt,
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+        suffixIcon: Icon(Icons.visibility, color: AppColors.mutedGold),
       ),
-      style: const TextStyle(color: Colors.white),
+      style: GoogleFonts.unbounded(color: Colors.white),
       keyboardType: keyboardType,
       validator: validator,
     );
@@ -192,7 +188,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
           final token = responseData['token'];
           saveToken(token);
           _showSnackBar(
-              'Регистрация успешно выполнена', Colors.green);
+              'Регистрация успешно выполнена', AppColors.successMuted);
           Navigator.pushAndRemoveUntil(
             context,
             MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
@@ -211,28 +207,21 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     @override
     Widget build(BuildContext context) {
       return Scaffold(
-        resizeToAvoidBottomInset: true, // Включение адаптации под клавиатуру
-        body: Container(
-          width: double.infinity,
-          height: double.infinity,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage("assets/poster.png"), // Укажите ваш фон
-              fit: BoxFit.cover,
-            ),
-          ),
-          child: SafeArea(
-            child: Center(
-              child: SingleChildScrollView( // Добавлено для прокрутки содержимого
-                padding: const EdgeInsets.all(20), // Указание отступов
-                child: Card(
-                  color: Colors.white.withOpacity(0.3), // Прозрачный фон формы
-                  elevation: 5,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(30),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
+        resizeToAvoidBottomInset: true,
+        backgroundColor: AppColors.anthracite,
+        appBar: AppBar(
+          backgroundColor: AppColors.cardDark,
+          title: Text('Регистрация', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        ),
+        body: SafeArea(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.cardDark,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              padding: const EdgeInsets.all(20),
                     child: Form(
                       key: _formKey,
                       child: Column(
@@ -272,25 +261,19 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                           GestureDetector(
                             onTap: _selectGender,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 15, horizontal: 10),
+                              padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 12),
                               decoration: BoxDecoration(
-                                borderRadius: BorderRadius.circular(8),
-                                color: Colors.white.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(10),
+                                color: AppColors.rowAlt,
                               ),
                               child: Row(
-                                mainAxisAlignment: MainAxisAlignment
-                                    .spaceBetween,
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
                                     _selectedGender ?? 'Выберите пол',
-                                    style: const TextStyle(
-                                      color: Colors
-                                          .white, // Белый текст выбранного пола
-                                    ),
+                                    style: GoogleFonts.unbounded(color: Colors.white),
                                   ),
-                                  const Icon(Icons.arrow_drop_down,
-                                      color: Colors.white),
+                                  Icon(Icons.arrow_drop_down, color: AppColors.mutedGold),
                                 ],
                               ),
                             ),
@@ -324,74 +307,53 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                     _isPrivacyAccepted = value!;
                                   });
                                 },
-                                activeColor: Colors.white,
+                                activeColor: AppColors.mutedGold,
+                                checkColor: Colors.white,
                               ),
-                              const Expanded(
+                              Expanded(
                                 child: Text(
                                   'Я соглашаюсь на обработку персональных данных',
-                                  style: TextStyle(
-                                      color: Colors.white, fontSize: 14),
+                                  style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14),
                                 ),
                               ),
                             ],
                           ),
                           const SizedBox(height: 20),
-                          GestureDetector(
-                            onTap: _submitForm,
-                            child: Container(
-                              width: double.infinity,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [Colors.blue, Color(0xFF43E6FA)],
-                                ),
-                                borderRadius: BorderRadius.circular(30),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton(
+                              onPressed: _submitForm,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.mutedGold,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                               ),
-                              child: const Center(
-                                child: Text(
-                                  'Создать аккаунт',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.64,
-                                  ),
-                                ),
+                              child: Text(
+                                'Создать аккаунт',
+                                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
                           const SizedBox(height: 20),
-                          Align(
-                            alignment: Alignment.center,
-                            child: Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: GestureDetector(
-                                onTap: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (context) =>
-                                        LoginScreen()), // Переход на LoginScreen
-                                  );
-                                },
-                                child: const Text(
-                                  'Назад в логин',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w400,
-                                  ),
-                                ),
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (context) => LoginScreen()),
+                                );
+                              },
+                              child: Text(
+                                'Назад в логин',
+                                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ),
-                ),
-              ),
             ),
           ),
         ),

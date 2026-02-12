@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../main.dart';
 import '../models/RelatedUser.dart';
+import '../theme/app_theme.dart';
 import '../services/RelatedUsersService.dart';
 import '../utils/display_helper.dart';
 import '../utils/network_error_helper.dart';
@@ -82,15 +84,16 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Отвязать участника'),
+        title: Text('Отвязать участника', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
         content: Text(
           'Подтвердить удаление ${user.firstname} ${user.lastname} из списка заявленных? '
           'Данные пользователя в системе не будут удалены.',
+          style: GoogleFonts.unbounded(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Отмена'),
+            child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
           ),
           TextButton(
             onPressed: () async {
@@ -107,7 +110,7 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Отвязать'),
+            child: Text('Отвязать', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -118,15 +121,15 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Заявленные'),
-        backgroundColor: const Color(0xFF0B1220),
+        title: Text('Заявленные', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Container(
-        color: const Color(0xFF050816),
+        color: AppColors.anthracite,
         child: _buildBody(),
       ),
     );
@@ -146,12 +149,13 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
               Text(
                 _error!,
                 textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
+                style: GoogleFonts.unbounded(color: Colors.white70),
               ),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _loadData,
-                child: const Text('Повторить'),
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -170,13 +174,13 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
               Text(
                 'Пока вы никого не заявляли',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: Colors.grey.shade400),
+                style: GoogleFonts.unbounded(fontSize: 18, color: Colors.white70),
               ),
               const SizedBox(height: 8),
               Text(
                 'Участники появятся после групповой регистрации на соревнования',
                 textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade500),
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
               ),
             ],
           ),
@@ -204,7 +208,7 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      color: const Color(0xFF0B1220),
+      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () => _showEditDialog(user),
@@ -218,14 +222,14 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: Colors.blueGrey.shade700,
+                    backgroundColor: AppColors.rowAlt,
                     child: Text(
                       (user.firstname.isNotEmpty ? user.firstname[0] : '?')
                           .toUpperCase(),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
+                      style: GoogleFonts.unbounded(
+                        color: AppColors.mutedGold,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -236,8 +240,8 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
                       children: [
                         Text(
                           fullName.isNotEmpty ? fullName : 'Без имени',
-                          style: const TextStyle(
-                            fontSize: 18,
+                          style: GoogleFonts.unbounded(
+                            fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                           ),
@@ -245,20 +249,17 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
                         if (user.email != null && user.email!.trim().isNotEmpty)
                           Text(
                             user.email!,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade400,
-                            ),
+                            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
                           ),
                       ],
                     ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.edit, color: Colors.blueAccent),
+                    icon: Icon(Icons.edit, color: AppColors.mutedGold),
                     onPressed: () => _showEditDialog(user),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.link_off, color: Colors.redAccent),
+                    icon: Icon(Icons.link_off, color: Colors.red.shade400),
                     onPressed: () => _showUnlinkConfirm(user),
                   ),
                 ],
@@ -294,9 +295,9 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade500),
+        Icon(icon, size: 14, color: AppColors.graphite),
         const SizedBox(width: 4),
-        Text(text, style: TextStyle(fontSize: 12, color: Colors.grey.shade400)),
+        Text(text, style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70)),
       ],
     );
   }
@@ -388,15 +389,15 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
     String? temp = _selectedSportCategory;
     showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
+        builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => AlertDialog(
-          title: const Text('Выберите разряд'),
+          title: Text('Выберите разряд', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
           content: SingleChildScrollView(
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: widget.sportCategories.map((c) {
                 return RadioListTile<String>(
-                  title: Text(c),
+                  title: Text(c, style: GoogleFonts.unbounded(color: Colors.white)),
                   value: c,
                   groupValue: temp,
                   onChanged: (v) => setDialog(() => temp = v),
@@ -407,14 +408,15 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Отмена'),
+              child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
             ),
             ElevatedButton(
               onPressed: () {
                 setState(() => _selectedSportCategory = temp);
                 Navigator.pop(ctx);
               },
-              child: const Text('Сохранить'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+              child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -426,14 +428,14 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
     String? temp = _selectedGender;
     showDialog<void>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
+        builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDialog) => AlertDialog(
-          title: const Text('Выберите пол'),
+          title: Text('Выберите пол', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: _genderOptions.entries.map((e) {
               return RadioListTile<String>(
-                title: Text(e.key),
+                title: Text(e.key, style: GoogleFonts.unbounded(color: Colors.white)),
                 value: e.value,
                 groupValue: temp,
                 onChanged: (v) => setDialog(() => temp = v),
@@ -443,14 +445,15 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: const Text('Отмена'),
+              child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
             ),
             ElevatedButton(
               onPressed: () {
                 setState(() => _selectedGender = temp);
                 Navigator.pop(ctx);
               },
-              child: const Text('Сохранить'),
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+              child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -505,7 +508,7 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
       maxChildSize: 1,
       builder: (context, scrollController) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0B1220),
+          color: AppColors.cardDark,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
@@ -523,7 +526,7 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 'Редактирование участника',
-                style: const TextStyle(
+                style: GoogleFonts.unbounded(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -564,6 +567,8 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
                     child: ElevatedButton(
                       onPressed: _isSaving ? null : _save,
                       style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.mutedGold,
+                        foregroundColor: AppColors.anthracite,
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -571,9 +576,9 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
                           ? const SizedBox(
                               height: 20,
                               width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
+                              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                             )
-                          : const Text('Сохранить'),
+                          : Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                     ),
                   ),
                   SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
@@ -598,12 +603,13 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
         controller: controller,
         decoration: InputDecoration(
           labelText: label,
-          prefixIcon: Icon(icon),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+          prefixIcon: Icon(icon, color: AppColors.mutedGold),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
           filled: true,
-          fillColor: Colors.grey.shade900,
+          fillColor: AppColors.rowAlt,
         ),
-        style: const TextStyle(color: Colors.white),
+        style: GoogleFonts.unbounded(color: Colors.white),
         keyboardType: keyboardType,
       ),
     );
@@ -619,12 +625,13 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
             controller: _birthdayController,
             decoration: InputDecoration(
               labelText: 'Дата рождения',
-              prefixIcon: const Icon(Icons.calendar_today),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+              prefixIcon: Icon(Icons.calendar_today, color: AppColors.mutedGold),
+              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
               filled: true,
-              fillColor: Colors.grey.shade900,
+              fillColor: AppColors.rowAlt,
             ),
-            style: const TextStyle(color: Colors.white),
+            style: GoogleFonts.unbounded(color: Colors.white),
           ),
         ),
       ),
@@ -639,12 +646,13 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
         child: InputDecorator(
           decoration: InputDecoration(
             labelText: label,
-            prefixIcon: Icon(icon),
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+            prefixIcon: Icon(icon, color: AppColors.mutedGold),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
             filled: true,
-            fillColor: Colors.grey.shade900,
+            fillColor: AppColors.rowAlt,
           ),
-          child: Text(value.isEmpty ? 'Не выбрано' : value, style: const TextStyle(color: Colors.white)),
+          child: Text(value.isEmpty ? 'Не выбрано' : value, style: GoogleFonts.unbounded(color: Colors.white)),
         ),
       ),
     );

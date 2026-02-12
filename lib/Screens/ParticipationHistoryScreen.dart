@@ -1,11 +1,13 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../CompetitionScreen.dart';
 import '../main.dart';
+import '../theme/app_theme.dart';
 import '../services/cache_service.dart';
 import '../utils/network_error_helper.dart';
 
@@ -178,13 +180,13 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('История выступлений'),
+        title: Text('История выступлений', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
         child: _buildBody(),
       ),
-      backgroundColor: const Color(0xFF050816),
+      backgroundColor: AppColors.anthracite,
     );
   }
 
@@ -201,11 +203,12 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_error!, style: const TextStyle(color: Colors.redAccent)),
+                Text(_error!, style: GoogleFonts.unbounded(color: Colors.red.shade300)),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadHistory,
-                  child: const Text('Повторить'),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -216,14 +219,14 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
     if (_items.isEmpty) {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 80),
+        children: [
+          const SizedBox(height: 80),
           Padding(
-            padding: EdgeInsets.all(24),
+            padding: const EdgeInsets.all(24),
             child: Center(
               child: Text(
                 'Вы ещё не участвовали в соревнованиях.\nКогда вы примете участие, здесь появится история выступлений.',
-                style: TextStyle(color: Colors.white70, fontSize: 16),
+                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -244,11 +247,11 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
   }
 
   String _formatEventDates(DateTime start, String? endDateStr) {
-    final startStr = DateFormat('dd.MM.yyyy').format(start);
+    final startStr = formatDatePremium(start);
     if (endDateStr != null && endDateStr.isNotEmpty) {
       try {
         final endDt = DateTime.parse(endDateStr);
-        final endStr = DateFormat('dd.MM.yyyy').format(endDt);
+        final endStr = formatDatePremium(endDt);
         return '$startStr – $endStr';
       } catch (_) {}
     }
@@ -286,7 +289,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
           );
         },
         child: Card(
-          color: const Color(0xFF0B1220),
+          color: AppColors.cardDark,
           surfaceTintColor: Colors.transparent,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
@@ -331,7 +334,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                         c.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: GoogleFonts.unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -340,19 +343,16 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                       const SizedBox(height: 4),
                       Text(
                         '${c.city} • $dateStr',
-                        style: TextStyle(
+                        style: GoogleFonts.unbounded(
                           fontSize: 12,
-                          color: Colors.white.withOpacity(0.7),
+                          color: Colors.white70,
                         ),
                       ),
                       if (item.countParticipant != null) ...[
                         const SizedBox(height: 4),
                         Text(
                           'Участников: ${item.countParticipant}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: Colors.white.withOpacity(0.6),
-                          ),
+                          style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white60),
                         ),
                       ],
                       const SizedBox(height: 4),
@@ -361,18 +361,18 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: isCurrent
-                              ? Colors.green.withOpacity(0.18)
-                              : Colors.grey.withOpacity(0.18),
+                              ? AppColors.successMuted
+                              : AppColors.rowAlt,
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           statusText,
-                          style: TextStyle(
+                          style: GoogleFonts.unbounded(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: isCurrent
-                                ? Colors.green[200]
-                                : Colors.grey[300],
+                                ? Colors.green.shade200
+                                : Colors.white70,
                           ),
                         ),
                       ),
@@ -417,7 +417,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, color: Colors.white),
+        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/MainScreen.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/RustorePushService.dart';
 import 'package:login_app/services/cache_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,18 +57,18 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTheme = ThemeData(
       useMaterial3: true,
-      colorScheme: ColorScheme.fromSeed(
-        seedColor: const Color(0xFF2563EB),
-        brightness: Brightness.dark,
+      colorScheme: ColorScheme.dark().copyWith(
+        primary: AppColors.mutedGold,
+        surface: AppColors.surfaceDark,
       ),
     );
 
     return MaterialApp(
       title: 'Climbing App',
       theme: baseTheme.copyWith(
-        scaffoldBackgroundColor: const Color(0xFF050816),
+        scaffoldBackgroundColor: AppColors.anthracite,
         dividerColor: Colors.transparent,
-        textTheme: baseTheme.textTheme.copyWith(
+        textTheme: GoogleFonts.unboundedTextTheme(baseTheme.textTheme).copyWith(
           titleLarge: baseTheme.textTheme.titleLarge?.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -97,7 +99,7 @@ class MyApp extends StatelessWidget {
           dividerColor: Colors.transparent,
           indicator: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            color: Colors.white.withOpacity(0.12),
+            color: AppColors.mutedGold.withOpacity(0.25),
           ),
           indicatorSize: TabBarIndicatorSize.tab,
         ),
@@ -108,7 +110,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
         dialogTheme: DialogTheme(
-          backgroundColor: const Color(0xFF0B1220),
+          backgroundColor: AppColors.cardDark,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(20),
           ),
@@ -120,8 +122,8 @@ class MyApp extends StatelessWidget {
           ),
         ),
         bottomNavigationBarTheme: baseTheme.bottomNavigationBarTheme.copyWith(
-          backgroundColor: const Color(0xFF020617),
-          selectedItemColor: baseTheme.colorScheme.primary,
+          backgroundColor: AppColors.surfaceDark,
+          selectedItemColor: AppColors.mutedGold,
           unselectedItemColor: Colors.grey,
           selectedIconTheme: const IconThemeData(size: 26),
           unselectedIconTheme: const IconThemeData(size: 22),
@@ -129,7 +131,7 @@ class MyApp extends StatelessWidget {
           type: BottomNavigationBarType.fixed,
         ),
         cardTheme: baseTheme.cardTheme.copyWith(
-          color: const Color(0xFF0B1220),
+          color: AppColors.cardDark,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
@@ -180,14 +182,14 @@ class _TokenCheckerState extends State<TokenChecker> {
     if (isLoading) {
       return Scaffold(
         body: Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                Color(0xFF020617),
-                Color(0xFF0B1120),
-                Color(0xFF1D4ED8),
+                AppColors.anthracite,
+                AppColors.surfaceDark,
+                AppColors.mutedGold.withOpacity(0.3),
               ],
             ),
           ),
@@ -262,12 +264,11 @@ class StartPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'CLIMBING EVENTS.',
-                  style: TextStyle(
+                  style: GoogleFonts.unbounded(
                     color: Colors.white,
                     fontSize: 32,
-                    fontFamily: 'Roboto',
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.28,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.2,
                   ),
                 ),
                 const SizedBox(height: 8),
@@ -293,21 +294,17 @@ class StartPage extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(vertical: 16),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Colors.blue, Color(0xFF43E6FA)],
-                        ),
+                        color: AppColors.mutedGold,
                         borderRadius: BorderRadius.circular(30),
                       ),
-                      child: const Center(
+                      child: Center(
                         child: Text(
                           'Продолжить',
-                          style: TextStyle(
-                            color: Colors.white,
+                          style: GoogleFonts.unbounded(
+                            color: AppColors.anthracite,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
-                            letterSpacing: 0.64,
+                            letterSpacing: 0.5,
                           ),
                         ),
                       ),
@@ -361,17 +358,17 @@ class _ClimbingLoaderState extends State<_ClimbingLoader>
         height: 56,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          gradient: const SweepGradient(
+            gradient: SweepGradient(
             colors: [
-              Color(0xFF38BDF8),
-              Color(0xFF6366F1),
-              Color(0xFF22C55E),
-              Color(0xFF38BDF8),
+              AppColors.mutedGold.withOpacity(0.8),
+              AppColors.graphite,
+              AppColors.mutedGold.withOpacity(0.6),
+              AppColors.mutedGold.withOpacity(0.8),
             ],
           ),
-          boxShadow: [
+            boxShadow: [
             BoxShadow(
-              color: Colors.blue.withOpacity(0.4),
+              color: AppColors.mutedGold.withOpacity(0.3),
               blurRadius: 14,
               spreadRadius: 1,
             ),
@@ -383,7 +380,7 @@ class _ClimbingLoaderState extends State<_ClimbingLoader>
             height: 32,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              color: Color(0xFF020617),
+              color: AppColors.anthracite,
             ),
             child: const Icon(
               Icons.hiking,

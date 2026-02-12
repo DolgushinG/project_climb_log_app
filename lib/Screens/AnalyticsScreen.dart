@@ -1,7 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/main.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ProfileService.dart';
 import 'package:login_app/services/cache_service.dart';
 import 'package:login_app/utils/network_error_helper.dart';
@@ -78,7 +80,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: const Text('Аналитика и Статистика'),
+        title: Text('Аналитика и Статистика', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
       ),
       body: _buildBody(),
     );
@@ -98,17 +100,15 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             children: [
               Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
               const SizedBox(height: 16),
-              Text(
-                'Не удалось загрузить данные',
-                style: Theme.of(context).textTheme.titleMedium,
-                textAlign: TextAlign.center,
-              ),
+        Text(
+          'Не удалось загрузить данные',
+          style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+          textAlign: TextAlign.center,
+        ),
               const SizedBox(height: 8),
               Text(
                 _error ?? 'Не удалось загрузить данные',
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                      color: Colors.white70,
-                    ),
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -158,9 +158,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           'Сводка',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         const SizedBox(height: 12),
         Row(
@@ -211,35 +209,27 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   }
 
   Widget _buildStatCard(String title, String value, IconData icon, Color bgColor) {
-    return Card(
-      color: bgColor,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        child: Column(
-          children: [
-            Icon(icon, color: Colors.white70, size: 24),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withOpacity(0.85),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      child: Column(
+        children: [
+          Icon(icon, color: AppColors.mutedGold, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -257,24 +247,24 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Прогресс по соревнованиям',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+        Text(
+          'Прогресс по соревнованиям',
+          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        const SizedBox(height: 16),
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(height: 16),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Center(
-                child: Text(
-                  'Пока нет данных о соревнованиях',
-                  style: TextStyle(color: Colors.white70),
-                ),
-              ),
+          padding: const EdgeInsets.all(24.0),
+          child: Center(
+            child: Text(
+              'Пока нет данных о соревнованиях',
+              style: GoogleFonts.unbounded(color: Colors.white70),
             ),
           ),
+        ),
         ],
       );
     }
@@ -284,16 +274,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           'Прогресс по соревнованиям',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         const SizedBox(height: 8),
         Text(
           'Флеши и редпоинты по последним 30 соревнованиям',
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: Colors.white70,
-              ),
+          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
         ),
         const SizedBox(height: 16),
         Row(
@@ -319,7 +305,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
         ),
         const SizedBox(width: 6),
-        Text(label, style: TextStyle(fontSize: 12, color: Colors.white70)),
+        Text(label, style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70)),
       ],
     );
   }

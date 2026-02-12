@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../main.dart';
+import '../theme/app_theme.dart';
 import 'PublicProfileScreen.dart';
 
 /// Элемент рейтинга с бэкенда GET /api/rating
@@ -139,10 +141,7 @@ class _RatingScreenState extends State<RatingScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                   child: Text(
                     'Рейтинг',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                    style: AppTypography.sectionTitle(),
                   ),
                 ),
               ),
@@ -295,15 +294,14 @@ class _RatingTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         _chip(context, '${entry.points} очк.', Colors.white24),
-                        const SizedBox(width: 8),
                         _chip(context, '${entry.flashPercent.toStringAsFixed(1)}% флеш', Colors.white24),
-                        if (entry.totalRoutes > 0) ...[
-                          const SizedBox(width: 8),
+                        if (entry.totalRoutes > 0)
                           _chip(context, '${entry.totalRoutes} трасс', Colors.white24),
-                        ],
                       ],
                     ),
                   ],
@@ -318,9 +316,9 @@ class _RatingTile extends StatelessWidget {
   }
 
   Color _rankColor(int rank) {
-    if (rank == 1) return const Color(0xFFFFD700);
-    if (rank == 2) return const Color(0xFFC0C0C0);
-    if (rank == 3) return const Color(0xFFCD7F32);
+    if (rank == 1) return AppColors.mutedGold;
+    if (rank == 2) return const Color(0xFF9CA3AF);
+    if (rank == 3) return const Color(0xFF92400E);
     return Colors.white70;
   }
 
