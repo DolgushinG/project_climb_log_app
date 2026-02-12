@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'theme/app_theme.dart';
 import 'package:login_app/Screens/AuthSettingScreen.dart';
 import 'dart:convert';
 
@@ -122,7 +124,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: const Text('Профиль'),
+        title: Text('Профиль', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
       ),
       body: isLoading && avatar.isEmpty && firstName == 'Имя'
           ? Center(child: CircularProgressIndicator())
@@ -137,7 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   child: TopNotificationBanner(
                     message: _loadError!,
                     icon: Icons.wifi_off_rounded,
-                    backgroundColor: const Color(0xFF78350F),
+                    backgroundColor: AppColors.graphite,
                     iconColor: Colors.orange.shade200,
                     textColor: Colors.white,
                     useSafeArea: false,
@@ -158,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 children: [
                   CircleAvatar(
                     radius: 30,
-                    backgroundColor: Colors.blueGrey.shade700,
+                    backgroundColor: AppColors.graphite,
                     backgroundImage:
                         avatar.isNotEmpty ? NetworkImage(avatar) : null,
                     child: avatar.isNotEmpty
@@ -179,15 +181,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Text(
                           '$firstName $lastName',
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppTypography.sectionTitle().copyWith(fontSize: 22),
                         ),
                         SizedBox(height: 8),
-                        Text('Город: ${displayValue(city)}'),
-                        Text('Разряд: ${displayValue(rank)}'),
-                        Text('День рождения: ${displayValue(birthYear)}'),
+                        Text('Город: ${displayValue(city)}', style: AppTypography.secondary()),
+                        Text('Разряд: ${displayValue(rank)}', style: AppTypography.secondary()),
+                        Text('День рождения: ${displayValue(birthYear)}', style: AppTypography.secondary()),
                       ],
                     ),
                   ),
@@ -314,19 +313,36 @@ class ProfileActionCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: ListTile(
-          leading: Icon(icon, color: Colors.blueAccent),
-          title: Text(
-            title,
-            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
           ),
-          onTap: onTap,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: AppColors.mutedGold, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Text(
+                  title,
+                  style: AppTypography.athleteName().copyWith(fontSize: 15),
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.5), size: 22),
+            ],
+          ),
         ),
       ),
     );

@@ -25,6 +25,20 @@ String _dayOfWeekToRu(String day) {
   return _dayToRu[key] ?? day.trim();
 }
 
+/// Извлекает только время из строки (убирает дату, если есть).
+/// Примеры: "12.02.2025 10:00" → "10:00"; "10:00-11:00" → "10:00-11:00"; "10:00" → "10:00"
+String extractSetTimeOnly(String timeStr) {
+  final t = timeStr.trim();
+  if (t.isEmpty) return '';
+  final parts = t.split(RegExp(r'\s+'));
+  for (var i = parts.length - 1; i >= 0; i--) {
+    final p = parts[i];
+    if (RegExp(r'^\d{1,2}:\d{2}(-\d{1,2}:\d{2})?$').hasMatch(p)) return p;
+  }
+  if (RegExp(r'^\d{1,2}:\d{2}(-\d{1,2}:\d{2})?$').hasMatch(t)) return t;
+  return t;
+}
+
 /// Компактный формат сета: номер, день недели (рус.), время
 String formatSetCompact(NumberSets s) {
   final parts = <String>['№${s.number_set}'];

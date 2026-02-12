@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:login_app/theme/app_theme.dart';
 
 import 'package:intl/intl.dart';
 
@@ -95,19 +97,20 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Удалить тренировку?'),
+        backgroundColor: AppColors.cardDark,
+        title: Text('Удалить тренировку?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
         content: Text(
           'Тренировка ${_formatDate(session.date)}${session.gymName != 'Не указан' ? ' (${session.gymName})' : ''} будет удалена безвозвратно.',
+          style: GoogleFonts.unbounded(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Отмена'),
+            child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Удалить'),
+            child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.redAccent, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -120,7 +123,7 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen> {
         const SnackBar(
           content: Text('Тренировка удалена'),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: Color(0xFF22C55E),
+          backgroundColor: AppColors.mutedGold,
         ),
       );
       _load();
@@ -137,6 +140,7 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -148,10 +152,7 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                   child: Text(
                     'История тренировок',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -170,12 +171,17 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen> {
                           Text(
                             _error!,
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70),
+                            style: GoogleFonts.unbounded(color: Colors.white70),
                           ),
                           const SizedBox(height: 16),
-                          FilledButton(
+                          ElevatedButton(
                             onPressed: _load,
-                            child: const Text('Повторить'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mutedGold,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -196,19 +202,13 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen> {
                         const SizedBox(height: 16),
                         Text(
                           'Пока нет тренировок',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
+                          style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Добавьте первую тренировку в разделе «Тренировка»',
                           textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white54,
-                            fontSize: 14,
-                          ),
+                          style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 14),
                         ),
                       ],
                     ),
@@ -267,10 +267,13 @@ class _SessionCard extends StatelessWidget {
     final totalCount = routes.fold(0, (a, r) => a + r.count);
     final canEditDelete = session.id != null;
 
-    return Card(
+    return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -279,17 +282,13 @@ class _SessionCard extends StatelessWidget {
                 Icon(
                   Icons.calendar_today,
                   size: 18,
-                  color: Theme.of(context).colorScheme.primary,
+                  color: AppColors.mutedGold,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     date,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
+                    style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
                   ),
                 ),
                 if (canEditDelete)
@@ -301,7 +300,7 @@ class _SessionCard extends StatelessWidget {
                         onPressed: onEdit,
                         tooltip: 'Редактировать',
                         style: IconButton.styleFrom(
-                          foregroundColor: Colors.white54,
+                          foregroundColor: AppColors.mutedGold,
                           padding: const EdgeInsets.all(6),
                           minimumSize: const Size(36, 36),
                         ),
@@ -329,10 +328,7 @@ class _SessionCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       gymName,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                      ),
+                      style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                     ),
                   ),
                 ],
@@ -364,11 +360,7 @@ class _SessionCard extends StatelessWidget {
                       ),
                       child: Text(
                         '${r.grade} × ${r.count}',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: GoogleFonts.unbounded(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
                       ),
                     )),
               ],
@@ -376,14 +368,10 @@ class _SessionCard extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               'Всего: $totalCount трасс',
-              style: TextStyle(
-                color: Colors.white54,
-                fontSize: 12,
-              ),
+              style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12),
             ),
           ],
         ),
-      ),
     );
   }
 }

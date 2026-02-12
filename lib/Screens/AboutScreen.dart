@@ -1,9 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:login_app/services/RustorePushService.dart';
+
+import '../theme/app_theme.dart';
+import '../services/RustorePushService.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -30,14 +33,14 @@ class _AboutScreenState extends State<AboutScreen> {
   Future<void> _launchUrl(BuildContext context, String url) async {
     final uri = Uri.parse(url);
     try {
-      await launchUrl(
-        uri,
-        mode: LaunchMode.externalApplication,
-      );
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось открыть ссылку')),
+          SnackBar(
+            content: Text('Не удалось открыть ссылку', style: GoogleFonts.unbounded()),
+            backgroundColor: AppColors.graphite,
+          ),
         );
       }
     }
@@ -45,29 +48,43 @@ class _AboutScreenState extends State<AboutScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       appBar: AppBar(
-        title: const Text('О приложении'),
+        backgroundColor: AppColors.anthracite,
+        title: Text(
+          'О приложении',
+          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
+        ),
+        iconTheme: const IconThemeData(color: AppColors.mutedGold),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: 24),
-            Icon(
-              Icons.emoji_events_rounded,
-              size: 72,
-              color: theme.colorScheme.primary,
+            const SizedBox(height: 32),
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AppColors.mutedGold.withOpacity(0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.emoji_events_rounded,
+                size: 56,
+                color: AppColors.mutedGold,
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               'Climbing-events',
               textAlign: TextAlign.center,
-              style: theme.textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
+              style: GoogleFonts.unbounded(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.3,
+                color: Colors.white,
               ),
             ),
             const SizedBox(height: 8),
@@ -76,18 +93,24 @@ class _AboutScreenState extends State<AboutScreen> {
                   ? 'Версия ${_packageInfo!.version}+${_packageInfo!.buildNumber}'
                   : 'Версия ...',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
+              style: AppTypography.secondary(),
             ),
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
             Text(
               'Приложение для учёта участия в соревнованиях по скалолазанию.',
               textAlign: TextAlign.center,
-              style: theme.textTheme.bodyLarge,
+              style: AppTypography.secondary().copyWith(fontSize: 14),
             ),
-            const SizedBox(height: 40),
-            _buildSectionTitle(context, 'Контакты'),
+            const SizedBox(height: 32),
+            Text(
+              'Контакты',
+              style: GoogleFonts.unbounded(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.mutedGold,
+                letterSpacing: 0.3,
+              ),
+            ),
             const SizedBox(height: 12),
             _ContactTile(
               icon: Icons.email_outlined,
@@ -108,60 +131,61 @@ class _AboutScreenState extends State<AboutScreen> {
               onTap: () => _launchUrl(context, 'https://climbing-events.ru'),
             ),
             if (kDebugMode && _pushToken != null) ...[
-              const SizedBox(height: 24),
-              _buildSectionTitle(context, 'Тест пушей RuStore'),
+              const SizedBox(height: 28),
+              Text(
+                'Тест пушей RuStore',
+                style: GoogleFonts.unbounded(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedGold,
+                  letterSpacing: 0.3,
+                ),
+              ),
               const SizedBox(height: 8),
               Text(
                 'Токен для тестовой отправки в RuStore Консоль:',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+                style: AppTypography.secondary(),
               ),
               const SizedBox(height: 8),
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: SelectableText(
-                          _pushToken!,
-                          style: theme.textTheme.bodySmall,
-                          maxLines: 3,
-                        ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: SelectableText(
+                        _pushToken!,
+                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70, height: 1.4),
+                        maxLines: 3,
                       ),
-                      IconButton(
-                        icon: const Icon(Icons.copy),
-                        onPressed: () {
-                          final token = _pushToken;
-                          if (token != null) {
-                            Clipboard.setData(ClipboardData(text: token));
-                          }
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.copy_rounded, color: AppColors.mutedGold, size: 20),
+                      onPressed: () {
+                        final token = _pushToken;
+                        if (token != null) Clipboard.setData(ClipboardData(text: token));
+                        if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Токен скопирован в буфер'),
-                              duration: Duration(seconds: 2),
+                            SnackBar(
+                              content: Text('Токен скопирован', style: GoogleFonts.unbounded()),
+                              backgroundColor: AppColors.cardDark,
+                              behavior: SnackBarBehavior.floating,
                             ),
                           );
-                        },
-                      ),
-                    ],
-                  ),
+                        }
+                      },
+                    ),
+                  ],
                 ),
               ),
             ],
+            const SizedBox(height: 24),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        fontWeight: FontWeight.w600,
-        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -183,18 +207,51 @@ class _ContactTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Card(
-        elevation: 2,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: ListTile(
-          leading: Icon(icon, color: Colors.blueAccent),
-          title: Text(label, style: const TextStyle(fontWeight: FontWeight.w500)),
-          subtitle: Text(value),
-          trailing: const Icon(Icons.arrow_forward_ios, size: 14),
-          onTap: onTap,
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: AppColors.mutedGold, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      style: GoogleFonts.unbounded(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      value,
+                      style: AppTypography.athleteName().copyWith(fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.4), size: 20),
+            ],
+          ),
         ),
       ),
     );

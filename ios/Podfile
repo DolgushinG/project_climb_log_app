@@ -38,6 +38,9 @@ target 'Runner' do
 end
 
 post_install do |installer|
+  # Исключаем passkeys_ios — дублирует PasskeysPlugin с passkeys_darwin (оба регистрируют один класс)
+  installer.pods_project.targets.delete_if { |target| target.name == 'passkeys_ios' }
+
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
   end

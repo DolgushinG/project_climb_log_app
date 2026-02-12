@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../main.dart';
+import '../theme/app_theme.dart';
 import 'PublicProfileScreen.dart';
 
 /// Элемент рейтинга с бэкенда GET /api/rating
@@ -128,6 +130,7 @@ class _RatingScreenState extends State<RatingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -139,10 +142,7 @@ class _RatingScreenState extends State<RatingScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                   child: Text(
                     'Рейтинг',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -161,12 +161,17 @@ class _RatingScreenState extends State<RatingScreen> {
                           Text(
                             _error!,
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70),
+                            style: GoogleFonts.unbounded(color: Colors.white70),
                           ),
                           const SizedBox(height: 16),
-                          FilledButton(
+                          ElevatedButton(
                             onPressed: _load,
-                            child: const Text('Повторить'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mutedGold,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -231,10 +236,7 @@ class _Section extends StatelessWidget {
             padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),
           ...entries.map((e) => _RatingTile(entry: e, onTap: () => onTap(e))),
@@ -267,10 +269,7 @@ class _RatingTile extends StatelessWidget {
                 width: 28,
                 child: Text(
                   '${entry.rank}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: _rankColor(entry.rank),
-                      ),
+                  style: GoogleFonts.unbounded(fontWeight: FontWeight.w700, color: _rankColor(entry.rank)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -280,36 +279,30 @@ class _RatingTile extends StatelessWidget {
                   children: [
                     Text(
                       entry.name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
+                      style: GoogleFonts.unbounded(fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     if (entry.team.isNotEmpty)
                       Text(
                         entry.team,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white60,
-                            ),
+                        style: GoogleFonts.unbounded(color: Colors.white60, fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                     const SizedBox(height: 4),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
                       children: [
                         _chip(context, '${entry.points} очк.', Colors.white24),
-                        const SizedBox(width: 8),
                         _chip(context, '${entry.flashPercent.toStringAsFixed(1)}% флеш', Colors.white24),
-                        if (entry.totalRoutes > 0) ...[
-                          const SizedBox(width: 8),
+                        if (entry.totalRoutes > 0)
                           _chip(context, '${entry.totalRoutes} трасс', Colors.white24),
-                        ],
                       ],
                     ),
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.white38, size: 20),
+              Icon(Icons.chevron_right, color: AppColors.mutedGold, size: 20),
             ],
           ),
         ),
@@ -318,9 +311,9 @@ class _RatingTile extends StatelessWidget {
   }
 
   Color _rankColor(int rank) {
-    if (rank == 1) return const Color(0xFFFFD700);
-    if (rank == 2) return const Color(0xFFC0C0C0);
-    if (rank == 3) return const Color(0xFFCD7F32);
+    if (rank == 1) return AppColors.mutedGold;
+    if (rank == 2) return const Color(0xFF9CA3AF);
+    if (rank == 3) return const Color(0xFF92400E);
     return Colors.white70;
   }
 
@@ -333,7 +326,7 @@ class _RatingTile extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
+        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
       ),
     );
   }

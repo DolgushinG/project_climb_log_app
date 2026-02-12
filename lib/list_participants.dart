@@ -3,9 +3,11 @@ import 'dart:ffi';
 import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'models/Category.dart';
 import 'Screens/PublicProfileScreen.dart';
+import 'theme/app_theme.dart';
 import 'utils/display_helper.dart';
 
 class Participant {
@@ -126,7 +128,7 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
               children: [
                 Text(
                   'Фильтры',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 SizedBox(height: 16),
                 StatefulBuilder(
@@ -185,7 +187,10 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Участники'),
+        title: Text(
+          'Участники',
+          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18),
+        ),
         actions: [
           IconButton(
             icon: Icon(Icons.search),
@@ -217,8 +222,9 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
         itemCount: filteredParticipants.length,
         itemBuilder: (context, index) {
           final participant = filteredParticipants[index];
+          final hasAlternateBg = index.isEven;
           return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
             child: InkWell(
               borderRadius: BorderRadius.circular(12),
               onTap: participant.userId != null
@@ -232,13 +238,43 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
                       );
                     }
                   : null,
-              child: Card(
-                elevation: 3,
-                margin: EdgeInsets.zero,
-                child: ListTile(
-                  title: Text(displayValue(participant.middlename)),
-                  subtitle: Text('${displayValue(participant.category)} - ${displayValue(participant.city)}'),
-                  trailing: Text(displayValue(participant.birthday)),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: hasAlternateBg ? AppColors.cardDark : AppColors.rowAlt,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            displayValue(participant.middlename),
+                            style: AppTypography.athleteName(),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${displayValue(participant.category)} · ${displayValue(participant.city)}',
+                            style: AppTypography.secondary(),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        displayValue(participant.birthday),
+                        style: AppTypography.scoreBadge().copyWith(fontSize: 12),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -290,8 +326,14 @@ class ParticipantSearchDelegate extends SearchDelegate<String> {
       itemBuilder: (context, index) {
         final participant = results[index];
         return ListTile(
-          title: Text(displayValue(participant.middlename)),
-          subtitle: Text('${displayValue(participant.category)} - ${displayValue(participant.city)}'),
+          title: Text(
+            displayValue(participant.middlename),
+            style: AppTypography.athleteName().copyWith(fontSize: 14),
+          ),
+          subtitle: Text(
+            '${displayValue(participant.category)} · ${displayValue(participant.city)}',
+            style: AppTypography.secondary(),
+          ),
           onTap: () {
             onSelected(query);
             close(context, query);
@@ -312,8 +354,14 @@ class ParticipantSearchDelegate extends SearchDelegate<String> {
       itemBuilder: (context, index) {
         final participant = suggestions[index];
         return ListTile(
-          title: Text(displayValue(participant.middlename)),
-          subtitle: Text('${displayValue(participant.category)} - ${displayValue(participant.city)}'),
+          title: Text(
+            displayValue(participant.middlename),
+            style: AppTypography.athleteName().copyWith(fontSize: 14),
+          ),
+          subtitle: Text(
+            '${displayValue(participant.category)} · ${displayValue(participant.city)}',
+            style: AppTypography.secondary(),
+          ),
           onTap: () {
             onSelected(participant.middlename);
             close(context, participant.middlename);

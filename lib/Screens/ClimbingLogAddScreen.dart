@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/main.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';
 import 'package:login_app/models/Gym.dart';
@@ -140,7 +142,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
         SnackBar(
           content: Text(_isEditMode ? 'Изменения сохранены!' : 'Тренировка сохранена!'),
           behavior: SnackBarBehavior.floating,
-          backgroundColor: const Color(0xFF22C55E),
+          backgroundColor: AppColors.mutedGold,
         ),
       );
       widget.onSaved?.call();
@@ -225,13 +227,13 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                             ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF3B82F6).withOpacity(0.35),
+                              color: AppColors.mutedGold.withOpacity(0.35),
                             ),
                           ),
                           child: Row(
                             children: [
                               Icon(Icons.calendar_today,
-                                  color: const Color(0xFF38BDF8).withOpacity(0.9), size: 20),
+                                  color: AppColors.mutedGold.withOpacity(0.9), size: 20),
                               const SizedBox(width: 12),
                               Text(
                                 '${_selectedDate.day.toString().padLeft(2, '0')}.${_selectedDate.month.toString().padLeft(2, '0')}.${_selectedDate.year}',
@@ -263,8 +265,8 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                                   ? BoxDecoration(
                                       gradient: const LinearGradient(
                                         colors: [
-                                          Color(0xFF3B82F6),
-                                          Color(0xFF6366F1),
+                                          AppColors.mutedGold,
+                                          AppColors.mutedGold,
                                         ],
                                         begin: Alignment.topLeft,
                                         end: Alignment.bottomRight,
@@ -280,10 +282,10 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                                     color: isSelected ? Colors.white : Colors.white70,
                                   ),
                                 ),
-                                backgroundColor: isSelected ? Colors.transparent : const Color(0xFF0B1220),
+                                backgroundColor: isSelected ? Colors.transparent : AppColors.cardDark,
                                 side: BorderSide(
                                   color: isSelected
-                                      ? const Color(0xFF6366F1).withOpacity(0.6)
+                                      ? AppColors.mutedGold.withOpacity(0.6)
                                       : Colors.white24,
                                 ),
                               onPressed: () {
@@ -329,7 +331,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                                 )
                               : null,
                           filled: true,
-                          fillColor: const Color(0xFF0B1220),
+                          fillColor: AppColors.cardDark,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
@@ -339,13 +341,13 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                           enabledBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: BorderSide(
-                              color: const Color(0xFF3B82F6).withOpacity(0.25),
+                              color: AppColors.mutedGold.withOpacity(0.25),
                             ),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
                             borderSide: const BorderSide(
-                              color: Color(0xFF3B82F6),
+                              color: AppColors.mutedGold,
                               width: 1.5,
                             ),
                           ),
@@ -376,14 +378,14 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                             ),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFF6366F1).withOpacity(0.5),
+                              color: AppColors.mutedGold.withOpacity(0.5),
                               width: 1,
                             ),
                           ),
                           child: Row(
                             children: [
                               Icon(Icons.place,
-                                  size: 18, color: const Color(0xFF38BDF8)),
+                                  size: 18, color: AppColors.mutedGold),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -427,7 +429,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                           Icon(
                             Icons.route,
                             size: 20,
-                            color: const Color(0xFF38BDF8).withOpacity(0.9),
+                            color: AppColors.mutedGold.withOpacity(0.9),
                           ),
                           const SizedBox(width: 8),
                           Text(
@@ -472,7 +474,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                                     end: Alignment.bottomRight,
                                   )
                                 : null,
-                            color: count > 0 ? null : const Color(0xFF0B1220),
+                            color: count > 0 ? null : AppColors.cardDark,
                             borderRadius: BorderRadius.circular(12),
                             border: count > 0
                                 ? Border.all(
@@ -569,9 +571,9 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                           ? null
                           : const LinearGradient(
                               colors: [
-                                Color(0xFF3B82F6),
-                                Color(0xFF6366F1),
-                                Color(0xFF8B5CF6),
+                                AppColors.mutedGold,
+                                AppColors.mutedGold,
+                                AppColors.mutedGold,
                               ],
                               begin: Alignment.centerLeft,
                               end: Alignment.centerRight,
@@ -581,7 +583,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                           ? null
                           : [
                               BoxShadow(
-                                color: const Color(0xFF6366F1).withOpacity(0.3),
+                                color: AppColors.mutedGold.withOpacity(0.3),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),
@@ -608,7 +610,10 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                               color: Colors.white,
                             ),
                           )
-                        : Text(_isEditMode ? 'Сохранить изменения' : 'Сохранить тренировку'),
+                        : Text(
+                            _isEditMode ? 'Сохранить изменения' : 'Сохранить тренировку',
+                            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
                     ),
                   ),
                 ),

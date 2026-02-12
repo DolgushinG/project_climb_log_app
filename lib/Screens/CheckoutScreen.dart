@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -11,6 +12,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 
 class CheckoutScreen extends StatefulWidget {
@@ -552,7 +554,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         decoration: const BoxDecoration(
-          color: Color(0xFF0B1220),
+          color: AppColors.cardDark,
           borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
         child: DraggableScrollableSheet(
@@ -619,13 +621,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Оформление')),
+        appBar: AppBar(title: Text('Оформление', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Оформление')),
+        appBar: AppBar(title: Text('Оформление', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -669,8 +671,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Оформление'),
-        backgroundColor: const Color(0xFF0B1220),
+        title: Text('Оформление', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
@@ -678,7 +680,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         ),
       ),
       body: Container(
-        color: const Color(0xFF050816),
+        color: AppColors.anthracite,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -741,33 +743,34 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Text('$label: ', style: TextStyle(color: Colors.white70, fontSize: 14)),
-          Expanded(child: Text(value, style: const TextStyle(color: Colors.white, fontSize: 14))),
+          Text('$label: ', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14)),
+          Expanded(child: Text(value, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14))),
         ],
       ),
     );
   }
 
   Widget _buildHowToPay() {
-    return Card(
-      color: const Color(0xFF0B1220),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Как оплатить', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Text(
-              '1. Выберите пакет участия\n'
-              '2. Если в пакете есть мерч — выберите размер\n'
-              '3. После этого сохранится ваш выбор\n'
-              '4. Цена и ссылка обновятся автоматически\n'
-              '5. После выбора можно перейти к оплате',
-              style: TextStyle(color: Colors.white70, fontSize: 13),
-            ),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Как оплатить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Text(
+            '1. Выберите пакет участия\n'
+            '2. Если в пакете есть мерч — выберите размер\n'
+            '3. После этого сохранится ваш выбор\n'
+            '4. Цена и ссылка обновятся автоматически\n'
+            '5. После выбора можно перейти к оплате',
+            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13),
+          ),
+        ],
       ),
     );
   }
@@ -776,28 +779,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final mins = _remainingSeconds ~/ 60;
     final secs = _remainingSeconds % 60;
     final isUrgent = _remainingSeconds <= 300;
-    return Card(
-      color: isUrgent ? Colors.red.withOpacity(0.2) : const Color(0xFF0B1220),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.timer, color: isUrgent ? Colors.red : Colors.orange),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Оплатите и прикрепите чек до истечения времени: ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
-                style: TextStyle(color: isUrgent ? Colors.red : Colors.white, fontWeight: FontWeight.w500),
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        color: isUrgent ? Colors.red.withOpacity(0.2) : AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Icon(Icons.timer, color: isUrgent ? Colors.red : AppColors.mutedGold),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Оплатите и прикрепите чек до истечения времени: ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
+              style: GoogleFonts.unbounded(color: isUrgent ? Colors.red : Colors.white, fontWeight: FontWeight.w500),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600));
+    return Text(title, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600));
   }
 
   Widget _buildMerchGallery(List merchGallery) {
@@ -881,8 +885,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       }
     }
 
-    return Card(
-      color: const Color(0xFF0B1220),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -892,8 +899,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(name, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                Text('${price.toInt()} ₽', style: const TextStyle(color: Colors.white, fontSize: 16)),
+                Text(name, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                Text('${price.toInt()} ₽', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16)),
               ],
             ),
             ...merch.map((m) {
@@ -911,23 +918,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(merchName, style: TextStyle(color: Colors.white70, fontSize: 14)),
+                        Text(merchName, style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14)),
                         if (available != null && limit != null)
-                          Text(' (осталось: $available)', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                          Text(' (осталось: $available)', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
                       ],
                     ),
                     if (sizes.isNotEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 4, bottom: 2),
-                        child: Text('Размер:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                        child: Text('Размер:', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
                       ),
                       DropdownButton<String>(
                         value: _selectedSizes[merchName],
-                        hint: const Text('Выберите размер', style: TextStyle(color: Colors.white54)),
-                        dropdownColor: const Color(0xFF1E293B),
+                        hint: Text('Выберите размер', style: GoogleFonts.unbounded(color: Colors.white54)),
+                        dropdownColor: AppColors.graphite,
                         items: sizes.map((s) {
                           final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
-                          return DropdownMenuItem(value: sz, child: Text(sz, style: const TextStyle(color: Colors.white)));
+                          return DropdownMenuItem(value: sz, child: Text(sz, style: GoogleFonts.unbounded(color: Colors.white)));
                         }).toList(),
                         onChanged: isDisabled ? null : (v) {
                           setState(() {
@@ -977,9 +984,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ? ElevatedButton.icon(
                           onPressed: null,
                           icon: const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                          label: const Text('Выбрано', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                          label: Text('Выбрано', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF16A34A),
+                            backgroundColor: AppColors.mutedGold,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1001,10 +1008,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   await _savePackage(name, sizes, price.toInt());
                                 },
                           icon: const Icon(Icons.add_shopping_cart, size: 20),
-                          label: const Text('Выбрать', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                          label: Text('Выбрать', style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
                           style: OutlinedButton.styleFrom(
-                            foregroundColor: const Color(0xFF60A5FA),
-                            side: const BorderSide(color: Color(0xFF60A5FA), width: 2),
+                            foregroundColor: AppColors.mutedGold,
+                            side: const BorderSide(color: AppColors.mutedGold, width: 2),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -1019,48 +1026,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildPromoCode() {
-    return Card(
-      color: const Color(0xFF0B1220),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('Промокод', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _promoController,
-                    style: const TextStyle(color: Colors.white),
-                    decoration: InputDecoration(
-                      hintText: 'Введите промокод',
-                      hintStyle: TextStyle(color: Colors.white54),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                    ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Промокод', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  controller: _promoController,
+                  style: GoogleFonts.unbounded(color: Colors.white),
+                  decoration: InputDecoration(
+                    hintText: 'Введите промокод',
+                    hintStyle: GoogleFonts.unbounded(color: Colors.white54),
+                    filled: true,
+                    fillColor: AppColors.rowAlt,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
                   ),
                 ),
-                const SizedBox(width: 8),
-                if (_appliedPromo != null)
-                  TextButton(
-                    onPressed: _cancelPromo,
-                    child: const Text('Убрать'),
-                  )
-                else
-                  ElevatedButton(
-                    onPressed: _isApplyingPromo ? null : _applyPromo,
-                    child: _isApplyingPromo ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)) : const Text('Применить'),
-                  ),
-              ],
-            ),
-            if (_appliedPromo != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text('Промокод $_appliedPromo применён', style: const TextStyle(color: Colors.green, fontSize: 13)),
               ),
-          ],
-        ),
+              const SizedBox(width: 8),
+              if (_appliedPromo != null)
+                TextButton(
+                  onPressed: _cancelPromo,
+                  child: Text('Убрать', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                )
+              else
+                ElevatedButton(
+                  onPressed: _isApplyingPromo ? null : _applyPromo,
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: _isApplyingPromo ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('Применить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                ),
+            ],
+          ),
+          if (_appliedPromo != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text('Промокод $_appliedPromo применён', style: GoogleFonts.unbounded(color: Colors.green.shade300, fontSize: 13)),
+            ),
+        ],
       ),
     );
   }
@@ -1115,24 +1126,25 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildTotalPrice(dynamic amount, List selectedPackage, List packages, String? selectedPackageName) {
     final hasPackage = (selectedPackageName != null && selectedPackageName.isNotEmpty) || selectedPackage.isNotEmpty;
     final total = hasPackage ? _resolveTotalPrice(amount, selectedPackage, packages, selectedPackageName) : 0;
-    return Card(
-      color: const Color(0xFF0B1220),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Итого:', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
-            Text(
-              hasPackage ? '$total ₽' : '—',
-              style: TextStyle(
-                color: hasPackage ? Colors.white : Colors.white54,
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Итого:', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+          Text(
+            hasPackage ? '$total ₽' : '—',
+            style: GoogleFonts.unbounded(
+              color: hasPackage ? Colors.white : Colors.white54,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -1143,23 +1155,26 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF16A34A),
+          backgroundColor: AppColors.mutedGold,
           foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: const Text('Перейти к оплате или прикрепить чек'),
+        child: Text('Перейти к оплате или прикрепить чек', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
       ),
     );
   }
 
   Widget _buildPaymentLink(String url) {
     final uri = Uri.tryParse(url.startsWith('http') ? url : '$_baseUrl$url');
-    return Card(
-      color: const Color(0xFF0B1220),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: const Text('Ссылка на оплату', style: TextStyle(color: Colors.white)),
+        title: Text('Ссылка на оплату', style: GoogleFonts.unbounded(color: Colors.white)),
         trailing: const Icon(Icons.open_in_new, color: Colors.blue),
         onTap: () async {
           if (uri != null && await canLaunchUrl(uri)) {
@@ -1173,14 +1188,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget _buildQrCode(String path) {
     final url = _fullUrl(path);
     if (url.isEmpty) return const SizedBox.shrink();
-    return Card(
-      color: const Color(0xFF0B1220),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            const Text('QR-код для оплаты', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text('QR-код для оплаты', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             CachedNetworkImage(
               imageUrl: url,
@@ -1196,17 +1214,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildReceiptUpload() {
-    return Card(
-      color: const Color(0xFF0B1220),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Загрузить чек', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text('Загрузить чек', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text('JPEG, PNG или PDF. Макс. 10 МБ', style: TextStyle(color: Colors.white54, fontSize: 12)),
+            Text('JPEG, PNG или PDF. Макс. 10 МБ', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -1214,14 +1235,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   onPressed: _isUploadingReceipt ? null : _pickImage,
                   icon: _isUploadingReceipt ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.photo_library),
                   label: const Text('Галерея'),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E293B)),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.graphite),
                 ),
                 const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: _isUploadingReceipt ? null : _pickFile,
                   icon: const Icon(Icons.attach_file),
                   label: const Text('Файл'),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1E293B)),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.graphite),
                 ),
               ],
             ),
@@ -1248,22 +1269,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildHasBillCard() {
-    return Card(
-      color: Colors.green.withOpacity(0.2),
-      child: const Padding(
-        padding: EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 32),
-            SizedBox(width: 16),
-            Expanded(
-              child: Text(
-                'Чек уже загружен! Ожидайте подтверждения администратором.',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 32),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Чек уже загружен! Ожидайте подтверждения администратором.',
+              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

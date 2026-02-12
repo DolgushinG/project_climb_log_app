@@ -2,12 +2,14 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 import 'GroupCheckoutScreen.dart';
 import 'GroupDocumentsScreen.dart';
@@ -654,8 +656,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Заявить группу'),
-          backgroundColor: const Color(0xFF0B1220),
+          title: Text('Заявить группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          backgroundColor: AppColors.cardDark,
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -663,8 +665,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Заявить группу'),
-          backgroundColor: const Color(0xFF0B1220),
+          title: Text('Заявить группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          backgroundColor: AppColors.cardDark,
         ),
         body: Center(
           child: Padding(
@@ -691,8 +693,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Заявить группу'),
-        backgroundColor: const Color(0xFF0B1220),
+        title: Text('Заявить группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
@@ -704,7 +706,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         ),
       ),
       body: Container(
-        color: const Color(0xFF050816),
+        color: AppColors.anthracite,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -713,12 +715,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   eventTitle,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             if (_hasUnpaidGroup) ...[
               Material(
-                color: const Color(0xFF16A34A).withOpacity(0.2),
+                color: AppColors.mutedGold.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(16),
                 child: InkWell(
                   onTap: () async {
@@ -735,20 +737,20 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Row(
                       children: [
-                        const Icon(Icons.payment, color: Color(0xFF16A34A), size: 32),
+                        const Icon(Icons.payment, color: AppColors.mutedGold, size: 32),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Есть неоплаченная групповая заявка',
-                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Продолжить оплату',
-                                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -782,20 +784,20 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     padding: const EdgeInsets.all(20),
                     child: Row(
                       children: [
-                        const Icon(Icons.description, color: Color(0xFF3B82F6), size: 32),
+                        const Icon(Icons.description, color: AppColors.mutedGold, size: 32),
                         const SizedBox(width: 16),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
+                              Text(
                                 'Документы участников',
-                                style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Загрузить документы для участников группы',
-                                style: TextStyle(color: Colors.white.withOpacity(0.9), fontSize: 14),
+                                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -820,21 +822,21 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 actionText: 'Заполнить профиль',
               ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Ранее заявленные участники',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 12),
             if (relatedUsers.isEmpty)
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0B1220),
+                  color: AppColors.cardDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'У вас пока нет ранее заявленных участников. Добавьте новых участников ниже.',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                 ),
               )
             else
@@ -851,17 +853,17 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Expanded(
+                Expanded(
                   child: Text(
                     'Новые участники',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 TextButton.icon(
                   onPressed: _addNewParticipant,
-                  icon: const Icon(Icons.add, size: 20, color: Color(0xFF16A34A)),
-                  label: const Text('Добавить', style: TextStyle(color: Color(0xFF16A34A))),
+                  icon: const Icon(Icons.add, size: 20, color: AppColors.mutedGold),
+                  label: Text('Добавить', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
                 ),
               ],
             ),
@@ -870,12 +872,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 padding: const EdgeInsets.all(20),
                 margin: const EdgeInsets.only(top: 8),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0B1220),
+                  color: AppColors.cardDark,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   'Нажмите «Добавить», чтобы зарегистрировать нового участника.',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
+                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                 ),
               )
             else ...[
@@ -890,12 +892,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               child: ElevatedButton(
                 onPressed: _submitRegistration,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF16A34A),
+                  backgroundColor: AppColors.mutedGold,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: const Text('Зарегистрировать группу'),
+                child: Text('Зарегистрировать группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600, color: AppColors.anthracite)),
               ),
             ),
           ],
@@ -913,12 +915,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(text, style: const TextStyle(color: Colors.white)),
+            Text(text, style: GoogleFonts.unbounded(color: Colors.white)),
             if (actionText != null && onTap != null) ...[
               const SizedBox(height: 12),
               TextButton(
                 onPressed: onTap,
-                child: Text(actionText, style: const TextStyle(color: Colors.orange)),
+                child: Text(actionText, style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
               ),
             ],
           ],
@@ -943,11 +945,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         decoration: BoxDecoration(
-          color: const Color(0xFF16A34A).withOpacity(0.2),
+          color: AppColors.mutedGold.withOpacity(0.2),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFF16A34A)),
+          border: Border.all(color: AppColors.mutedGold),
         ),
-        child: const Text('Уже участвует', style: TextStyle(color: Color(0xFF16A34A), fontSize: 12, fontWeight: FontWeight.w500)),
+        child: Text('Уже участвует', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 12, fontWeight: FontWeight.w500)),
       );
     }
     if (cannotParticipate) {
@@ -961,7 +963,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.orange),
           ),
-          child: const Text('Не может участвовать', style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w500)),
+          child: Text('Не может участвовать', style: GoogleFonts.unbounded(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w500)),
         ),
       );
     }
@@ -992,7 +994,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
     final isAlreadyParticipant = ru['is_participant'] == true || ru['already_registered'] == true;
     return Card(
-      color: const Color(0xFF0B1220),
+      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
@@ -1008,17 +1010,17 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   Checkbox(
                     value: isSelected,
                     onChanged: isAlreadyParticipant || _cannotSelectRelatedUser(ru) ? null : (v) => _toggleRelatedUser(userId, ru),
-                    activeColor: const Color(0xFF16A34A),
+                    activeColor: AppColors.mutedGold,
                   ),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                        Text(name, style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                         if (dob != null && dob.isNotEmpty)
-                          Text('ДР: $dob', style: TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          Text('ДР: $dob', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
                         if (sportCat != null && sportCat.isNotEmpty)
-                          Text('Разряд: $sportCat', style: TextStyle(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          Text('Разряд: $sportCat', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -1059,16 +1061,16 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             Expanded(
               child: Text(
                 'Уже в листе ожидания${setsStr.isNotEmpty ? ' (Сет $setsStr)' : ''}',
-                style: TextStyle(color: Colors.amber.shade300, fontSize: 13),
+                style: GoogleFonts.unbounded(color: Colors.amber.shade300, fontSize: 13),
               ),
             ),
             TextButton(
               onPressed: () => _showAddToListPendingSheet(ru, userId, isEdit: true),
-              child: const Text('Изменить', style: TextStyle(fontSize: 12)),
+              child: Text('Изменить', style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold)),
             ),
             TextButton(
               onPressed: () => _removeFromListPending(userId),
-              child: Text('Удалить', style: TextStyle(color: Colors.red.shade300, fontSize: 12)),
+              child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.red.shade300, fontSize: 12)),
             ),
           ],
         ),
@@ -1080,10 +1082,10 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         child: OutlinedButton.icon(
           onPressed: () => _showAddToListPendingSheet(ru, userId, isEdit: false),
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('Добавить в лист ожидания', style: TextStyle(fontSize: 13)),
+          label: Text('Добавить в лист ожидания', style: GoogleFonts.unbounded(fontSize: 13)),
           style: OutlinedButton.styleFrom(
-            foregroundColor: const Color(0xFFF59E0B),
-            side: const BorderSide(color: Color(0xFFF59E0B)),
+            foregroundColor: AppColors.mutedGold,
+            side: const BorderSide(color: AppColors.mutedGold),
           ),
         ),
       );
@@ -1159,7 +1161,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      backgroundColor: const Color(0xFF0B1220),
+      backgroundColor: AppColors.cardDark,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
@@ -1235,7 +1237,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     return CheckboxListTile(
                       title: Text(label, style: const TextStyle(color: Colors.white)),
                       value: sheetSelectedNumberSets.contains(numSet),
-                      activeColor: const Color(0xFFF59E0B),
+                      activeColor: AppColors.mutedGold,
                       onChanged: (v) {
                         setSheetState(() {
                           if (v == true) {
@@ -1255,10 +1257,10 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                       value: (sheetCategory ?? '').isEmpty ? null : sheetCategory,
                       decoration: const InputDecoration(
                         filled: true,
-                        fillColor: Color(0xFF1E293B),
+                        fillColor: AppColors.graphite,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                       ),
-                      dropdownColor: const Color(0xFF1E293B),
+                      dropdownColor: AppColors.graphite,
                       items: categoriesList.map((c) {
                         final cat = c is Map ? (c['category'] ?? c)?.toString() ?? '' : c.toString();
                         return DropdownMenuItem(value: cat, child: Text(cat, style: const TextStyle(color: Colors.white)));
@@ -1274,10 +1276,10 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                       value: (sheetSportCategory ?? '').isEmpty ? null : sheetSportCategory,
                       decoration: const InputDecoration(
                         filled: true,
-                        fillColor: Color(0xFF1E293B),
+                        fillColor: AppColors.graphite,
                         border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
                       ),
-                      dropdownColor: const Color(0xFF1E293B),
+                      dropdownColor: AppColors.graphite,
                       items: sportCategoriesList.map((s) {
                         final sc = s is Map ? (s['category'] ?? s['sport_category'] ?? '')?.toString() ?? '' : s.toString();
                         return DropdownMenuItem(value: sc, child: Text(sc, style: const TextStyle(color: Colors.white)));
@@ -1306,7 +1308,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                       await _addToListPending(userId, numberSets, birthdayStr, categoryToSend, sheetSportCategory, gender);
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF16A34A),
+                      backgroundColor: AppColors.mutedGold,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -1427,11 +1429,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             value: data['sets'] is int ? data['sets'] as int? : int.tryParse(data['sets']?.toString() ?? ''),
             decoration: const InputDecoration(
               filled: true,
-              fillColor: Color(0xFF1E293B),
+              fillColor: AppColors.graphite,
               border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
-            dropdownColor: const Color(0xFF1E293B),
+            dropdownColor: AppColors.graphite,
             items: setsList.map((s) {
               final m = s is Map ? Map<String, dynamic>.from(s) : <String, dynamic>{};
               final n = m['number_set'];
@@ -1468,11 +1470,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             value: (data['category']?.toString() ?? '').isEmpty ? null : data['category']?.toString(),
             decoration: const InputDecoration(
               filled: true,
-              fillColor: Color(0xFF1E293B),
+              fillColor: AppColors.graphite,
               border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
-            dropdownColor: const Color(0xFF1E293B),
+            dropdownColor: AppColors.graphite,
             items: categoriesList.map((c) {
               final cat = c is Map ? c['category']?.toString() ?? '' : c.toString();
               return DropdownMenuItem<String>(value: cat, child: Text(cat, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis));
@@ -1493,11 +1495,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             value: (data['sport_category']?.toString() ?? '').isEmpty ? null : data['sport_category']?.toString(),
             decoration: const InputDecoration(
               filled: true,
-              fillColor: Color(0xFF1E293B),
+              fillColor: AppColors.graphite,
               border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
               contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             ),
-            dropdownColor: const Color(0xFF1E293B),
+            dropdownColor: AppColors.graphite,
             items: ((_data?['sport_categories']) as List? ?? []).map((s) {
               final sc = s is Map ? (s['category'] ?? s['sport_category'] ?? '').toString() : s.toString();
               return DropdownMenuItem<String>(value: sc, child: Text(sc, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis));
@@ -1516,7 +1518,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   Widget _buildNewParticipantCard(int index) {
     final p = _newParticipants[index];
     return Card(
-      color: const Color(0xFF0B1220),
+      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -1528,7 +1530,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text('Участник ${index + 1}', style: const TextStyle(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                  child: Text('Участник ${index + 1}', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
@@ -1545,14 +1547,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   _saveDraft();
                 });
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Имя',
+                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
                 filled: true,
-                fillColor: Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                fillColor: AppColors.rowAlt,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              style: const TextStyle(color: Colors.white),
+              style: GoogleFonts.unbounded(color: Colors.white),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -1563,14 +1566,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   _saveDraft();
                 });
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Фамилия',
+                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
                 filled: true,
-                fillColor: Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                fillColor: AppColors.rowAlt,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              style: const TextStyle(color: Colors.white),
+              style: GoogleFonts.unbounded(color: Colors.white),
             ),
             if (_isInputBirthday || _needSet) ...[
               const SizedBox(height: 12),
@@ -1578,7 +1582,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(
                   p.dob != null ? DateFormat('dd.MM.yyyy').format(p.dob!) : 'Дата рождения',
-                  style: TextStyle(color: p.dob != null ? Colors.white : Colors.white54),
+                  style: GoogleFonts.unbounded(color: p.dob != null ? Colors.white : Colors.white54),
                 ),
                 trailing: const Icon(Icons.calendar_today, color: Colors.white70),
                 onTap: () async {
@@ -1604,7 +1608,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  const Text('Сет', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                  Text('Сет', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
                   if (_fetchingSetsIndex == index) ...[
                     const SizedBox(width: 8),
                     const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
@@ -1616,14 +1620,14 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
                     'Если все места в сете заняты (лист ожидания), участник будет добавлен в список ожидания.',
-                    style: TextStyle(color: Colors.white54, fontSize: 11),
+                    style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 11),
                   ),
                 ),
               const SizedBox(height: 4),
               if (_fetchingSetsIndex == index)
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Center(child: Text('Загрузка сетов по дате рождения...', style: TextStyle(color: Colors.white54, fontSize: 12))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  child: Center(child: Text('Загрузка сетов по дате рождения...', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12))),
                 )
               else
               DropdownButtonFormField<int>(
@@ -1634,11 +1638,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     : null,
                 decoration: const InputDecoration(
                   filled: true,
-                  fillColor: Color(0xFF1E293B),
+                  fillColor: AppColors.graphite,
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
-                dropdownColor: const Color(0xFF1E293B),
+                dropdownColor: AppColors.graphite,
                 items: _getSetsForNewParticipant(p).map((s) {
                   final m = s is Map ? s : <String, dynamic>{};
                   final numSet = m['number_set'];
@@ -1648,7 +1652,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   final label = 'Сет №${numSet ?? ''} ${m['time'] ?? ''}${listPending ? ' (лист ожид.)' : free != null ? ' ($free)' : ''}';
                   return DropdownMenuItem<int>(
                     value: val ?? 0,
-                    child: Text(label, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis),
+                    child: Text(label, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: (v) async {
@@ -1677,22 +1681,22 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             ],
             if (_isAutoCategories != 1 && _getCategoriesForNewParticipant(p).isNotEmpty && _fetchingSetsIndex != index) ...[
               const SizedBox(height: 12),
-              const Text('Категория', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Категория', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 isExpanded: true,
                 value: p.category.isEmpty ? null : p.category,
                 decoration: const InputDecoration(
                   filled: true,
-                  fillColor: Color(0xFF1E293B),
+                  fillColor: AppColors.graphite,
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
-                dropdownColor: const Color(0xFF1E293B),
+                dropdownColor: AppColors.graphite,
                 items: _getCategoriesForNewParticipant(p).map((c) {
                   final m = c is Map ? c : <String, dynamic>{};
                   final cat = m['category']?.toString() ?? '';
-                  return DropdownMenuItem(value: cat, child: Text(cat, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis));
+                  return DropdownMenuItem(value: cat, child: Text(cat, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
                 }).toList(),
                 onChanged: (v) {
                   setState(() {
@@ -1704,21 +1708,21 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             ],
             if (_isNeedSportCategory && (_data?['sport_categories'] is List)) ...[
               const SizedBox(height: 12),
-              const Text('Разряд', style: TextStyle(color: Colors.white70, fontSize: 12)),
+              Text('Разряд', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 isExpanded: true,
                 value: p.sportCategory.isEmpty ? null : p.sportCategory,
                 decoration: const InputDecoration(
                   filled: true,
-                  fillColor: Color(0xFF1E293B),
+                  fillColor: AppColors.graphite,
                   border: OutlineInputBorder(),
                   contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                 ),
-                dropdownColor: const Color(0xFF1E293B),
+                dropdownColor: AppColors.graphite,
                 items: ((_data?['sport_categories']) as List? ?? []).map((s) {
                   final sc = (s is Map ? s['category'] ?? s['sport_category'] ?? s.toString() : s.toString()).toString();
-                  return DropdownMenuItem<String>(value: sc, child: Text(sc, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis));
+                  return DropdownMenuItem<String>(value: sc, child: Text(sc, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
                 }).toList(),
                 onChanged: (v) {
                   setState(() {
@@ -1737,14 +1741,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   _saveDraft();
                 });
               },
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Город',
+                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
                 filled: true,
-                fillColor: Color(0xFF1E293B),
-                border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-                contentPadding: EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                fillColor: AppColors.rowAlt,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              style: const TextStyle(color: Colors.white),
+              style: GoogleFonts.unbounded(color: Colors.white),
             ),
           ],
         ),
@@ -1756,7 +1761,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Пол', style: TextStyle(color: Colors.white70, fontSize: 12)),
+        Text('Пол', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
         const SizedBox(height: 6),
         Row(
           children: [
@@ -1770,7 +1775,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: p.gender == 'male' ? Colors.white : Colors.white54,
-              side: BorderSide(color: p.gender == 'male' ? const Color(0xFF16A34A) : Colors.white38),
+              side: BorderSide(color: p.gender == 'male' ? AppColors.mutedGold : Colors.white38),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
@@ -1788,7 +1793,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             },
             style: OutlinedButton.styleFrom(
               foregroundColor: p.gender == 'female' ? Colors.white : Colors.white54,
-              side: BorderSide(color: p.gender == 'female' ? const Color(0xFF16A34A) : Colors.white38),
+              side: BorderSide(color: p.gender == 'female' ? AppColors.mutedGold : Colors.white38),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),

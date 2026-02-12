@@ -1,9 +1,11 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../login.dart';
+import '../theme/app_theme.dart';
 import '../main.dart';
 import '../services/WebAuthnService.dart';
 
@@ -110,9 +112,9 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
     _showSnackBar(message);
   }
 
-  void _showSnackBar(String message, [Color backgroundColor = Colors.blue]) {
+  void _showSnackBar(String message, [Color? backgroundColor]) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor),
+      SnackBar(content: Text(message), backgroundColor: backgroundColor ?? AppColors.mutedGold),
     );
   }
 
@@ -121,9 +123,9 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: const Text(
+        title: Text(
           'Авторизация',
-          style: TextStyle(fontSize: 22, color: Colors.black),
+          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -146,71 +148,68 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
   }
 
   Widget _buildProfileCard() {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
       ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Информация о входе',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Информация о входе',
+            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          const SizedBox(height: 12),
+          if (widget.socialite != '')
+            Row(
+              children: [
+                Icon(Icons.account_circle, color: AppColors.mutedGold, size: 22),
+                const SizedBox(width: 12),
+                Text('Соц-сеть: ${widget.socialite}', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+              ],
             ),
-            const SizedBox(height: 10),
-            if (widget.socialite != '')
-              Row(
-                children: [
-                  const Icon(Icons.account_circle, color: Colors.teal),
-                  const SizedBox(width: 8),
-                  Text('Соц-сеть: ${widget.socialite}', style: const TextStyle(fontSize: 16)),
-                ],
-              ),
-            if (widget.rememberToken != null)
-              const Row(
-                children: [
-                  Icon(Icons.email, color: Colors.teal),
-                  SizedBox(width: 8),
-                  Text('Email и пароль', style: TextStyle(fontSize: 16)),
-                ],
-              ),
-          ],
-        ),
+          if (widget.rememberToken != null)
+            Row(
+              children: [
+                Icon(Icons.email, color: AppColors.mutedGold, size: 22),
+                const SizedBox(width: 12),
+                Text('Email и пароль', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+              ],
+            ),
+        ],
       ),
     );
   }
 
 
   Widget _buildPasskeyCard() {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
       ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                const Icon(Icons.fingerprint, color: Colors.teal),
-                const SizedBox(width: 8),
-                const Text(
-                  'Face ID / Touch ID (Passkey)',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.fingerprint, color: AppColors.mutedGold, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'Face ID / Touch ID (Passkey)',
+                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
             const SizedBox(height: 10),
             Text(
               _hasPasskey == false
                   ? 'Passkey не добавлен. Добавьте для входа по Face ID / Touch ID.'
                   : 'Добавьте Passkey для входа по биометрии или удалите его.',
-              style: const TextStyle(fontSize: 16),
+              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
             ),
             const SizedBox(height: 16),
             if (_passkeyLoading)
@@ -247,7 +246,6 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
               ),
           ],
         ),
-      ),
     );
   }
 
@@ -320,43 +318,40 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
   }
 
   Widget _buildLogoutCard() {
-    return Card(
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
       ),
-      elevation: 4,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Выход из аккаунта',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            const Text(
-              'Нажмите кнопку ниже, чтобы выйти из текущего аккаунта.',
-              style: TextStyle(fontSize: 16),
-            ),
-            const SizedBox(height: 20),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _logout,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Выход из аккаунта',
+            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Нажмите кнопку ниже, чтобы выйти из текущего аккаунта.',
+            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _logout,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Text('Выйти',
-                    style: TextStyle(fontSize: 16, color: Colors.white)),
               ),
+              child: Text('Выйти', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

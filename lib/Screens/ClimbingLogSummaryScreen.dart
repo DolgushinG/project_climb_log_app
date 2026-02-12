@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';
 
@@ -69,6 +71,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -80,10 +83,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                   child: Text(
                     'Обзор',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -108,12 +108,17 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                           Text(
                             _error ?? 'Не удалось загрузить данные',
                             textAlign: TextAlign.center,
-                            style: const TextStyle(color: Colors.white70),
+                            style: GoogleFonts.unbounded(color: Colors.white70),
                           ),
                           const SizedBox(height: 16),
-                          FilledButton(
+                          ElevatedButton(
                             onPressed: _load,
-                            child: const Text('Повторить'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mutedGold,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -189,15 +194,15 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF1E3A5F),
-            Color(0xFF312E81),
+            AppColors.graphite,
+            AppColors.anthracite,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0xFF6366F1).withOpacity(0.3),
+          color: AppColors.mutedGold.withOpacity(0.2),
           width: 1,
         ),
       ),
@@ -207,16 +212,13 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
           const SizedBox(height: 16),
           Text(
             'Добро пожаловать в трекер тренировок',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                ),
+            style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Добавьте первую тренировку во вкладке «Тренировка» — здесь появится сводка, графики и рекомендации.',
-            style: TextStyle(color: Colors.white70, fontSize: 14),
+            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],
@@ -286,33 +288,22 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: bgColor,
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.06),
-          width: 1,
-        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, color: Colors.white70, size: 22),
+          Icon(icon, color: AppColors.mutedGold, size: 22),
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-            ),
+            style: GoogleFonts.unbounded(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.8),
-              fontSize: 12,
-            ),
+            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -322,10 +313,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   Widget _buildSectionTitle(BuildContext context, String title) {
     return Text(
       title,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-          ),
+      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
     );
   }
 
@@ -472,10 +460,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                   const SizedBox(width: 6),
                   Text(
                     '${e.key}: ${e.value}',
-                    style: TextStyle(
-                      color: Colors.white.withOpacity(0.9),
-                      fontSize: 12,
-                    ),
+                    style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
                   ),
                 ],
               );
@@ -510,16 +495,13 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
             Icon(
               Icons.lightbulb_outline,
               size: 18,
-              color: const Color(0xFFF59E0B).withOpacity(0.9),
+              color: AppColors.mutedGold,
             ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Добавьте первую тренировку в следующей вкладке',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 14,
-                ),
+                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
               ),
             ),
           ],
@@ -537,16 +519,13 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
               Icon(
                 Icons.lightbulb_outline,
                 size: 18,
-                color: const Color(0xFFF59E0B).withOpacity(0.9),
+                color: AppColors.mutedGold,
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   r.text,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.9),
-                    fontSize: 14,
-                  ),
+                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                 ),
               ),
             ],

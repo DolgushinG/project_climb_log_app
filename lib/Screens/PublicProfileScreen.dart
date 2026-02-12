@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 
 import '../CompetitionScreen.dart';
@@ -248,9 +250,10 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Публичный профиль'),
+        title: Text('Публичный профиль', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
       ),
-      backgroundColor: const Color(0xFF050816),
+      backgroundColor: AppColors.anthracite,
       body: _buildBody(),
     );
   }
@@ -277,20 +280,22 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.person_off_rounded, size: 64, color: Colors.white38),
+              Icon(Icons.person_off_rounded, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
               const SizedBox(height: 16),
               Text(
                 'Пользователь не найден',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Вернуться назад'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mutedGold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Вернуться назад', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -308,15 +313,11 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_rounded, size: 64, color: Colors.white38),
+              Icon(Icons.lock_rounded, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
               const SizedBox(height: 16),
               Text(
                 'Профиль скрыт',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 8),
               Padding(
@@ -324,16 +325,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                 child: Text(
                   'Этот пользователь решил сделать свой профиль приватным',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 14,
-                  ),
+                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
                 ),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Вернуться назад'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mutedGold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Вернуться назад', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -364,11 +368,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             const SizedBox(height: 24),
             Text(
               'История выступлений',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white.withOpacity(0.95),
-              ),
+              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 12),
             ...events.map((e) => _buildEventCard(e)),
@@ -390,29 +390,25 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
   }
 
   Widget _buildProfileHeader(PublicProfileUser user, String avatarUrl) {
-    return Card(
-      color: const Color(0xFF0B1220),
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             CircleAvatar(
               radius: 36,
-              backgroundColor: Colors.blueGrey.shade800,
+              backgroundColor: AppColors.rowAlt,
               backgroundImage: avatarUrl.isNotEmpty
                   ? NetworkImage(avatarUrl)
                   : null,
               child: avatarUrl.isEmpty
                   ? Text(
                       user.middlename.isNotEmpty ? user.middlename[0] : '?',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: GoogleFonts.unbounded(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w600),
                     )
                   : null,
             ),
@@ -426,59 +422,45 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                       Expanded(
                         child: Text(
                           user.middlename,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
+                          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                         ),
                       ),
                       if (user.emailVerifiedAt != null &&
                           user.emailVerifiedAt!.isNotEmpty)
-                        Icon(
+                        const Icon(
                           Icons.verified_rounded,
                           size: 20,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.mutedGold,
                         ),
                     ],
                   ),
                   const SizedBox(height: 6),
                   Text(
                     'Город: ${displayValue(user.city)}',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.white.withOpacity(0.8),
-                    ),
+                    style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
                   ),
                   const SizedBox(height: 4),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
+                      color: AppColors.rowAlt,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
                       'Кол-во участий: ${user.countEvent}',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
+                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Макс. категория: ${displayValue(_data!.bestGrade)}',
-                    style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.8),
-                      ),
-                    ),
+                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                  ),
                 ],
               ),
             ),
           ],
         ),
-      ),
     );
   }
 
@@ -486,52 +468,40 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard('Flash', '${state.flash.toStringAsFixed(1)}%',
-              Colors.green.withOpacity(0.2)),
+          child: _buildStatCard('Flash', '${state.flash.toStringAsFixed(1)}%', AppColors.cardDark),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Redpoint',
-              '${state.redpoint.toStringAsFixed(1)}%',
-              Colors.orange.withOpacity(0.2)),
+          child: _buildStatCard('Redpoint', '${state.redpoint.toStringAsFixed(1)}%', AppColors.cardDark),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Всего трасс', '${state.all}',
-              Colors.blue.withOpacity(0.2)),
+          child: _buildStatCard('Всего трасс', '${state.all}', AppColors.cardDark),
         ),
       ],
     );
   }
 
   Widget _buildStatCard(String title, String value, Color bgColor) {
-    return Card(
-      color: bgColor,
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
-        child: Column(
-          children: [
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.white.withOpacity(0.85),
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+    return Container(
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+      child: Column(
+        children: [
+          Text(
+            value,
+            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            title,
+            style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ),
     );
   }
@@ -555,13 +525,12 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             _fetchAndNavigateToCompetition(e.id);
           }
         },
-        child: Card(
-          color: const Color(0xFF0B1220),
-          surfaceTintColor: Colors.transparent,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
           ),
+          clipBehavior: Clip.antiAlias,
           child: Row(
             children: [
               SizedBox(
@@ -572,18 +541,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                     posterUrl,
                     fit: BoxFit.cover,
                     errorBuilder: (_, __, ___) => Container(
-                      color: Colors.black26,
+                      color: AppColors.rowAlt,
                       child: const Icon(
                         Icons.landscape_rounded,
-                        color: Colors.white38,
+                        color: AppColors.mutedGold,
+                        size: 32,
                       ),
                     ),
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
                       return Container(
-                        color: Colors.black12,
+                        color: AppColors.rowAlt,
                         child: const Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
+                          child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
                         ),
                       );
                     },
@@ -601,29 +571,19 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         e.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
+                        style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                       ),
                       if (dateStr.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(
                           dateStr,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
+                          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
                         ),
                       ],
                       const SizedBox(height: 4),
                       Text(
                         'Участников: ${e.countParticipant}',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: Colors.white.withOpacity(0.6),
-                        ),
+                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white60),
                       ),
                       const SizedBox(height: 4),
                       Container(
@@ -631,18 +591,16 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: e.isFinished
-                              ? Colors.grey.withOpacity(0.18)
-                              : Colors.green.withOpacity(0.18),
+                              ? AppColors.graphite
+                              : AppColors.successMuted.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           statusText,
-                          style: TextStyle(
+                          style: GoogleFonts.unbounded(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: e.isFinished
-                                ? Colors.grey[300]
-                                : Colors.green[200],
+                            color: e.isFinished ? Colors.white70 : Colors.white.withOpacity(0.9),
                           ),
                         ),
                       ),
@@ -652,20 +610,13 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
                         runSpacing: 4,
                         children: [
                           if (item.category.isNotEmpty)
-                            _buildResultChip(
-                                item.category, Colors.blue.withOpacity(0.2)),
+                            _buildResultChip(item.category, AppColors.rowAlt),
                           if (item.qualificationPlace != null)
-                            _buildResultChip(
-                                'Квалификация: ${item.qualificationPlace} место',
-                                Colors.green.withOpacity(0.15)),
+                            _buildResultChip('Квалификация: ${item.qualificationPlace} место', AppColors.rowAlt),
                           if (item.semifinalPlace != null)
-                            _buildResultChip(
-                                'Полуфинал: ${item.semifinalPlace} место',
-                                Colors.orange.withOpacity(0.15)),
+                            _buildResultChip('Полуфинал: ${item.semifinalPlace} место', AppColors.rowAlt),
                           if (item.finalPlace != null)
-                            _buildResultChip(
-                                'Финал: ${item.finalPlace} место',
-                                Colors.purple.withOpacity(0.2)),
+                            _buildResultChip('Финал: ${item.finalPlace} место', AppColors.rowAlt),
                         ],
                       ),
                     ],
@@ -704,7 +655,7 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
       ),
       child: Text(
         text,
-        style: const TextStyle(fontSize: 11, color: Colors.white),
+        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
       ),
     );
   }

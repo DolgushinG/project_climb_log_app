@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:login_app/theme/app_theme.dart';
 
 /// Отступы по умолчанию для баннера (можно менять под дизайн).
 const double kTopNotificationHorizontalMargin = 12.0;
@@ -26,7 +27,7 @@ class TopNotificationBanner extends StatelessWidget {
     super.key,
     required this.message,
     this.icon = Icons.info_outline_rounded,
-    this.backgroundColor = const Color(0xFF1C1917),
+    this.backgroundColor = AppColors.graphite,
     this.iconColor = Colors.white70,
     this.textColor = Colors.white,
     this.showCloseButton = true,
@@ -46,7 +47,7 @@ class TopNotificationBanner extends StatelessWidget {
       key: key,
       message: message,
       icon: Icons.wifi_off_rounded,
-      backgroundColor: const Color(0xFF9A3412),
+      backgroundColor: AppColors.graphite,
       iconColor: Colors.white,
       textColor: Colors.white,
       onClose: onClose,
@@ -64,7 +65,7 @@ class TopNotificationBanner extends StatelessWidget {
       key: key,
       message: message,
       icon: Icons.wifi_off_rounded,
-      backgroundColor: const Color(0xFF78350F),
+      backgroundColor: AppColors.graphite,
       iconColor: Colors.orange.shade200,
       textColor: Colors.white,
       trailing: trailing,
@@ -83,7 +84,7 @@ class TopNotificationBanner extends StatelessWidget {
       key: key,
       message: message,
       icon: Icons.cloud_done_outlined,
-      backgroundColor: const Color(0xFF27272A),
+      backgroundColor: AppColors.graphite,
       iconColor: Colors.white70,
       textColor: Colors.white70,
       trailing: trailing,

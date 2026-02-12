@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -84,9 +86,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Скалодром'),
+        title: Text('Скалодром', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
       ),
-      backgroundColor: const Color(0xFF050816),
+      backgroundColor: AppColors.anthracite,
       body: _buildBody(),
     );
   }
@@ -111,12 +114,12 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.business_rounded, size: 64, color: Colors.white38),
+              Icon(Icons.business_rounded, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
               const SizedBox(height: 16),
               Text(
                 'Скалодром не найден',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.9),
+                style: GoogleFonts.unbounded(
+                  color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                 ),
@@ -124,7 +127,13 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Вернуться назад'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.mutedGold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Вернуться назад', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -224,7 +233,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                               )
                             : TextButton(
                                 onPressed: () => _load(jobsPage: _jobsPage + 1),
-                                child: const Text('Загрузить ещё'),
+                                child: Text('Загрузить ещё', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
                               ),
                       ),
                     ),
@@ -237,55 +246,54 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
   }
 
   Widget _buildGymHeader(Gym gym) {
-    return Card(
-      color: const Color(0xFF0B1220),
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              width: 64,
-              height: 64,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: const Icon(
-                Icons.sports,
-                size: 36,
-                color: Colors.white70,
-              ),
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppColors.rowAlt,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+            child: const Icon(
+              Icons.sports,
+              size: 36,
+              color: AppColors.mutedGold,
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  gym.name,
+                  style: GoogleFonts.unbounded(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+                if (gym.city != null && gym.city!.isNotEmpty) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    gym.name,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                    gym.city!,
+                    style: GoogleFonts.unbounded(
+                      fontSize: 13,
+                      color: Colors.white70,
                     ),
                   ),
-                  if (gym.city != null && gym.city!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      gym.city!,
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
-                    ),
-                  ],
                 ],
-              ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -308,14 +316,13 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 20, color: Colors.white70),
+          Icon(icon, size: 20, color: AppColors.mutedGold),
           const SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +330,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
             children: [
               Text(
                 value,
-                style: const TextStyle(
+                style: GoogleFonts.unbounded(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -331,9 +338,9 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               ),
               Text(
                 label,
-                style: TextStyle(
+                style: GoogleFonts.unbounded(
                   fontSize: 11,
-                  color: Colors.white.withOpacity(0.7),
+                  color: Colors.white70,
                 ),
               ),
             ],
@@ -349,14 +356,13 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.06),
+        color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 20, color: Colors.white70),
+          Icon(icon, size: 20, color: AppColors.mutedGold),
           const SizedBox(width: 10),
           Expanded(
             child: Column(
@@ -364,16 +370,16 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               children: [
                 Text(
                   label,
-                  style: TextStyle(
+                  style: GoogleFonts.unbounded(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.7),
+                    color: Colors.white70,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: GoogleFonts.unbounded(
                     fontSize: 14,
                     color: Colors.white,
                     height: 1.35,
@@ -404,14 +410,13 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.06),
+          color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, size: 20, color: Colors.white70),
+            Icon(icon, size: 20, color: AppColors.mutedGold),
             const SizedBox(width: 10),
             Expanded(
               child: Column(
@@ -419,10 +424,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                 children: [
                   Text(
                     label,
-                    style: TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.7),
+                      color: Colors.white70,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -431,10 +436,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                       Expanded(
                         child: Text(
                           value,
-                          style: TextStyle(
+                          style: GoogleFonts.unbounded(
                             fontSize: 14,
                             color: isTappable
-                                ? Theme.of(context).colorScheme.primary
+                                ? AppColors.mutedGold
                                 : Colors.white,
                             height: 1.35,
                             decoration: isTappable
@@ -444,10 +449,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         ),
                       ),
                       if (isTappable)
-                        Icon(
+                        const Icon(
                           Icons.open_in_new,
                           size: 16,
-                          color: Theme.of(context).colorScheme.primary,
+                          color: AppColors.mutedGold,
                         ),
                     ],
                   ),
@@ -476,22 +481,21 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
         height: 100,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0B1220),
+          color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
+                color: AppColors.rowAlt,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(
                 Icons.map_outlined,
                 size: 28,
-                color: Colors.white70,
+                color: AppColors.mutedGold,
               ),
             ),
             const SizedBox(width: 16),
@@ -502,10 +506,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                 children: [
                   Text(
                     'Открыть в картах',
-                    style: TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.95),
+                      color: Colors.white,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -513,18 +517,18 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                     gym.address ?? 'Скалодром на карте',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 12,
-                      color: Colors.white.withOpacity(0.6),
+                      color: Colors.white70,
                     ),
                   ),
                 ],
               ),
             ),
-            Icon(
+            const Icon(
               Icons.arrow_forward_ios,
               size: 16,
-              color: Theme.of(context).colorScheme.primary,
+              color: AppColors.mutedGold,
             ),
           ],
         ),
@@ -535,10 +539,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: TextStyle(
+      style: GoogleFonts.unbounded(
         fontSize: 16,
         fontWeight: FontWeight.w600,
-        color: Colors.white.withOpacity(0.95),
+        color: Colors.white,
       ),
     );
   }
@@ -559,13 +563,12 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
         onTap: () {
           if (e.id > 0) _fetchAndNavigateToCompetition(e.id);
         },
-        child: Card(
-          color: const Color(0xFF0B1220),
-          surfaceTintColor: Colors.transparent,
-          clipBehavior: Clip.antiAlias,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
           ),
+          clipBehavior: Clip.antiAlias,
           child: Row(
             children: [
               SizedBox(
@@ -576,16 +579,17 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                     imageUrl: posterUrl,
                     fit: BoxFit.cover,
                     placeholder: (_, __) => Container(
-                      color: Colors.black26,
+                      color: AppColors.rowAlt,
                       child: const Center(
-                        child: CircularProgressIndicator(strokeWidth: 2),
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
                       ),
                     ),
                     errorWidget: (_, __, ___) => Container(
-                      color: Colors.black26,
+                      color: AppColors.rowAlt,
                       child: const Icon(
                         Icons.landscape_rounded,
-                        color: Colors.white38,
+                        color: AppColors.mutedGold,
+                        size: 32,
                       ),
                     ),
                   ),
@@ -602,7 +606,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         e.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: GoogleFonts.unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -612,18 +616,18 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         const SizedBox(height: 4),
                         Text(
                           dateStr,
-                          style: TextStyle(
+                          style: GoogleFonts.unbounded(
                             fontSize: 12,
-                            color: Colors.white.withOpacity(0.7),
+                            color: Colors.white70,
                           ),
                         ),
                       ],
                       const SizedBox(height: 4),
                       Text(
                         'Участников: ${e.countParticipant}',
-                        style: TextStyle(
+                        style: GoogleFonts.unbounded(
                           fontSize: 11,
-                          color: Colors.white.withOpacity(0.6),
+                          color: Colors.white60,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -632,18 +636,18 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                             horizontal: 8, vertical: 4),
                         decoration: BoxDecoration(
                           color: e.isFinished
-                              ? Colors.grey.withOpacity(0.18)
-                              : Colors.green.withOpacity(0.18),
+                              ? AppColors.graphite
+                              : AppColors.successMuted.withOpacity(0.3),
                           borderRadius: BorderRadius.circular(999),
                         ),
                         child: Text(
                           statusText,
-                          style: TextStyle(
+                          style: GoogleFonts.unbounded(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: e.isFinished
-                                ? Colors.grey[300]
-                                : Colors.green[200],
+                                ? Colors.white70
+                                : Colors.white.withOpacity(0.9),
                           ),
                         ),
                       ),
@@ -652,17 +656,17 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         children: [
                           Text(
                             'Подробнее',
-                            style: TextStyle(
+                            style: GoogleFonts.unbounded(
                               fontSize: 12,
-                              color: Theme.of(context).colorScheme.primary,
-                              fontWeight: FontWeight.w500,
+                              color: AppColors.mutedGold,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                           const SizedBox(width: 4),
-                          Icon(
+                          const Icon(
                             Icons.arrow_forward_ios,
                             size: 10,
-                            color: Theme.of(context).colorScheme.primary,
+                            color: AppColors.mutedGold,
                           ),
                         ],
                       ),
@@ -685,9 +689,8 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
         child: Container(
           padding: const EdgeInsets.all(14),
           decoration: BoxDecoration(
-            color: const Color(0xFF0B1220),
+            color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -697,7 +700,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                   Expanded(
                     child: Text(
                       j.title,
-                      style: const TextStyle(
+                      style: GoogleFonts.unbounded(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -705,10 +708,10 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                     ),
                   ),
                   if (j.url != null && j.url!.isNotEmpty)
-                    Icon(
+                    const Icon(
                       Icons.open_in_new,
                       size: 16,
-                      color: Theme.of(context).colorScheme.primary,
+                      color: AppColors.mutedGold,
                     ),
                 ],
               ),
@@ -736,14 +739,14 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.08),
+        color: AppColors.rowAlt,
         borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         text,
-        style: TextStyle(
+        style: GoogleFonts.unbounded(
           fontSize: 11,
-          color: Colors.white.withOpacity(0.9),
+          color: Colors.white70,
         ),
       ),
     );

@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import '../theme/app_theme.dart';
 
 class PasswordRecoveryScreen extends StatefulWidget {
   @override
@@ -45,98 +48,75 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
           child: Center(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(20),
-              child: Card(
-                color: Colors.white.withOpacity(0.3), // Прозрачный фон формы
-                elevation: 5,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(16),
                 ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Form(
-                    key: _formKey,
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'Восстановление пароля',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w600,
+                padding: const EdgeInsets.all(24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Восстановление пароля',
+                        style: GoogleFonts.unbounded(
+                          color: Colors.white,
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: GoogleFonts.unbounded(color: Colors.white),
+                        decoration: InputDecoration(
+                          labelText: 'E-mail',
+                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          filled: true,
+                          fillColor: AppColors.rowAlt,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide.none,
+                          ),
+                          prefixIcon: Icon(Icons.email_outlined, color: AppColors.mutedGold),
+                        ),
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Введите e-mail';
+                          }
+                          final emailRegex = RegExp(
+                              r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+                          if (!emailRegex.hasMatch(value)) {
+                            return 'Введите корректный e-mail';
+                          }
+                          return null;
+                        },
+                      ),
+                        const SizedBox(height: 24),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: _isSubmitting ? null : _submitEmail,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mutedGold,
+                              foregroundColor: AppColors.anthracite,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: _isSubmitting
+                                ? const CircularProgressIndicator(color: Colors.white)
+                                : Text('Отправить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                           ),
                         ),
                         const SizedBox(height: 20),
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          style: const TextStyle(color: Colors.white),
-                          decoration: InputDecoration(
-                            labelText: 'E-mail',
-                            labelStyle: TextStyle(
-                              color: Colors.white.withOpacity(0.8),
-                            ),
-                            enabledBorder: OutlineInputBorder(
-                              borderSide: BorderSide(color: Colors.white.withOpacity(0.5)),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderSide: const BorderSide(color: Colors.white),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Введите e-mail';
-                            }
-                            final emailRegex = RegExp(
-                                r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-                            if (!emailRegex.hasMatch(value)) {
-                              return 'Введите корректный e-mail';
-                            }
-                            return null;
-                          },
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: _isSubmitting ? null : _submitEmail,
-                          child: Container(
-                            width: double.infinity,
-                            height: 48,
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                                colors: [Colors.blue, Color(0xFF43E6FA)],
-                              ),
-                              borderRadius: BorderRadius.circular(30),
-                            ),
-                            child: Center(
-                              child: _isSubmitting
-                                  ? const CircularProgressIndicator(color: Colors.white)
-                                  : const Text(
-                                'Отправить',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context); // Вернуться назад
-                          },
-                          child: const Text(
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: Text(
                             'Назад',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w400,
-                            ),
+                            style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
                           ),
                         ),
                       ],
@@ -147,7 +127,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
             ),
           ),
         ),
-      ),
     );
   }
 }

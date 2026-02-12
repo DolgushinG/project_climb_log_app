@@ -1,8 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'CompetitionScreen.dart';
+import 'theme/app_theme.dart';
 import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ClimbingLogScreen.dart';
@@ -113,7 +115,7 @@ class _MainScreenState extends State<MainScreen> {
       builder: (ctx) => Container(
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
         decoration: BoxDecoration(
-          color: Theme.of(ctx).colorScheme.surface,
+          color: AppColors.cardDark,
           borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: SafeArea(
@@ -121,7 +123,7 @@ class _MainScreenState extends State<MainScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Icon(Icons.fingerprint, size: 48, color: Theme.of(ctx).colorScheme.primary),
+              Icon(Icons.fingerprint, size: 48, color: AppColors.mutedGold),
               const SizedBox(height: 16),
               Text(
                 'Вход по Face ID / Touch ID',
@@ -175,73 +177,90 @@ class _MainScreenState extends State<MainScreen> {
     super.dispose();
   }
 
-  Widget _buildNavIcon(IconData icon, bool isActive) {
-    final color = isActive ? Theme.of(context).colorScheme.primary : Colors.grey;
-    return Stack(
-      alignment: Alignment.bottomCenter,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(bottom: 4),
-          child: Icon(icon, color: color),
-        ),
-        AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          height: isActive ? 4 : 0,
-          width: isActive ? 18 : 0,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(999),
+  Widget _buildNavItem({
+    required IconData icon,
+    required IconData iconActive,
+    required String label,
+    required int index,
+  }) {
+    final isActive = _selectedIndex == index;
+    final color = isActive ? AppColors.mutedGold : Colors.white.withOpacity(0.4);
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onItemTapped(index),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  isActive ? iconActive : icon,
+                  size: 22,
+                  color: color,
+                ),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: GoogleFonts.unbounded(
+                      fontSize: 9,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                      color: color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildBottomNav() {
+    final tabCount = widget.isGuest ? 4 : 5;
+    return Container(
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: [
+              _buildNavItem(icon: Icons.route_outlined, iconActive: Icons.route_rounded, label: 'Тренировки', index: 0),
+              _buildNavItem(icon: Icons.leaderboard_outlined, iconActive: Icons.leaderboard_rounded, label: 'Рейтинг', index: 1),
+              _buildNavItem(icon: Icons.emoji_events_outlined, iconActive: Icons.emoji_events_rounded, label: 'Соревнования', index: 2),
+              _buildNavItem(icon: Icons.business_outlined, iconActive: Icons.business_rounded, label: 'Скалодромы', index: 3),
+              if (!widget.isGuest)
+                _buildNavItem(icon: Icons.person_outline_rounded, iconActive: Icons.person_rounded, label: 'Профиль', index: 4),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final baseNavColor = const Color(0xFF020617).withOpacity(0.96);
-    final accentNavColor = theme.colorScheme.primary.withOpacity(0.32);
-
-    // Смещаем акцент градиента в сторону активной вкладки
-    final int tabCount = widget.isGuest ? 4 : 5;
-    final List<Color> navGradientColors;
-    if (widget.isGuest) {
-      switch (_selectedIndex) {
-        case 0:
-          navGradientColors = [accentNavColor, baseNavColor, baseNavColor, baseNavColor];
-          break;
-        case 1:
-          navGradientColors = [baseNavColor, accentNavColor, baseNavColor, baseNavColor];
-          break;
-        case 2:
-          navGradientColors = [baseNavColor, baseNavColor, accentNavColor, baseNavColor];
-          break;
-        default:
-          navGradientColors = [baseNavColor, baseNavColor, baseNavColor, accentNavColor];
-          break;
-      }
-    } else {
-      switch (_selectedIndex) {
-        case 0:
-          navGradientColors = [accentNavColor, baseNavColor, baseNavColor, baseNavColor, baseNavColor];
-          break;
-        case 1:
-          navGradientColors = [baseNavColor, accentNavColor, baseNavColor, baseNavColor, baseNavColor];
-          break;
-        case 2:
-          navGradientColors = [baseNavColor, baseNavColor, accentNavColor, baseNavColor, baseNavColor];
-          break;
-        case 3:
-          navGradientColors = [baseNavColor, baseNavColor, baseNavColor, accentNavColor, baseNavColor];
-          break;
-        default:
-          navGradientColors = [baseNavColor, baseNavColor, baseNavColor, baseNavColor, accentNavColor];
-          break;
-      }
-    }
-
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
@@ -255,12 +274,12 @@ class _MainScreenState extends State<MainScreen> {
         body: Stack(
           children: [
             PageView(
-          controller: _pageController,
-          physics: const BouncingScrollPhysics(),
-          onPageChanged: (index) {
-            if (!mounted) return;
-            setState(() => _selectedIndex = index);
-          },
+              controller: _pageController,
+              physics: const BouncingScrollPhysics(),
+              onPageChanged: (index) {
+                if (!mounted) return;
+                setState(() => _selectedIndex = index);
+              },
               children: _screens,
             ),
             if (!_isOnline && _offlineWithNoCache && !_offlineBannerDismissed)
@@ -277,60 +296,7 @@ class _MainScreenState extends State<MainScreen> {
               ),
           ],
         ),
-        bottomNavigationBar: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(24),
-            child: Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: navGradientColors,
-                ),
-              ),
-              child: BottomNavigationBar(
-                backgroundColor: Colors.transparent,
-                items: <BottomNavigationBarItem>[
-                  BottomNavigationBarItem(
-                    icon: _buildNavIcon(Icons.route_outlined, false),
-                    activeIcon: _buildNavIcon(Icons.route_rounded, true),
-                    label: 'Тренировки',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _buildNavIcon(Icons.leaderboard_outlined, false),
-                    activeIcon: _buildNavIcon(Icons.leaderboard_rounded, true),
-                    label: 'Рейтинг',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _buildNavIcon(Icons.emoji_events_outlined, false),
-                    activeIcon: _buildNavIcon(Icons.emoji_events_rounded, true),
-                    label: 'Соревнования',
-                  ),
-                  BottomNavigationBarItem(
-                    icon: _buildNavIcon(Icons.business_outlined, false),
-                    activeIcon: _buildNavIcon(Icons.business_rounded, true),
-                    label: 'Скалодромы',
-                  ),
-                  if (!widget.isGuest)
-                    BottomNavigationBarItem(
-                      icon: _buildNavIcon(Icons.person_outline_rounded, false),
-                      activeIcon: _buildNavIcon(Icons.person_rounded, true),
-                      label: 'Профиль',
-                    ),
-                ],
-                currentIndex: _selectedIndex,
-                onTap: (index) {
-                  if (index < tabCount) _onItemTapped(index);
-                },
-                selectedFontSize: 12,
-                unselectedFontSize: 11,
-                showUnselectedLabels: widget.isGuest,
-                type: BottomNavigationBarType.fixed,
-              ),
-            ),
-          ),
-        ),
+        bottomNavigationBar: _buildBottomNav(),
       ),
     );
   }
@@ -354,18 +320,12 @@ class _GuestLoginScreen extends StatelessWidget {
               const SizedBox(height: 48),
               Text(
                 'Вход в приложение',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
+                style: AppTypography.sectionTitle(),
               ),
               const SizedBox(height: 8),
               Text(
                 'Войдите или зарегистрируйтесь, чтобы записываться на соревнования и вносить результаты.',
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.8),
-                  fontSize: 14,
-                ),
+                style: AppTypography.secondary(),
               ),
               const Spacer(),
               FilledButton(

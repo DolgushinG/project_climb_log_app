@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:login_app/theme/app_theme.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'CompetitionScreen.dart';
@@ -70,7 +72,7 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
 
       if (response.statusCode == 200) {
         await OfflineQueueService.removeByEventId(widget.eventId);
-        _showNotification('Успешное внесение результатов', Colors.green);
+        _showNotification('Успешное внесение результатов', AppColors.successMuted);
         try {
           final prefs = await SharedPreferences.getInstance();
           await prefs.remove('results_draft_${widget.eventId}');
@@ -286,7 +288,7 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Внесение результата'),
+        title: Text('Внесение результата', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -300,18 +302,19 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
         padding: const EdgeInsets.all(16.0),
         child: ElevatedButton(
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.green[600],
-            foregroundColor: Colors.white,
+            backgroundColor: AppColors.mutedGold,
+            foregroundColor: AppColors.anthracite,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
-            padding: EdgeInsets.symmetric(vertical: 12),
+            padding: const EdgeInsets.symmetric(vertical: 14),
           ),
           onPressed: _submitResults,
-          child: const Text('Отправить результат',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14.0,
+          child: Text('Отправить результат',
+            style: GoogleFonts.unbounded(
+              color: AppColors.anthracite,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
             ),
             textAlign: TextAlign.center,
           ),
@@ -362,46 +365,48 @@ class _RouteCardState extends State<RouteCard> {
   Widget build(BuildContext context) {
     selectedAttempt = _selectedAttempt;
 
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Трасса ${widget.route.routeId}',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Row(
               children: [
-                const Text('Цвет: ', style: TextStyle(fontSize: 16)),
+                Text('Цвет: ', style: AppTypography.secondary()),
                 Container(
                   width: 20,
                   height: 20,
-                  color: widget.route.color,
+                  decoration: BoxDecoration(
+                    color: widget.route.color ?? AppColors.graphite,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
                 ),
                 const SizedBox(width: 16),
-                Text('Категория: ${displayValue(widget.route.grade)}', style: TextStyle(fontSize: 16)),
+                Text('Категория: ${displayValue(widget.route.grade)}', style: AppTypography.secondary()),
               ],
             ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            const SizedBox(height: 20),
+            Text('Попытка:', style: AppTypography.secondary()),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
               children: [
-                const Text('Попытка:', style: TextStyle(fontSize: 16)),
-                Row(
-                  children: [
-                    _buildAttemptIcon(0, 'X', Colors.red, widget.route.routeId),
-                    const SizedBox(width: 8),
-                    _buildAttemptIcon(1, 'Flash', Colors.green, widget.route.routeId),
-                    const SizedBox(width: 8),
-                    _buildAttemptIcon(2, 'Redpoint', Colors.yellow, widget.route.routeId),
-                    const SizedBox(width: 8),
-                    _buildAttemptIcon(3, 'Zone', Colors.orange, widget.route.routeId),
-                  ],
-                ),
+                _buildAttemptIcon(0, 'X', AppColors.graphite, widget.route.routeId),
+                _buildAttemptIcon(1, 'Flash', AppColors.successMuted, widget.route.routeId),
+                _buildAttemptIcon(2, 'Redpoint', AppColors.mutedGold, widget.route.routeId),
+                _buildAttemptIcon(3, 'Zone', AppColors.graphite.withOpacity(0.8), widget.route.routeId),
               ],
             ),
           ],
@@ -411,24 +416,30 @@ class _RouteCardState extends State<RouteCard> {
   }
 
   Widget _buildAttemptIcon(int index, String label, Color color, int routeId) {
+    final isSelected = selectedAttempt == index;
     return GestureDetector(
       onTap: () {
-      if (mounted) {
-        setState(() {
-          selectedAttempt = index;
-          widget.onAttemptSelected(routeId, selectedAttempt);
-        });
-      }
+        if (mounted) {
+          setState(() {
+            selectedAttempt = index;
+            widget.onAttemptSelected(routeId, selectedAttempt);
+          });
+        }
       },
       child: Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
         decoration: BoxDecoration(
-          color: selectedAttempt == index ? color.withOpacity(1) : color.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(8),
+          color: isSelected ? color : color.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(10),
+          border: isSelected ? null : Border.all(color: color.withOpacity(0.4)),
         ),
         child: Text(
           label,
-          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: GoogleFonts.unbounded(
+            color: isSelected && color == AppColors.mutedGold ? AppColors.anthracite : Colors.white,
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+          ),
         ),
       ),
     );

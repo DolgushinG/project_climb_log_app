@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
+import '../theme/app_theme.dart';
 import '../utils/display_helper.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
@@ -112,7 +114,10 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.category.category),
+        title: Text(
+          widget.category.category,
+          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18),
+        ),
         automaticallyImplyLeading: true,
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(96),
@@ -151,9 +156,11 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                     overlayColor: MaterialStateProperty.all(Colors.transparent),
                     indicator: BoxDecoration(
                       borderRadius: BorderRadius.circular(999),
-                      color: Colors.white.withOpacity(0.16),
+                      color: AppColors.mutedGold.withOpacity(0.25),
                     ),
                     labelPadding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                    unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                     tabs: const [
                       Tab(text: 'Мужчины'),
                       Tab(text: 'Женщины'),
@@ -263,7 +270,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.emoji_events_outlined, size: 64, color: Colors.white.withOpacity(0.4)),
+              Icon(Icons.emoji_events_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.3)),
               const SizedBox(height: 16),
               Text(
                 _searchController.text.trim().isEmpty
@@ -312,17 +319,22 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
         // Формируем динамические данные для маршрутов
         final routes = List.generate(widget.amount_routes, (i) {
           final routeIndex = i + 1;
+          final top = _parseInt(data['amount_try_top_$routeIndex']);
+          final zone = _parseInt(data['amount_try_zone_$routeIndex']);
           return {
-            'amount_try_top': data['amount_try_top_$routeIndex'] ?? 0,
-            'route_id': gender_route+routeIndex.toString(),
-            'amount_try_zone': data['amount_try_zone_$routeIndex'] ?? 0,
+            'amount_try_top': top,
+            'route_id': '$gender_route$routeIndex',
+            'amount_try_zone': zone,
           };
         });
 
         final userId = _extractUserId(data);
+        final place = _parsePlace(data['place'] ?? data['user_place']);
+        final isMedal = place >= 1 && place <= 3;
+        final hasAlternateBg = index.isEven;
 
         return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 16),
           child: InkWell(
             borderRadius: BorderRadius.circular(12),
             onTap: userId != null
@@ -335,164 +347,62 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                     );
                   }
                 : null,
-            child: Card(
-              elevation: 2,
-              margin: EdgeInsets.zero,
-              child: Padding(
-            padding: const EdgeInsets.all(12.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Блок с основной информацией
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Место',
-                            style: TextStyle(fontSize: 8, color: Colors.grey),
-                          ),
-                          Text(
-                            displayValue((data['place'] ?? data['user_place'])?.toString()),
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
+            child: Container(
+              decoration: BoxDecoration(
+                color: hasAlternateBg ? AppColors.cardDark : AppColors.rowAlt,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: 16,
+                    top: 0,
+                    bottom: 0,
+                    child: Center(
+                      child: Text(
+                        formatPlace(place),
+                        style: AppTypography.rankNumber(),
                       ),
                     ),
-                    const SizedBox(width: 5),
-                    Expanded(
-                      flex: 2,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        SizedBox(
+                          width: 36,
+                          child: isMedal
+                              ? Icon(
+                                  Icons.emoji_events_outlined,
+                                  size: 20,
+                                  color: AppColors.mutedGold,
+                                )
+                              : Text(
+                                  formatPlace(place),
+                                  style: AppTypography.scoreBadge().copyWith(
+                                    fontSize: 12,
+                                    color: Colors.white.withOpacity(0.4),
+                                  ),
+                                ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
                             displayValue((data['middlename'] ?? data['name'])?.toString()),
-                            style: TextStyle(fontSize: 16),
+                            style: AppTypography.athleteName(),
                           ),
-                        ],
-                      ),
+                        ),
+                        Flexible(
+                          child: _buildBadgesSection(data, routes),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
-                SizedBox(height: 12.0),
-                // Блок с бейджами
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Блок с бейджами, где бейджи автоматически переносятся
-                    Expanded(
-                      flex: 3,
-                      child: Wrap(
-                        spacing: 8.0, // Отступы между бейджами по горизонтали
-                        runSpacing: 8.0, // Отступы между строками
-                        children: routes.map<Widget>((route) {
-                          return Column(
-                            children: [
-                              _buildBadgeTopNumberRoute(route['route_id'], 5, 5),
-                              _buildBadgeTop(
-                                  route['amount_try_top'].toString(),
-                                  route['amount_try_zone'] ?? 0),
-                              _buildDivider(),
-                              _buildBadgeBottom(
-                                  route['amount_try_zone'].toString(),
-                                  5,
-                                  5,
-                                  isRed: (route['amount_try_top'] == 0 &&
-                                      route['amount_try_zone'] == 0)),
-                            ],
-                          );
-                        }).toList(),
-                      ),
-                    ),
-                    SizedBox(width: 6.0),
-                    // Колонка "Кол-во"
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          _buildBadgeTopTitle('Кол-во'),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Column(
-                                  children: [
-                                    _buildBadgeTopNumberRoute('T', 5, 5),
-                                    _buildBadgeBottom(
-                                        (data['amount_top'] ?? 0).toString(),
-                                        5,
-                                        5),
-                                  ],
-                                ),
-                                SizedBox(width: 9.0),
-                                Column(
-                                  children: [
-                                    _buildBadgeTopNumberRoute('Z', 5, 5),
-                                    _buildBadgeBottom(
-                                        (data['amount_zone'] ?? 0).toString(),
-                                        5,
-                                        5),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    SizedBox(width: 2.0),
-                    // Колонка "Попытки"
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          _buildBadgeTopTitle('Попытки'),
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Column(
-                                  children: [
-                                    _buildBadgeTopNumberRoute('T', 5, 5),
-                                    _buildBadgeBottom(
-                                        (data['amount_try_top'] ?? 0)
-                                            .toString(),
-                                        5,
-                                        5),
-                                  ],
-                                ),
-                                SizedBox(width: 9.0),
-                                Column(
-                                  children: [
-                                    _buildBadgeTopNumberRoute('Z', 5, 5),
-                                    _buildBadgeBottom(
-                                        (data['amount_try_zone'] ?? 0)
-                                            .toString(),
-                                        5,
-                                        5),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-        ),
         );
       },
     );
@@ -509,97 +419,125 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
     return null;
   }
 
-  Widget _buildBadgeTopTitle(String text) {
-    return Container(
-      width: 72,
-      height: 20,
-      child: Center(
-        child: Text(
-          text,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-          ),
+  int _parsePlace(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
+
+  int _parseInt(dynamic raw) {
+    if (raw is int) return raw;
+    if (raw is num) return raw.toInt();
+    if (raw is String) return int.tryParse(raw) ?? 0;
+    return 0;
+  }
+
+  Widget _buildBadgesSection(
+    Map<String, dynamic> data,
+    List<Map<String, dynamic>> routes,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          alignment: WrapAlignment.end,
+          children: routes.map<Widget>((route) {
+            final top = (route['amount_try_top'] ?? 0) as int;
+            final zone = (route['amount_try_zone'] ?? 0) as int;
+            return _buildPremiumBadge(
+              route['route_id'].toString(),
+              top.toString(),
+              zone.toString(),
+              isZero: top == 0 && zone == 0,
+            );
+          }).toList(),
         ),
-      ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 4,
+          alignment: WrapAlignment.end,
+          children: [
+            _buildScoreBadge('T', (data['amount_top'] ?? 0).toString()),
+            _buildScoreBadge('Z', (data['amount_zone'] ?? 0).toString()),
+            _buildScoreBadge('ПT', (data['amount_try_top'] ?? 0).toString()),
+            _buildScoreBadge('ПZ', (data['amount_try_zone'] ?? 0).toString()),
+          ],
+        ),
+      ],
     );
   }
-  Widget _buildBadgeTopNumberRoute(String value, double radius_left, double radius_right) {
+
+  Widget _buildPremiumBadge(String routeId, String top, String zone, {bool isZero = false}) {
+    final fillColor = isZero
+        ? Colors.white.withOpacity(0.06)
+        : AppColors.mutedGold.withOpacity(0.15);
     return Container(
-      width: 30,
-      height: 20,
+      constraints: const BoxConstraints(minWidth: 36),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
       decoration: BoxDecoration(
-        color: const Color(0xFF020617),
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(radius_left),
-          topRight: Radius.circular(radius_right),
-        ),
+        color: fillColor,
+        borderRadius: BorderRadius.circular(4),
       ),
-      child: Center(
-        child: Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            routeId,
+            style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            softWrap: false,
+            overflow: TextOverflow.clip,
           ),
-        ),
-      ),
-    );
-  }
-  Widget _buildBadgeTop(String value, int amountTryZone) {
-    final isRed = value == '0' && amountTryZone == 0;
-    return Container(
-      width: 30,
-      height: 20,
-      decoration: BoxDecoration(
-        color: isRed ? Colors.red : Colors.green,
-      ),
-      child: Center(
-        child: Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+          const SizedBox(height: 2),
+          Text(
+            top,
+            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+            softWrap: false,
+            overflow: TextOverflow.clip,
           ),
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 1),
+            child: Text(
+              '—',
+              style: GoogleFonts.unbounded(fontSize: 8, color: Colors.white38),
+              softWrap: false,
+            ),
+          ),
+          Text(
+            zone,
+            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white70),
+            softWrap: false,
+            overflow: TextOverflow.clip,
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildBadgeBottom(String value, double radius_left, double radius_right,
-      {bool isRed = false}) {
+  Widget _buildScoreBadge(String label, String value) {
     return Container(
-      width: 30,
-      height: 20,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
-        color: isRed ? Colors.red : Colors.green,
-        borderRadius: BorderRadius.only(
-          bottomLeft: Radius.circular(radius_left),
-          bottomRight: Radius.circular(radius_right),
-        ),
+        color: Colors.white.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(6),
       ),
-      child: Center(
-        child: Text(
-          value,
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 12,
-            fontWeight: FontWeight.bold,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(label, style: AppTypography.smallLabel()),
+          const SizedBox(height: 1),
+          Text(
+            value,
+            style: AppTypography.scoreBadge().copyWith(fontSize: 11),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildDivider() {
-    return Container(
-      width: 30,
-      height: 2,
-      color: Colors.white24,
-    );
-  }
 }
 

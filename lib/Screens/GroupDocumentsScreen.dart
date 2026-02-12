@@ -2,12 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:file_picker/file_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../theme/app_theme.dart';
 import '../models/GroupDocumentsModels.dart';
 import '../utils/network_error_helper.dart';
 
@@ -187,8 +189,8 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Документы участников'),
-          backgroundColor: const Color(0xFF0B1220),
+          title: Text('Документы участников', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          backgroundColor: AppColors.cardDark,
         ),
         body: const Center(child: CircularProgressIndicator()),
       );
@@ -196,8 +198,8 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Документы участников'),
-          backgroundColor: const Color(0xFF0B1220),
+          title: Text('Документы участников', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          backgroundColor: AppColors.cardDark,
         ),
         body: Center(
           child: Padding(
@@ -205,9 +207,13 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
+                Text(_error!, textAlign: TextAlign.center, style: GoogleFonts.unbounded(color: Colors.white70)),
                 const SizedBox(height: 16),
-                ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Назад')),
+                ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
+                  child: Text('Назад', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                ),
               ],
             ),
           ),
@@ -219,8 +225,8 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
     if (data == null || (data.documents.isEmpty && data.users.isEmpty)) {
       return Scaffold(
         appBar: AppBar(
-          title: const Text('Документы участников'),
-          backgroundColor: const Color(0xFF0B1220),
+          title: Text('Документы участников', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          backgroundColor: AppColors.cardDark,
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context),
@@ -232,7 +238,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
             child: Text(
               'Нет требуемых документов для этого события.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.white70, fontSize: 16),
+              style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
             ),
           ),
         ),
@@ -242,15 +248,15 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
     final eventTitle = data.event['title']?.toString() ?? widget.eventTitle ?? '';
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Документы участников'),
-        backgroundColor: const Color(0xFF0B1220),
+        title: Text('Документы участников', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
       ),
       body: Container(
-        color: const Color(0xFF050816),
+        color: AppColors.anthracite,
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
@@ -259,7 +265,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   eventTitle,
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             if (data.documents.isNotEmpty)
@@ -267,11 +273,11 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Row(
                   children: [
-                    const Icon(Icons.description, color: Color(0xFF16A34A), size: 20),
+                    const Icon(Icons.description, color: AppColors.mutedGold, size: 20),
                     const SizedBox(width: 8),
-                    const Text(
+                    Text(
                       'Требуемые документы',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                   ],
                 ),
@@ -279,9 +285,9 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
             ...data.documents.map((doc) => _buildDocumentHeader(doc)),
             const SizedBox(height: 24),
             if (data.users.isNotEmpty)
-              const Text(
+              Text(
                 'Участники',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             const SizedBox(height: 12),
             ...data.users.map((u) => _buildUserCard(u)),
@@ -299,14 +305,14 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
           Expanded(
             child: Text(
               doc.name,
-              style: TextStyle(color: Colors.white70, fontSize: 14),
+              style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
             ),
           ),
           if (doc.documentUrl != null && doc.documentUrl!.isNotEmpty)
             TextButton.icon(
               onPressed: () => _downloadTemplate(doc.documentUrl),
-              icon: const Icon(Icons.download, size: 18, color: Color(0xFF16A34A)),
-              label: const Text('Скачать шаблон', style: TextStyle(color: Color(0xFF16A34A), fontSize: 12)),
+              icon: const Icon(Icons.download, size: 18, color: AppColors.mutedGold),
+              label: Text('Скачать шаблон', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 12)),
             ),
         ],
       ),
@@ -319,7 +325,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
         : '';
     final category = user.participantCategory?['category']?.toString() ?? '';
     return Card(
-      color: const Color(0xFF0B1220),
+      color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
@@ -329,13 +335,13 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
           children: [
             Text(
               user.middlename,
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+              style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
             ),
             if (setInfo.isNotEmpty || category.isNotEmpty) ...[
               const SizedBox(height: 4),
               Text(
                 [setInfo, category].where((s) => s.isNotEmpty).join(' • '),
-                style: TextStyle(color: Colors.white70, fontSize: 12),
+                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
               ),
             ],
             const SizedBox(height: 16),
@@ -359,25 +365,22 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
               children: [
                 Text(
                   ds.name,
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 13,
-                  ),
+                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13),
                 ),
                 const SizedBox(height: 4),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: ds.uploaded
-                        ? const Color(0xFF16A34A).withOpacity(0.2)
+                        ? AppColors.mutedGold.withOpacity(0.2)
                         : Colors.white12,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     ds.uploaded ? 'Загружено' : 'Ожидает',
-                    style: TextStyle(
+                    style: GoogleFonts.unbounded(
                       fontSize: 12,
-                      color: ds.uploaded ? const Color(0xFF16A34A) : Colors.white54,
+                      color: ds.uploaded ? AppColors.mutedGold : Colors.white54,
                     ),
                   ),
                 ),
@@ -388,7 +391,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
             Padding(
               padding: const EdgeInsets.only(right: 8),
               child: IconButton(
-                icon: const Icon(Icons.download, color: Color(0xFF16A34A), size: 22),
+                icon: const Icon(Icons.download, color: AppColors.mutedGold, size: 22),
                 onPressed: uploading ? null : () => _downloadTemplate(ds.documentUrl),
                 tooltip: 'Скачать шаблон',
               ),
@@ -400,7 +403,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                   ? null
                   : () => _pickAndUpload(userId, ds.documentIndex),
               style: ElevatedButton.styleFrom(
-                backgroundColor: ds.uploaded ? Colors.orange : const Color(0xFF16A34A),
+                backgroundColor: ds.uploaded ? Colors.orange : AppColors.mutedGold,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -411,7 +414,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                       height: 20,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                     )
-                  : Text(ds.uploaded ? 'Заменить' : 'Загрузить', style: const TextStyle(fontSize: 13)),
+                  : Text(ds.uploaded ? 'Заменить' : 'Загрузить', style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500)),
             ),
           ),
         ],

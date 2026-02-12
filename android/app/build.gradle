@@ -55,6 +55,18 @@ android {
     packagingOptions {
         jniLibs.useLegacyPackaging = true
     }
+
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def appId = variant.applicationId
+            def versionName = variant.versionName
+            def versionCode = variant.versionCode
+            def variantName = variant.name.capitalize()
+            // Заменяем точки на подчёркивания в applicationId для имени файла
+            def sanitizedAppId = appId.replaceAll("\\.", "_")
+            output.outputFileName = "${sanitizedAppId}_v${versionName}_${versionCode}-${variantName}.apk"
+        }
+    }
 }
 
 flutter {
@@ -69,8 +81,9 @@ tracer {
         appToken = "9F7gHqIsamI3XB8gU9znZLKUEpvqyrrfJMkwDH4jQN1"
 
         // Примеры настроек — подберите под свои нужды
-        uploadMapping = true
-        uploadNativeSymbols = true
+        // Отключено: загрузка падает с SSLHandshakeException (PKIX path building failed) при локальной сборке
+        uploadMapping = false
+        uploadNativeSymbols = false
         uploadRetryCount = 2
         // Если нужны нестандартные директории с либами:
         // additionalLibrariesPath = projectDir.toString() + "/aVeryNonstandardLibsDirectory"
