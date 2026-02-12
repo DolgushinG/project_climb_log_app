@@ -27,7 +27,7 @@ class ClimbingLogScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.anthracite,
         appBar: AppBar(
-          backgroundColor: AppColors.cardDark,
+          backgroundColor: AppColors.anthracite,
           automaticallyImplyLeading: false,
           title: Text('Тренировки', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
           bottom: PreferredSize(

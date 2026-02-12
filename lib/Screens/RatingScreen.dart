@@ -130,6 +130,7 @@ class _RatingScreenState extends State<RatingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,
@@ -141,7 +142,7 @@ class _RatingScreenState extends State<RatingScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                   child: Text(
                     'Рейтинг',
-                    style: AppTypography.sectionTitle(),
+                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -160,12 +161,17 @@ class _RatingScreenState extends State<RatingScreen> {
                           Text(
                             _error!,
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: Colors.white70),
+                            style: GoogleFonts.unbounded(color: Colors.white70),
                           ),
                           const SizedBox(height: 16),
-                          FilledButton(
+                          ElevatedButton(
                             onPressed: _load,
-                            child: const Text('Повторить'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.mutedGold,
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -230,10 +236,7 @@ class _Section extends StatelessWidget {
             padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
               title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
+              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),
           ...entries.map((e) => _RatingTile(entry: e, onTap: () => onTap(e))),
@@ -266,10 +269,7 @@ class _RatingTile extends StatelessWidget {
                 width: 28,
                 child: Text(
                   '${entry.rank}',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: _rankColor(entry.rank),
-                      ),
+                  style: GoogleFonts.unbounded(fontWeight: FontWeight.w700, color: _rankColor(entry.rank)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -279,17 +279,12 @@ class _RatingTile extends StatelessWidget {
                   children: [
                     Text(
                       entry.name,
-                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                            fontWeight: FontWeight.w500,
-                            color: Colors.white,
-                          ),
+                      style: GoogleFonts.unbounded(fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     if (entry.team.isNotEmpty)
                       Text(
                         entry.team,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: Colors.white60,
-                            ),
+                        style: GoogleFonts.unbounded(color: Colors.white60, fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -307,7 +302,7 @@ class _RatingTile extends StatelessWidget {
                   ],
                 ),
               ),
-              Icon(Icons.chevron_right, color: Colors.white38, size: 20),
+              Icon(Icons.chevron_right, color: AppColors.mutedGold, size: 20),
             ],
           ),
         ),
@@ -331,7 +326,7 @@ class _RatingTile extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: Theme.of(context).textTheme.labelSmall?.copyWith(color: Colors.white70),
+        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
       ),
     );
   }

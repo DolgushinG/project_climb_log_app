@@ -414,9 +414,9 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                 ),
                 labelPadding:
                     const EdgeInsets.symmetric(horizontal: 8.0),
-                tabs: const [
-                  Tab(text: 'Текущие'),
-                  Tab(text: 'Завершенные'),
+                tabs: [
+                  Tab(child: Text('Текущие', style: GoogleFonts.unbounded(fontSize: 14))),
+                  Tab(child: Text('Завершенные', style: GoogleFonts.unbounded(fontSize: 14))),
                 ],
               ),
             ),
@@ -1380,25 +1380,24 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(
-                child: Text(
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.center,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
                   '№${s.number_set}',
-                  style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
-                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.unbounded(fontSize: 9, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                 ),
-              ),
-              const SizedBox(width: 2),
-              Flexible(
-                child: Text(
+                const SizedBox(width: 2),
+                Text(
                   '${s.participants_count}/${s.max_participants}',
-                  style: GoogleFonts.unbounded(fontSize: 9, fontWeight: FontWeight.w500, color: textColor),
-                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.unbounded(fontSize: 8, fontWeight: FontWeight.w500, color: textColor),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: 4),
           ClipRRect(
@@ -1413,8 +1412,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           if (s.time.isNotEmpty) ...[
             const SizedBox(height: 2),
             Text(
-              s.time,
-              style: GoogleFonts.unbounded(fontSize: 9, color: AppColors.graphite),
+              extractSetTimeOnly(s.time),
+              style: GoogleFonts.unbounded(fontSize: 8, color: Colors.white54),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
@@ -1526,7 +1525,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   Widget _buildGymCard(BuildContext context) {
-    const linkColor = AppColors.mutedGold;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1534,84 +1532,64 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.08),
+            color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: linkColor.withOpacity(0.4),
-              width: 1.5,
-            ),
+            border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: linkColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(999),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.sports_rounded, size: 22, color: AppColors.mutedGold),
               ),
-              child: const Icon(
-                Icons.sports,
-                size: 18,
-                color: linkColor,
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Скалодром',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white.withOpacity(0.85),
-                      letterSpacing: 0.5,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          _competitionDetails.climbing_gym_name,
-                          style: const TextStyle(
-                            fontSize: 15,
-                            color: AppColors.mutedGold,
-                            height: 1.35,
-                            fontWeight: FontWeight.w500,
-                            decoration: TextDecoration.underline,
-                            decorationColor: AppColors.mutedGold,
-                          ),
-                        ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Скалодром',
+                      style: GoogleFonts.unbounded(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.6),
                       ),
-                      const SizedBox(width: 8),
-                      Icon(
-                        Icons.arrow_forward_ios,
-                        size: 12,
-                        color: linkColor,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Нажмите для перехода в профиль скалодрома',
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.white.withOpacity(0.5),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 4),
+                    Text(
+                      _competitionDetails.climbing_gym_name,
+                      style: GoogleFonts.unbounded(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.mutedGold,
+                        height: 1.35,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Нажмите для перехода в профиль скалодрома',
+                      style: GoogleFonts.unbounded(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withOpacity(0.45),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ],
+              Icon(Icons.chevron_right_rounded, size: 22, color: Colors.white.withOpacity(0.4)),
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 
@@ -2510,11 +2488,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   labelPadding:
                       const EdgeInsets.symmetric(horizontal: 8.0),
                   tabs: [
-                    const Tab(text: 'Квалификация'),
+                    Tab(child: Text('Квалификация', style: GoogleFonts.unbounded(fontSize: 14))),
                     if (_competitionDetails.is_semifinal)
-                      const Tab(text: 'Полуфинал'),
+                      Tab(child: Text('Полуфинал', style: GoogleFonts.unbounded(fontSize: 14))),
                     if (_competitionDetails.is_result_in_final_exists)
-                      const Tab(text: 'Финал'),
+                      Tab(child: Text('Финал', style: GoogleFonts.unbounded(fontSize: 14))),
                   ],
                 ),
               ),
@@ -3353,42 +3331,29 @@ class CompetitionInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final cardColor = theme.cardTheme.color ?? theme.colorScheme.surface;
-    final blockBg = cardColor.computeLuminance() > 0.2
-        ? Colors.white.withOpacity(0.08)
-        : Colors.white.withOpacity(0.06);
-
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 4),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: blockBg,
+          color: AppColors.cardDark,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.white.withOpacity(0.08),
-            width: 1,
-          ),
+          border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             if (icon != null) ...[
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.06),
-                  borderRadius: BorderRadius.circular(999),
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
                 ),
-                child: Icon(
-                  icon,
-                  size: 18,
-                  color: Colors.white.withOpacity(0.9),
-                ),
+                child: Icon(icon, size: 22, color: AppColors.mutedGold),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 14),
             ],
             Expanded(
               child: Column(
@@ -3399,8 +3364,8 @@ class CompetitionInfoCard extends StatelessWidget {
                     label,
                     style: GoogleFonts.unbounded(
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.6),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -3408,6 +3373,7 @@ class CompetitionInfoCard extends StatelessWidget {
                     value,
                     style: GoogleFonts.unbounded(
                       fontSize: 15,
+                      fontWeight: FontWeight.w500,
                       color: Colors.white,
                       height: 1.35,
                     ),

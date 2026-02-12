@@ -462,8 +462,8 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
           runSpacing: 4,
           alignment: WrapAlignment.end,
           children: [
-            _buildScoreBadge('ΣT', (data['amount_top'] ?? 0).toString()),
-            _buildScoreBadge('ΣZ', (data['amount_zone'] ?? 0).toString()),
+            _buildScoreBadge('T', (data['amount_top'] ?? 0).toString()),
+            _buildScoreBadge('Z', (data['amount_zone'] ?? 0).toString()),
             _buildScoreBadge('ПT', (data['amount_try_top'] ?? 0).toString()),
             _buildScoreBadge('ПZ', (data['amount_try_zone'] ?? 0).toString()),
           ],
@@ -477,7 +477,8 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
         ? Colors.white.withOpacity(0.06)
         : AppColors.mutedGold.withOpacity(0.15);
     return Container(
-      width: 26,
+      constraints: const BoxConstraints(minWidth: 36),
+      padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 4),
       decoration: BoxDecoration(
         color: fillColor,
         borderRadius: BorderRadius.circular(4),
@@ -485,22 +486,32 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 3),
-            child: Text(
-              routeId,
-              style: AppTypography.smallLabel(),
-            ),
+          Text(
+            routeId,
+            style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            softWrap: false,
+            overflow: TextOverflow.clip,
+          ),
+          const SizedBox(height: 2),
+          Text(
+            top,
+            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+            softWrap: false,
+            overflow: TextOverflow.clip,
           ),
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 4),
+            padding: const EdgeInsets.symmetric(vertical: 1),
             child: Text(
-              '$top/$zone',
-              style: AppTypography.smallLabel().copyWith(
-                fontSize: 9,
-                color: Colors.white.withOpacity(0.85),
-              ),
+              '—',
+              style: GoogleFonts.unbounded(fontSize: 8, color: Colors.white38),
+              softWrap: false,
             ),
+          ),
+          Text(
+            zone,
+            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white70),
+            softWrap: false,
+            overflow: TextOverflow.clip,
           ),
         ],
       ),
