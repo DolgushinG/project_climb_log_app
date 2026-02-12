@@ -4,10 +4,11 @@ import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
 import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
+import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
 
 /// Объединяющий экран трекера трасс.
 /// Для гостей — лендинг с «Доступно после авторизации».
-/// Для авторизованных — вкладки: Тренировка, Прогресс, История.
+/// Для авторизованных — вкладки: Обзор, Тренировка, Прогресс, История.
 /// Структура как у CompetitionScreen: AppBar + TabBar.
 class ClimbingLogScreen extends StatelessWidget {
   final bool isGuest;
@@ -20,7 +21,7 @@ class ClimbingLogScreen extends StatelessWidget {
       return const ClimbingLogLandingScreen();
     }
     return DefaultTabController(
-      length: 3,
+      length: 4,
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
@@ -43,6 +44,7 @@ class ClimbingLogScreen extends StatelessWidget {
                   ),
                   labelPadding: const EdgeInsets.symmetric(horizontal: 8),
                   tabs: const [
+                    Tab(text: 'Обзор'),
                     Tab(text: 'Тренировка'),
                     Tab(text: 'Прогресс'),
                     Tab(text: 'История'),
@@ -54,6 +56,7 @@ class ClimbingLogScreen extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
+            ClimbingLogSummaryScreen(),
             ClimbingLogAddScreen(),
             ClimbingLogProgressScreen(),
             ClimbingLogHistoryScreen(),

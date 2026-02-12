@@ -131,6 +131,127 @@ class UsedGym {
       );
 }
 
+/// Сводка для экрана «Обзор» (summary).
+class ClimbingLogSummary {
+  final int totalSessions;
+  final int totalRoutes;
+  final int currentStreak;
+  final int maxStreak;
+  final int sessionsThisWeek;
+  final int sessionsThisMonth;
+  final int routesThisWeek;
+  final int routesThisMonth;
+  final String? maxGrade;
+  final int progressPercentage;
+  final int? favoriteGymId;
+  final String? favoriteGymName;
+
+  ClimbingLogSummary({
+    required this.totalSessions,
+    required this.totalRoutes,
+    required this.currentStreak,
+    required this.maxStreak,
+    required this.sessionsThisWeek,
+    required this.sessionsThisMonth,
+    required this.routesThisWeek,
+    required this.routesThisMonth,
+    this.maxGrade,
+    required this.progressPercentage,
+    this.favoriteGymId,
+    this.favoriteGymName,
+  });
+
+  factory ClimbingLogSummary.fromJson(Map<String, dynamic> json) {
+    int toInt(dynamic v) {
+      if (v == null) return 0;
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v) ?? 0;
+      return 0;
+    }
+    return ClimbingLogSummary(
+      totalSessions: toInt(json['total_sessions']),
+      totalRoutes: toInt(json['total_routes']),
+      currentStreak: toInt(json['current_streak']),
+      maxStreak: toInt(json['max_streak']),
+      sessionsThisWeek: toInt(json['sessions_this_week']),
+      sessionsThisMonth: toInt(json['sessions_this_month']),
+      routesThisWeek: toInt(json['routes_this_week']),
+      routesThisMonth: toInt(json['routes_this_month']),
+      maxGrade: json['max_grade']?.toString(),
+      progressPercentage: toInt(json['progress_percentage']),
+      favoriteGymId: json['favorite_gym_id'] != null ? toInt(json['favorite_gym_id']) : null,
+      favoriteGymName: json['favorite_gym_name']?.toString(),
+    );
+  }
+}
+
+/// Статистика для графиков.
+class ClimbingLogStatistics {
+  final List<String> labels;
+  final List<int> sessions;
+  final List<int> routes;
+  final List<MapEntry<String, int>> gradesBreakdown;
+
+  ClimbingLogStatistics({
+    required this.labels,
+    required this.sessions,
+    required this.routes,
+    required this.gradesBreakdown,
+  });
+
+  factory ClimbingLogStatistics.fromJson(Map<String, dynamic> json) {
+    final labels = (json['labels'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+    final sessions = (json['sessions'] as List<dynamic>?)
+            ?.map((e) => e is int ? e : (e as num).toInt())
+            .toList() ??
+        [];
+    final routes = (json['routes'] as List<dynamic>?)
+            ?.map((e) => e is int ? e : (e as num).toInt())
+            .toList() ??
+        [];
+    final breakdownRaw = json['grades_breakdown'] as List<dynamic>? ?? [];
+    final gradesBreakdown = breakdownRaw
+        .map((e) {
+          final m = e as Map<String, dynamic>;
+          final grade = m['grade']?.toString() ?? '';
+          final count = (m['count'] is int)
+              ? m['count'] as int
+              : (m['count'] as num?)?.toInt() ?? 0;
+          return MapEntry(grade, count);
+        })
+        .toList();
+    return ClimbingLogStatistics(
+      labels: labels,
+      sessions: sessions,
+      routes: routes,
+      gradesBreakdown: gradesBreakdown,
+    );
+  }
+}
+
+/// Элемент рекомендации.
+class ClimbingLogRecommendation {
+  final String type;
+  final String text;
+  final int priority;
+
+  ClimbingLogRecommendation({
+    required this.type,
+    required this.text,
+    required this.priority,
+  });
+
+  factory ClimbingLogRecommendation.fromJson(Map<String, dynamic> json) =>
+      ClimbingLogRecommendation(
+        type: json['type']?.toString() ?? '',
+        text: json['text']?.toString() ?? '',
+        priority: (json['priority'] is int)
+            ? json['priority'] as int
+            : (json['priority'] as num?)?.toInt() ?? 0,
+      );
+}
+
 class GradesResponse {
   final List<String> grades;
   final Map<String, List<String>> gradeGroups;

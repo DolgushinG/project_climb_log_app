@@ -169,6 +169,84 @@ class ClimbingLogService {
     return null;
   }
 
+  /// Сводка для экрана «Обзор».
+  Future<ClimbingLogSummary?> getSummary({String period = 'all'}) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/summary').replace(
+        queryParameters: {'period': period},
+      );
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null) return ClimbingLogSummary.fromJson(json);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Статистика для графиков.
+  Future<ClimbingLogStatistics?> getStatistics({
+    String groupBy = 'week',
+    int periodDays = 56,
+  }) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/statistics').replace(
+        queryParameters: {
+          'group_by': groupBy,
+          'period_days': periodDays.toString(),
+        },
+      );
+      final response = await http.get(
+        uri,
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null) return ClimbingLogStatistics.fromJson(json);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Рекомендации.
+  Future<List<ClimbingLogRecommendation>> getRecommendations() async {
+    final token = await _getToken();
+    if (token == null) return [];
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/recommendations'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null) {
+          final raw = json['recommendations'] as List<dynamic>? ?? [];
+          return raw
+              .map((e) =>
+                  ClimbingLogRecommendation.fromJson(e as Map<String, dynamic>))
+              .toList();
+        }
+      }
+    } catch (_) {}
+    return [];
+  }
+
   Future<List<HistorySession>> getHistory() async {
     final token = await _getToken();
     if (token == null) return [];
