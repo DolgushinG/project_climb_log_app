@@ -534,7 +534,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green),
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
     );
   }
 
@@ -913,7 +916,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           Text(' (осталось: $available)', style: TextStyle(color: Colors.white54, fontSize: 12)),
                       ],
                     ),
-                    if (sizes.isNotEmpty)
+                    if (sizes.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(top: 4, bottom: 2),
+                        child: Text('Размер:', style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      ),
                       DropdownButton<String>(
                         value: _selectedSizes[merchName],
                         hint: const Text('Выберите размер', style: TextStyle(color: Colors.white54)),
@@ -948,6 +955,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           }
                         },
                       ),
+                    ],
                   ],
                 ),
               );
@@ -972,6 +980,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           label: const Text('Выбрано', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF16A34A),
+                            foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
@@ -1135,6 +1144,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF16A34A),
+          foregroundColor: Colors.white,
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),

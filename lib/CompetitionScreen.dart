@@ -57,6 +57,14 @@ List<int>? _parseListPendingNumberSets(dynamic value) {
   return null;
 }
 
+int? _parseIntNullable(dynamic value) {
+  if (value == null) return null;
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  final parsed = int.tryParse(value.toString());
+  return parsed;
+}
+
 class Competition {
   final int id;
   final String title;
@@ -197,7 +205,7 @@ class Competition {
       info_payment: json['info_payment'] ?? '',
       address: json['address'] ?? '',
       climbing_gym_name: (json['climbing_gym_name'] ?? json['climbing_gym'] ?? '').toString(),
-      climbing_gym_id: json['climbing_gym_id'] as int?,
+      climbing_gym_id: _parseIntNullable(json['climbing_gym_id']),
       start_date: startDate,
       isCompleted: isCompleted,
     );
@@ -322,7 +330,10 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
             ),
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка сессии')),
+            SnackBar(
+              content: const Text('Ошибка сессии', style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.red,
+            ),
           );
         }
         return;
@@ -340,7 +351,10 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           if (_allCurrent.isEmpty && _allCompleted.isEmpty) {
             _error = networkErrorMessage(e, 'Не удалось загрузить данные');
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(_error ?? '')),
+              SnackBar(
+                content: Text(_error ?? '', style: const TextStyle(color: Colors.white)),
+                backgroundColor: Colors.red,
+              ),
             );
           }
         });
@@ -1045,19 +1059,28 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
                       if (numberSets.isEmpty && _competitionDetails.is_input_set == 0) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Выберите сет'), backgroundColor: Colors.orange),
+                          SnackBar(
+                            content: const Text('Выберите сет', style: TextStyle(color: Colors.white)),
+                            backgroundColor: Colors.orange,
+                          ),
                         );
                         return;
                       }
                       if (needCategory && sheetSelectedCategory == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Выберите категорию'), backgroundColor: Colors.orange),
+                          SnackBar(
+                            content: const Text('Выберите категорию', style: TextStyle(color: Colors.white)),
+                            backgroundColor: Colors.orange,
+                          ),
                         );
                         return;
                       }
                       if (needSportCategory && sheetSelectedSportCategory == null) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Выберите разряд'), backgroundColor: Colors.orange),
+                          SnackBar(
+                            content: const Text('Выберите разряд', style: TextStyle(color: Colors.white)),
+                            backgroundColor: Colors.orange,
+                          ),
                         );
                         return;
                       }
@@ -1071,6 +1094,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
@@ -1118,20 +1142,32 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message.isNotEmpty ? message : 'Вы добавлены в лист ожидания'),
+            content: Text(
+              message.isNotEmpty ? message : 'Вы добавлены в лист ожидания',
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: Colors.green,
           ),
         );
         _refreshParticipationStatus();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка сети'), backgroundColor: Colors.red),
+          SnackBar(
+            content: const Text('Ошибка сети', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -1156,20 +1192,32 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       if (success) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(message.isNotEmpty ? message : 'Успешно удалено из листа ожидания'),
+            content: Text(
+              message.isNotEmpty ? message : 'Успешно удалено из листа ожидания',
+              style: const TextStyle(color: Colors.white),
+            ),
             backgroundColor: Colors.green,
           ),
         );
         _refreshParticipationStatus();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message.isNotEmpty ? message : 'Ошибка удаления'), backgroundColor: Colors.red),
+          SnackBar(
+            content: Text(
+              message.isNotEmpty ? message : 'Ошибка удаления',
+              style: const TextStyle(color: Colors.white),
+            ),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Ошибка сети'), backgroundColor: Colors.red),
+          SnackBar(
+            content: const Text('Ошибка сети', style: TextStyle(color: Colors.white)),
+            backgroundColor: Colors.red,
+          ),
         );
       }
     }
@@ -1483,9 +1531,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     if (name.isEmpty) return;
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Поиск скалодрома...'),
-          duration: Duration(seconds: 1),
+        SnackBar(
+          content: const Text('Поиск скалодрома...', style: TextStyle(color: Colors.white)),
+          backgroundColor: const Color(0xFF1E293B),
+          duration: const Duration(seconds: 1),
         ),
       );
     }
@@ -1500,8 +1549,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Профиль скалодрома временно недоступен'),
+        SnackBar(
+          content: const Text('Профиль скалодрома временно недоступен', style: TextStyle(color: Colors.white)),
+          backgroundColor: Colors.red,
         ),
       );
     }
@@ -2078,6 +2128,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: const Color(0xFF16A34A),
+                                          foregroundColor: Colors.white,
                                           shape: RoundedRectangleBorder(
                                             borderRadius: BorderRadius.circular(12),
                                           ),
@@ -3156,7 +3207,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             ),
           );
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка сессии')),
+            SnackBar(
+              content: const Text('Ошибка сессии', style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }
@@ -3322,7 +3376,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     if (response.statusCode == 200) {
       fetchCompetition();
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Регистрация отменена успешно')),
+        SnackBar(
+        content: const Text('Регистрация отменена успешно', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.green,
+      ),
       );
     } else if (response.statusCode == 401 || response.statusCode == 419) {
       Navigator.push(
@@ -3331,13 +3388,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           builder: (context) => LoginScreen(),
         ),
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка сессии')),
-      );
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Ошибка сессии', style: TextStyle(color: Colors.white)),
+              backgroundColor: Colors.red,
+            ),
+          );
     } else {
       // Ошибка при отмене регистрации
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка при отмене регистрации')),
+        SnackBar(
+        content: const Text('Ошибка при отмене регистрации', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.red,
+      ),
       );
     }
   }

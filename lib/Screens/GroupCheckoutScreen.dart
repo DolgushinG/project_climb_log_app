@@ -332,7 +332,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green),
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
     );
   }
 
@@ -764,6 +767,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF16A34A),
+                    foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
@@ -914,43 +918,53 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                         if (sizes.isEmpty) return const SizedBox.shrink();
                         return Padding(
                           padding: const EdgeInsets.only(top: 4),
-                          child: DropdownButtonFormField<String>(
-                            value: currentSizes[merchName],
-                            decoration: const InputDecoration(
-                              filled: true,
-                              fillColor: Color(0xFF1E293B),
-                              border: OutlineInputBorder(),
-                              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                            ),
-                            dropdownColor: const Color(0xFF1E293B),
-                            style: const TextStyle(color: Colors.white, fontSize: 15),
-                            items: sizes.map((s) {
-                              final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
-                              return DropdownMenuItem<String>(value: sz, child: Text(sz, style: const TextStyle(color: Colors.white, fontSize: 15)));
-                            }).toList(),
-                            onChanged: (v) {
-                              final updatedSizes = Map<String, String>.from(currentSizes);
-                              updatedSizes[merchName] = v ?? '';
-                              setState(() {
-                                if (uid != null) {
-                                  _selectedSizesByUser[uid] = updatedSizes;
-                                }
-                              });
-                              // Если пакет уже выбран — пересохраняем с новыми размерами для пересчёта суммы
-                              if (uid != null && currentPkg == pkgName) {
-                                final sizesForPackage = <String, String>{};
-                                for (final m in merch) {
-                                  if (m is Map) {
-                                    final n = m['name']?.toString() ?? '';
-                                    if (updatedSizes[n] != null) sizesForPackage[n] = updatedSizes[n]!;
-                                  }
-                                }
-                                final needAll = merch.where((m) => m is Map && (m['sizes'] is List) && (m['sizes'] as List).isNotEmpty).length;
-                                if (sizesForPackage.length >= needAll || merch.isEmpty) {
-                                  _savePackage(uid, pkgName, sizesForPackage, price);
-                                }
-                              }
-                            },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(merchName, style: TextStyle(color: Colors.white70, fontSize: 13)),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 2),
+                                child: DropdownButtonFormField<String>(
+                                  value: currentSizes[merchName],
+                                  decoration: InputDecoration(
+                                    labelText: 'Размер',
+                                    filled: true,
+                                    fillColor: Color(0xFF1E293B),
+                                    border: OutlineInputBorder(),
+                                    contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                    labelStyle: TextStyle(color: Colors.white54, fontSize: 14),
+                                  ),
+                                  dropdownColor: const Color(0xFF1E293B),
+                                  style: const TextStyle(color: Colors.white, fontSize: 15),
+                                  items: sizes.map((s) {
+                                    final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
+                                    return DropdownMenuItem<String>(value: sz, child: Text(sz, style: const TextStyle(color: Colors.white, fontSize: 15)));
+                                  }).toList(),
+                                  onChanged: (v) {
+                                    final updatedSizes = Map<String, String>.from(currentSizes);
+                                    updatedSizes[merchName] = v ?? '';
+                                    setState(() {
+                                      if (uid != null) {
+                                        _selectedSizesByUser[uid] = updatedSizes;
+                                      }
+                                    });
+                                    if (uid != null && currentPkg == pkgName) {
+                                      final sizesForPackage = <String, String>{};
+                                      for (final m in merch) {
+                                        if (m is Map) {
+                                          final n = m['name']?.toString() ?? '';
+                                          if (updatedSizes[n] != null) sizesForPackage[n] = updatedSizes[n]!;
+                                        }
+                                      }
+                                      final needAll = merch.where((m) => m is Map && (m['sizes'] is List) && (m['sizes'] as List).isNotEmpty).length;
+                                      if (sizesForPackage.length >= needAll || merch.isEmpty) {
+                                        _savePackage(uid, pkgName, sizesForPackage, price);
+                                      }
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
                           ),
                         );
                       }),
@@ -964,6 +978,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                                 label: const Text('Выбрано', style: TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF16A34A),
+                                  foregroundColor: Colors.white,
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),

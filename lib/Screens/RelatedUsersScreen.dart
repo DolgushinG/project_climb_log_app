@@ -67,8 +67,8 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
             Navigator.pop(context);
             _loadData();
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Успешно сохранено'),
+              SnackBar(
+                content: const Text('Успешно сохранено', style: TextStyle(color: Colors.white)),
                 backgroundColor: Colors.green,
               ),
             );
@@ -99,8 +99,8 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
               if (ok && mounted) {
                 _loadData();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Успешная отвязка'),
+                  SnackBar(
+                    content: const Text('Успешная отвязка', style: TextStyle(color: Colors.white)),
                     backgroundColor: Colors.green,
                   ),
                 );
@@ -464,13 +464,19 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
     final email = _emailController.text.trim();
     if (firstname.isEmpty || lastname.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Заполните имя и фамилию'), backgroundColor: Colors.red),
+        SnackBar(
+        content: const Text('Заполните имя и фамилию', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.red,
+      ),
       );
       return;
     }
     if (email.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Заполните email'), backgroundColor: Colors.red),
+        SnackBar(
+        content: const Text('Заполните email', style: TextStyle(color: Colors.white)),
+        backgroundColor: Colors.red,
+      ),
       );
       return;
     }

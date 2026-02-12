@@ -642,7 +642,10 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: isError ? Colors.red : Colors.green),
+      SnackBar(
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
+        backgroundColor: isError ? Colors.red : Colors.green,
+      ),
     );
   }
 
@@ -888,6 +891,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 onPressed: _submitRegistration,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF16A34A),
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -1303,6 +1307,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF16A34A),
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),

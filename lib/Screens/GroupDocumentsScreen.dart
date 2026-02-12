@@ -173,7 +173,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg),
+        content: Text(msg, style: const TextStyle(color: Colors.white)),
         backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
@@ -401,6 +401,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                   : () => _pickAndUpload(userId, ds.documentIndex),
               style: ElevatedButton.styleFrom(
                 backgroundColor: ds.uploaded ? Colors.orange : const Color(0xFF16A34A),
+                foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),

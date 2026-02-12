@@ -54,6 +54,7 @@ class ResultEntryButton extends StatelessWidget {
             : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: _canEdit ? const Color(0xFF16A34A) : Colors.grey,
+          foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
