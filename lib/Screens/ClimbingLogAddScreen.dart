@@ -8,6 +8,8 @@ import 'package:login_app/utils/climbing_log_colors.dart';
 import 'package:login_app/models/Gym.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/GymService.dart';
+import 'package:login_app/services/TrainingGamificationService.dart';
+import 'package:login_app/services/StrengthTestApiService.dart';
 
 /// Экран добавления/редактирования тренировки (сессии трасс).
 class ClimbingLogAddScreen extends StatefulWidget {
@@ -138,13 +140,32 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
     setState(() => _saving = false);
 
     if (ok) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(_isEditMode ? 'Изменения сохранены!' : 'Тренировка сохранена!'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.mutedGold,
-        ),
-      );
+      if (!_isEditMode) {
+        var xpGained = 0;
+        final apiResult = await StrengthTestApiService().addSessionXp();
+        if (apiResult != null) {
+          xpGained = apiResult.xpGained;
+        } else {
+          xpGained = await TrainingGamificationService().addSessionXp();
+        }
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Тренировка сохранена! +$xpGained XP'),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.mutedGold,
+            ),
+          );
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Изменения сохранены!'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.mutedGold,
+          ),
+        );
+      }
       widget.onSaved?.call();
       if (_isEditMode) {
         Navigator.of(context).pop();

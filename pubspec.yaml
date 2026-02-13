@@ -73,6 +73,7 @@ dev_dependencies:
 flutter:
   assets:
     - assets/poster.png
+    - assets/i18n/strength_tests_ru.json
     - assets/Telegram.png
     - assets/icon-telegram.png
     - assets/icon-vk.png

@@ -2,15 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/theme/app_theme.dart';
 
-import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
 import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
 import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
+import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
 
 /// Объединяющий экран трекера трасс.
 /// Для гостей — лендинг с «Доступно после авторизации».
-/// Для авторизованных — вкладки: Обзор, Тренировка, Прогресс, История.
+/// Для авторизованных — вкладки: Обзор, Прогресс, История, Тестирование.
+/// Добавить тренировку — кнопка в Обзоре.
 /// Структура как у CompetitionScreen: AppBar + TabBar.
 class ClimbingLogScreen extends StatelessWidget {
   final bool isGuest;
@@ -51,9 +52,9 @@ class ClimbingLogScreen extends StatelessWidget {
                   labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                   tabs: [
                     Tab(child: FittedBox(child: Text('Обзор', style: GoogleFonts.unbounded(fontSize: 13)))),
-                    Tab(child: FittedBox(child: Text('Тренировка', style: GoogleFonts.unbounded(fontSize: 13)))),
                     Tab(child: FittedBox(child: Text('Прогресс', style: GoogleFonts.unbounded(fontSize: 13)))),
                     Tab(child: FittedBox(child: Text('История', style: GoogleFonts.unbounded(fontSize: 13)))),
+                    Tab(child: FittedBox(child: Text('Тестирование', style: GoogleFonts.unbounded(fontSize: 13)))),
                   ],
                 ),
               ),
@@ -63,9 +64,9 @@ class ClimbingLogScreen extends StatelessWidget {
         body: const TabBarView(
           children: [
             ClimbingLogSummaryScreen(),
-            ClimbingLogAddScreen(),
             ClimbingLogProgressScreen(),
             ClimbingLogHistoryScreen(),
+            ClimbingLogTestingScreen(),
           ],
         ),
       ),

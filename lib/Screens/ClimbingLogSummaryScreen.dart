@@ -3,12 +3,18 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/models/StrengthAchievement.dart';
+import 'package:login_app/models/StrengthTier.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
+import 'package:login_app/services/StrengthDashboardService.dart';
+import 'package:login_app/services/TrainingPlanGenerator.dart';
+import 'package:login_app/services/TrainingGamificationService.dart';
+import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';
+import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 
-/// Стартовый экран «Обзор» — summary, графики, рекомендации.
-/// Использует API: summary, statistics, recommendations.
+/// Стартовый экран «Обзор» — summary, графики, рекомендации, strength dashboard.
 class ClimbingLogSummaryScreen extends StatefulWidget {
   const ClimbingLogSummaryScreen({super.key});
 
@@ -19,6 +25,9 @@ class ClimbingLogSummaryScreen extends StatefulWidget {
 
 class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   final ClimbingLogService _service = ClimbingLogService();
+  final StrengthDashboardService _strengthSvc = StrengthDashboardService();
+  final TrainingGamificationService _gamification = TrainingGamificationService();
+
   ClimbingLogSummary? _summary;
   ClimbingLogStatistics? _statisticsDaily;
   ClimbingLogStatistics? _statisticsWeekly;
@@ -26,10 +35,42 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   bool _loading = true;
   String? _error;
 
+  StrengthMetrics? _strengthMetrics;
+  int _xp = 0;
+  int _streak = 0;
+  String _recoveryStatus = 'ready';
+
   @override
   void initState() {
     super.initState();
     _load();
+    _loadStrengthDashboard();
+  }
+
+  Future<void> _loadStrengthDashboard() async {
+    final m = await _strengthSvc.getLastMetrics();
+    final api = StrengthTestApiService();
+    final gamification = await api.getGamification();
+    if (gamification != null && mounted) {
+      setState(() {
+        _strengthMetrics = m;
+        _xp = gamification.totalXp;
+        _streak = gamification.streakDays;
+        _recoveryStatus = gamification.recoveryStatus;
+      });
+    } else {
+      final xp = await _gamification.getTotalXp();
+      final streak = await _gamification.getStreakDays();
+      final recovery = await _gamification.getRecoveryStatus();
+      if (mounted) {
+        setState(() {
+          _strengthMetrics = m;
+          _xp = xp;
+          _streak = streak;
+          _recoveryStatus = recovery;
+        });
+      }
+    }
   }
 
   Future<void> _load() async {
@@ -62,6 +103,11 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
     }
   }
 
+  Future<void> _onRefresh() async {
+    await _load();
+    await _loadStrengthDashboard();
+  }
+
   String _dayWord(int n) {
     if (n % 10 == 1 && n % 100 != 11) return 'день';
     if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'дня';
@@ -74,16 +120,50 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
       backgroundColor: AppColors.anthracite,
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: _load,
+          onRefresh: _onRefresh,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                  child: Text(
-                    'Обзор',
-                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Обзор',
+                        style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (ctx) => const ClimbingLogAddScreen(),
+                              ),
+                            );
+                            if (mounted) {
+                              _load();
+                              _loadStrengthDashboard();
+                            }
+                          },
+                          icon: const Icon(Icons.add, size: 20),
+                          label: Text(
+                            'Добавить тренировку',
+                            style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600),
+                          ),
+                          style: FilledButton.styleFrom(
+                            backgroundColor: AppColors.mutedGold,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -146,6 +226,14 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
         weeklyStats.gradesBreakdown.any((e) => e.value > 0);
 
     return [
+      if (_strengthMetrics != null) ...[
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            child: _buildStrengthDashboard(context),
+          ),
+        ),
+      ],
       SliverToBoxAdapter(
         child: Padding(
           padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
@@ -185,6 +273,145 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
       ),
       const SliverToBoxAdapter(child: SizedBox(height: 32)),
     ];
+  }
+
+  Widget _buildStrengthDashboard(BuildContext context) {
+    final m = _strengthMetrics!;
+    final gen = TrainingPlanGenerator();
+    final analysis = gen.analyzeWeakLink(m);
+    final rank = _getRankFromMetrics(m);
+    final avg = _getAvgFromMetrics(m);
+    final next = rank?.nextTier;
+    final gap = rank != null && avg != null && next != null
+        ? (StrengthTierExt.minPctForTier(next) - avg)
+        : null;
+    final progressToNext = gap != null && gap > 0 && next != null && avg != null && rank != null
+        ? ((avg! - StrengthTierExt.minPctForTier(rank)) /
+                (StrengthTierExt.minPctForTier(next) - StrengthTierExt.minPctForTier(rank)))
+            .clamp(0.0, 1.0)
+        : null;
+
+    String focusHint = 'Focus on Pinch Grip';
+    if (analysis.pinchWeak && m.pinchKg != null && m.bodyWeightKg != null) {
+      final target = m.bodyWeightKg! * 0.4;
+      final needed = (target - m.pinchKg!).clamp(0.0, double.infinity);
+      focusHint = 'Focus on Pinch Grip (+${needed.toStringAsFixed(1)} кг)';
+    } else if (analysis.fingersWeak) {
+      focusHint = 'Focus on Max Hangs';
+    } else if (analysis.pullWeak) {
+      focusHint = 'Focus on Power Pulls';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.mutedGold.withOpacity(0.15),
+            AppColors.cardDark,
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (rank != null) ...[
+            Text(
+              'Current Goal: ${next != null ? "Reach ${next.titleRu}" : rank.titleRu}'
+              '${progressToNext != null && next != null ? " — ${(progressToNext * 100).toStringAsFixed(0)}% complete" : ""}',
+              style: GoogleFonts.unbounded(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+          Text(
+            'AI Recommendation: $focusHint',
+            style: GoogleFonts.unbounded(
+              fontSize: 13,
+              color: AppColors.mutedGold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () {
+                DefaultTabController.of(context).animateTo(3);
+              },
+              icon: const Icon(Icons.fitness_center, size: 18),
+              label: Text(
+                'Start Today\'s Finger Session',
+                style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.mutedGold,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                _recoveryStatus == 'optimal' ? Icons.check_circle : Icons.schedule,
+                size: 18,
+                color: _recoveryStatus == 'optimal'
+                    ? AppColors.successMuted
+                    : Colors.white54,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Recovery: ${_gamification.recoveryStatusTextRu(_recoveryStatus)}',
+                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Text(
+                'XP: $_xp',
+                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+              ),
+              const SizedBox(width: 16),
+              Text(
+                'Streak: $_streak ${_dayWord(_streak)}',
+                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  StrengthTier? _getRankFromMetrics(StrengthMetrics m) {
+    final avg = _getAvgFromMetrics(m);
+    if (avg == null) return null;
+    return StrengthTierExt.fromAveragePct(avg);
+  }
+
+  double? _getAvgFromMetrics(StrengthMetrics m) {
+    final bw = m.bodyWeightKg;
+    if (bw == null || bw <= 0) return null;
+    final list = <double>[];
+    if (m.fingerBestPct != null) list.add(m.fingerBestPct!);
+    if (m.pinchPct != null) list.add(m.pinchPct!);
+    if (m.pull1RmPct != null) list.add(m.pull1RmPct!);
+    if (m.lockOffSec != null && m.lockOffSec! > 0) {
+      list.add((m.lockOffSec! / 30.0) * 100);
+    }
+    if (list.isEmpty) return null;
+    return list.reduce((a, b) => a + b) / list.length;
   }
 
   Widget _buildEmptyState(BuildContext context) {

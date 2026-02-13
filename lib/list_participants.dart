@@ -6,9 +6,33 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'models/Category.dart';
+import 'models/NumberSets.dart';
 import 'Screens/PublicProfileScreen.dart';
 import 'theme/app_theme.dart';
 import 'utils/display_helper.dart';
+
+/// Нормализует значение number_set из API (может быть int, String или List<int>)
+List<int> _parseNumberSets(dynamic value) {
+  if (value == null) return [];
+  if (value is int && value > 0) return [value];
+  if (value is num && value.toInt() > 0) return [value.toInt()];
+  if (value is String) {
+    final p = int.tryParse(value.trim());
+    if (p != null && p > 0) return [p];
+  }
+  if (value is List) {
+    final result = <int>[];
+    for (final e in value) {
+      int? v;
+      if (e is int) v = e;
+      else if (e is num) v = e.toInt();
+      else v = int.tryParse(e?.toString() ?? '');
+      if (v != null && v > 0) result.add(v);
+    }
+    return result;
+  }
+  return [];
+}
 
 class Participant {
 
@@ -18,7 +42,8 @@ class Participant {
   final String gender;
   final String birthday;
   final int? userId;
-  // final String set;
+  /// Номера сетов участника (из API: set, number_set, number_sets)
+  final List<int> numberSets;
 
   Participant({
     required this.middlename,
@@ -27,7 +52,7 @@ class Participant {
     required this.gender,
     required this.birthday,
     this.userId,
-    // required this.set,
+    this.numberSets = const [],
   });
 
   // Метод для создания объекта из JSON (для получения данных из API)
@@ -40,14 +65,30 @@ class Participant {
       final p = int.tryParse(uid);
       if (p != null && p > 0) parsedUserId = p;
     }
+    // category: верхний уровень или participant_category.category
+    String categoryStr = (json['category'] ?? '').toString().trim();
+    if (categoryStr.isEmpty) {
+      final pc = json['participant_category'];
+      if (pc is Map) {
+        categoryStr = (pc['category'] ?? '').toString().trim();
+      }
+    }
+    // number_set: верхний уровень или set.number_set, или set как int
+    dynamic numberSetsRaw = json['number_sets'] ?? json['number_set'] ?? json['set'] ?? json['sets'];
+    if (numberSetsRaw == null) {
+      final setObj = json['set'];
+      if (setObj is Map) {
+        numberSetsRaw = setObj['number_set'] ?? setObj['number_sets'];
+      }
+    }
     return Participant(
-      middlename: json['middlename'] ?? '',
-      gender: json['gender'] ?? '',
-      category: json['category'] ?? '',
-      city: json['city'] ?? '',
-      birthday: json['birthday'] ?? '',
+      middlename: (json['middlename'] ?? '').toString(),
+      gender: (json['gender'] ?? '').toString(),
+      category: categoryStr,
+      city: (json['city'] ?? '').toString(),
+      birthday: (json['birthday'] ?? '').toString(),
       userId: parsedUserId,
-      // set: json['set'],
+      numberSets: _parseNumberSets(numberSetsRaw),
     );
   }
 }
@@ -79,8 +120,9 @@ Future<List<Participant>> fetchParticipants({
 class ParticipantListScreen extends StatefulWidget {
   final int eventId;
   final List<Map<String, dynamic>> categories;
+  final List<Map<String, dynamic>> numberSets;
 
-  ParticipantListScreen(this.eventId, this.categories);
+  ParticipantListScreen(this.eventId, this.categories, [this.numberSets = const []]);
 
   @override
   _ParticipantListScreenState createState() => _ParticipantListScreenState();
@@ -91,6 +133,7 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
   List<Participant> filteredParticipants = [];
   String searchQuery = '';
   Category? selectedCategory;
+  int? selectedNumberSet; // Номер сета для фильтра (number_set)
 
   @override
   void initState() {
@@ -106,59 +149,93 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
       if (mounted) {
         setState(() {
           participants = data;
-          filteredParticipants = participants;
+          _applyFilters();
         });
       }
     } catch (e) {
     }
   }
 
-  void _showFilterSheet(BuildContext context, List<Category> categories) {
+  void _showFilterSheet(BuildContext context, List<Category> categories, List<NumberSets> setsList) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder: (context) {
         return FractionallySizedBox(
-          heightFactor: 0.3,
+          heightFactor: 0.45,
           widthFactor: 1.0,
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Text(
                   'Фильтры',
                   style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 SizedBox(height: 16),
-                StatefulBuilder(
-                  builder: (BuildContext context, StateSetter setState) {
-                    return DropdownButton<Category>(
-                      value: selectedCategory,
-                      onChanged: (Category? newValue) {
-                        setState(() {
-                          selectedCategory = newValue;
-                        });
-                        _applyFilters(selectedCategory); // Применяем фильтр после выбора
-                      },
-                      items: categories.map<DropdownMenuItem<Category>>((Category category) {
-                        return DropdownMenuItem<Category>(
-                          value: category,
-                          child: Text(category.category),
-                        );
-                      }).toList(),
-                      hint: Text('Выберите категорию'),
-                    );
-                  },
-                ),
-                SizedBox(height: 16),
-                // ElevatedButton(
-                //   onPressed: () {
-                //     Navigator.pop(context);
-                //     _applyFilters(selectedCategory); // Применяем выбранную категорию
-                //   },
-                //   child: Text('Применить фильтр'),
-                // ),
+                if (categories.isNotEmpty) ...[
+                  Text('Категория (группа)', style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70)),
+                  SizedBox(height: 6),
+                  StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setState) {
+                      return DropdownButtonFormField<Category>(
+                        value: selectedCategory,
+                        onChanged: (Category? newValue) {
+                          setState(() => selectedCategory = newValue);
+                          _applyFilters();
+                        },
+                        items: [
+                          DropdownMenuItem<Category>(value: null, child: Text('Все категории')),
+                          ...categories.map<DropdownMenuItem<Category>>((Category category) {
+                            return DropdownMenuItem<Category>(
+                              value: category,
+                              child: Text(category.category),
+                            );
+                          }),
+                        ],
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.08),
+                        ),
+                        dropdownColor: AppColors.cardDark,
+                      );
+                    },
+                  ),
+                  SizedBox(height: 16),
+                ],
+                if (setsList.isNotEmpty) ...[
+                  Text('Сет', style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70)),
+                  SizedBox(height: 6),
+                  StatefulBuilder(
+                    builder: (BuildContext context, StateSetter setState) {
+                      return DropdownButtonFormField<int>(
+                        value: selectedNumberSet,
+                        onChanged: (int? newValue) {
+                          setState(() => selectedNumberSet = newValue);
+                          _applyFilters();
+                        },
+                        items: [
+                          DropdownMenuItem<int>(value: null, child: Text('Все сеты')),
+                          ...setsList.map<DropdownMenuItem<int>>((NumberSets s) {
+                            return DropdownMenuItem<int>(
+                              value: s.number_set,
+                              child: Text(formatSetCompact(s)),
+                            );
+                          }),
+                        ],
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                          filled: true,
+                          fillColor: Colors.white.withOpacity(0.08),
+                        ),
+                        dropdownColor: AppColors.cardDark,
+                      );
+                    },
+                  ),
+                ],
               ],
             ),
           ),
@@ -167,12 +244,23 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
     );
   }
 
-  void _applyFilters(Category? selectedCategory) {
+  void _applyFilters() {
     if (mounted) {
       setState(() {
         filteredParticipants = participants.where((participant) {
           if (selectedCategory != null) {
-            return participant.category == selectedCategory.category;
+            final catA = (participant.category).trim();
+            final catB = (selectedCategory!.category).trim();
+            if (catA != catB) return false;
+          }
+          if (selectedNumberSet != null) {
+            if (participant.numberSets.isEmpty) return false;
+            if (!participant.numberSets.contains(selectedNumberSet)) return false;
+          }
+          if (searchQuery.trim().isNotEmpty) {
+            if (!participant.middlename.toLowerCase().contains(searchQuery.trim().toLowerCase())) {
+              return false;
+            }
           }
           return true;
         }).toList();
@@ -182,8 +270,10 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Преобразуем JSON в объекты Category перед вызовом _showFilterSheet
     List<Category> categoryList = widget.categories.map((json) => Category.fromJson(json)).toList();
+    List<NumberSets> setsList = widget.numberSets
+        .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
 
     return Scaffold(
       appBar: AppBar(
@@ -194,27 +284,23 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
         actions: [
           IconButton(
             icon: Icon(Icons.search),
-            onPressed: () {
-              setState(() {
-                searchQuery = '';
-              });
-              showSearch(
+            onPressed: () async {
+              final query = await showSearch<String>(
                 context: context,
                 delegate: ParticipantSearchDelegate(
                   participants: participants,
-                  onSelected: (query) {
-                    setState(() {
-                      searchQuery = query;
-                      _applyFilters(selectedCategory); // Используем выбранный фильтр, если есть
-                    });
-                  },
+                  onSelected: (q) {},
                 ),
               );
+              setState(() {
+                searchQuery = query ?? '';
+                _applyFilters();
+              });
             },
           ),
           IconButton(
             icon: Icon(Icons.filter_list),
-            onPressed: () => _showFilterSheet(context, categoryList), // Передаем список категорий
+            onPressed: () => _showFilterSheet(context, categoryList, setsList),
           ),
         ],
       ),
@@ -257,7 +343,12 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${displayValue(participant.category)} · ${displayValue(participant.city)}',
+                            [
+                              displayValue(participant.category),
+                              displayValue(participant.city),
+                              if (participant.numberSets.isNotEmpty)
+                                'Сет ${participant.numberSets.join(', ')}',
+                            ].where((s) => s != 'Нет данных' && s.isNotEmpty).join(' · '),
                             style: AppTypography.secondary(),
                           ),
                         ],

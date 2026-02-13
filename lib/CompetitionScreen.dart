@@ -400,23 +400,23 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Container(
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.04),
+                color: AppColors.rowAlt,
                 borderRadius: BorderRadius.circular(999),
               ),
               child: TabBar(
                 controller: _tabController,
                 indicatorColor: Colors.transparent,
-                overlayColor:
-                    MaterialStateProperty.all(Colors.transparent),
+                overlayColor: MaterialStateProperty.all(Colors.transparent),
                 indicator: BoxDecoration(
                   borderRadius: BorderRadius.circular(999),
-                  color: AppColors.mutedGold.withOpacity(0.25),
+                  color: AppColors.mutedGold.withOpacity(0.3),
                 ),
-                labelPadding:
-                    const EdgeInsets.symmetric(horizontal: 8.0),
+                labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
+                labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                 tabs: [
-                  Tab(child: Text('Текущие', style: GoogleFonts.unbounded(fontSize: 14))),
-                  Tab(child: Text('Завершенные', style: GoogleFonts.unbounded(fontSize: 14))),
+                  Tab(child: Text('Текущие', style: GoogleFonts.unbounded(fontSize: 13))),
+                  Tab(child: Text('Завершенные', style: GoogleFonts.unbounded(fontSize: 13))),
                 ],
               ),
             ),
@@ -1941,6 +1941,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         builder: (context) => ParticipantListScreen(
                           _competitionDetails.id,
                           _competitionDetails.categories,
+                          _competitionDetails.number_sets,
                         ),
                       ),
                     );
@@ -2330,23 +2331,51 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     }
   }
 
+  Widget _buildDetailNavItem({
+    required IconData icon,
+    required IconData iconActive,
+    required String label,
+    required int index,
+  }) {
+    final isActive = _selectedIndex == index;
+    final color = isActive ? AppColors.mutedGold : Colors.white.withOpacity(0.4);
+    return Expanded(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _onItemTapped(index),
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(isActive ? iconActive : icon, size: 22, color: color),
+                const SizedBox(height: 4),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    label,
+                    style: GoogleFonts.unbounded(
+                      fontSize: 9,
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                      color: color,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final baseNavColor = AppColors.surfaceDark;
-    final accentNavColor = AppColors.mutedGold.withOpacity(0.35);
-
-    List<Color> detailNavGradientColors(int index) {
-      switch (index) {
-        case 0: // Информация
-          return [accentNavColor, baseNavColor, baseNavColor];
-        case 1: // Результаты
-          return [baseNavColor, accentNavColor, baseNavColor];
-        case 2: // Статистика
-        default:
-          return [baseNavColor, baseNavColor, accentNavColor];
-      }
-    }
-
     return Scaffold(
       appBar: AppBar(
         title: Text('Детали соревнования', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
@@ -2381,42 +2410,30 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: detailNavGradientColors(_selectedIndex),
-              ),
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, -2),
             ),
-            child: BottomNavigationBar(
-              backgroundColor: Colors.transparent,
-              items: const <BottomNavigationBarItem>[
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.info),
-                  label: 'Информация',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.emoji_events),
-                  label: 'Результаты',
-                ),
-                BottomNavigationBarItem(
-                  icon: Icon(Icons.bar_chart),
-                  label: 'Статистика',
-                ),
+          ],
+        ),
+        child: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Row(
+              children: [
+                _buildDetailNavItem(icon: Icons.info_outlined, iconActive: Icons.info_rounded, label: 'Информация', index: 0),
+                _buildDetailNavItem(icon: Icons.emoji_events_outlined, iconActive: Icons.emoji_events_rounded, label: 'Результаты', index: 1),
+                _buildDetailNavItem(icon: Icons.bar_chart_outlined, iconActive: Icons.bar_chart_rounded, label: 'Статистика', index: 2),
               ],
-              currentIndex: _selectedIndex,
-              selectedItemColor: AppColors.mutedGold,
-              unselectedItemColor: Colors.grey,
-              onTap: _onItemTapped,
-              selectedFontSize: 12,
-              unselectedFontSize: 11,
-              showUnselectedLabels: false,
-              type: BottomNavigationBarType.fixed,
             ),
           ),
         ),
@@ -2472,27 +2489,25 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Container(
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.04),
+                  color: AppColors.rowAlt,
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: TabBar(
                   indicatorColor: Colors.transparent,
-                  overlayColor:
-                      MaterialStateProperty.all(Colors.transparent),
+                  overlayColor: MaterialStateProperty.all(Colors.transparent),
                   indicator: BoxDecoration(
                     borderRadius: BorderRadius.circular(999),
-                    color: AppColors.mutedGold.withOpacity(0.25),
+                    color: AppColors.mutedGold.withOpacity(0.3),
                   ),
                   labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
                   unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
-                  labelPadding:
-                      const EdgeInsets.symmetric(horizontal: 8.0),
+                  labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                   tabs: [
-                    Tab(child: Text('Квалификация', style: GoogleFonts.unbounded(fontSize: 14))),
+                    Tab(child: Text('Квалификация', style: GoogleFonts.unbounded(fontSize: 13))),
                     if (_competitionDetails.is_semifinal)
-                      Tab(child: Text('Полуфинал', style: GoogleFonts.unbounded(fontSize: 14))),
+                      Tab(child: Text('Полуфинал', style: GoogleFonts.unbounded(fontSize: 13))),
                     if (_competitionDetails.is_result_in_final_exists)
-                      Tab(child: Text('Финал', style: GoogleFonts.unbounded(fontSize: 14))),
+                      Tab(child: Text('Финал', style: GoogleFonts.unbounded(fontSize: 13))),
                   ],
                 ),
               ),
