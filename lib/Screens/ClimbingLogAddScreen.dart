@@ -167,10 +167,8 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
         );
       }
       widget.onSaved?.call();
-      if (_isEditMode) {
+      if (mounted) {
         Navigator.of(context).pop();
-      } else {
-        setState(() => _routes.clear());
       }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -197,12 +195,27 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
-                  child: Text(
-                    _isEditMode ? 'Редактировать тренировку' : 'Добавить тренировку',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                  child: Row(
+                    children: [
+                      IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Icons.arrow_back),
+                        color: Colors.white,
+                        style: IconButton.styleFrom(
+                          backgroundColor: AppColors.cardDark,
                         ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text(
+                          _isEditMode ? 'Редактировать тренировку' : 'Добавить тренировку',
+                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),

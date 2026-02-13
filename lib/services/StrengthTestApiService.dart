@@ -6,6 +6,7 @@ import 'package:login_app/main.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
 import 'package:login_app/models/TrainingPlan.dart';
+import 'package:login_app/models/Workout.dart';
 
 /// API-сервис для тестирования силы. Интеграция с бэкендом.
 class StrengthTestApiService {
@@ -225,9 +226,16 @@ class StrengthTestApiService {
   }
 
   /// GET /api/climbing-logs/exercises
+  /// Для ОФП (category=ofp) бэкенд дозирует по уровню. Опционально:
+  /// [sessionType] — short (5), standard (7), full (без лимита)
+  /// [limit] — жёсткий лимит 1–50
+  /// [dayOffset] — 0–6 (день недели) или дата для ротации упражнений
   Future<List<CatalogExercise>> getExercises({
     String? level,
     String? category,
+    String? sessionType,
+    int? limit,
+    int? dayOffset,
   }) async {
     final token = await _getToken();
     if (token == null) return [];
@@ -235,6 +243,9 @@ class StrengthTestApiService {
       final params = <String, String>{};
       if (level != null) params['level'] = level;
       if (category != null) params['category'] = category;
+      if (sessionType != null) params['session_type'] = sessionType;
+      if (limit != null && limit >= 1 && limit <= 50) params['limit'] = limit.toString();
+      if (dayOffset != null && dayOffset >= 0 && dayOffset <= 6) params['day_offset'] = dayOffset.toString();
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercises')
           .replace(queryParameters: params.isNotEmpty ? params : null);
       final response = await http.get(uri, headers: _headers(token));
@@ -361,6 +372,41 @@ class StrengthTestApiService {
     }
     return body;
   }
+
+  /// POST /api/climbing-logs/workout/generate
+  Future<WorkoutGenerateResponse?> generateWorkout(GenerateWorkoutRequest req) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/climbing-logs/workout/generate'),
+        headers: _headers(token),
+        body: jsonEncode(req.toJson()),
+      );
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        return json != null ? WorkoutGenerateResponse.fromJson(json) : null;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// GET /api/climbing-logs/weekly-fatigue
+  Future<WeeklyFatigueResponse?> getWeeklyFatigue() async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/weekly-fatigue'),
+        headers: _headers(token),
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        return json != null ? WeeklyFatigueResponse.fromJson(json) : null;
+      }
+    } catch (_) {}
+    return null;
+  }
 }
 
 class StrengthLeaderboard {
@@ -456,6 +502,8 @@ class CatalogExercise {
   final String category;
   final String level;
   final String? description;
+  final String? imageUrl;
+  final List<String> muscleGroups;
   final int defaultSets;
   final String defaultReps;
   final String defaultRest;
@@ -468,26 +516,74 @@ class CatalogExercise {
     required this.category,
     required this.level,
     this.description,
+    this.imageUrl,
+    this.muscleGroups = const [],
     this.defaultSets = 3,
     this.defaultReps = '6',
     this.defaultRest = '180s',
     this.targetWeightOptional = true,
   });
 
-  factory CatalogExercise.fromJson(Map<String, dynamic> json) => CatalogExercise(
-        id: json['id'] as String? ?? '',
-        name: json['name'] as String? ?? '',
-        nameRu: json['name_ru'] as String?,
-        category: json['category'] as String? ?? 'sfp',
-        level: json['level'] as String? ?? 'intermediate',
-        description: json['description'] as String?,
-        defaultSets: json['default_sets'] as int? ?? 3,
-        defaultReps: json['default_reps'] as String? ?? '6',
-        defaultRest: json['default_rest'] as String? ?? '180s',
-        targetWeightOptional: json['target_weight_optional'] as bool? ?? true,
-      );
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'name': name,
+        if (nameRu != null) 'name_ru': nameRu,
+        'category': category,
+        'level': level,
+        if (description != null) 'description': description,
+        if (imageUrl != null) 'image_url': imageUrl,
+        if (muscleGroups.isNotEmpty) 'muscle_groups': muscleGroups,
+        'default_sets': defaultSets,
+        'default_reps': defaultReps,
+        'default_rest': defaultRest,
+        'target_weight_optional': targetWeightOptional,
+      };
+
+  factory CatalogExercise.fromJson(Map<String, dynamic> json) {
+    final mgRaw = json['muscle_groups'];
+    List<String> mg = [];
+    if (mgRaw is List) {
+      mg = mgRaw.map((e) => e.toString()).toList();
+    }
+    return CatalogExercise(
+      id: json['id'] as String? ?? '',
+      name: json['name'] as String? ?? '',
+      nameRu: json['name_ru'] as String?,
+      category: json['category'] as String? ?? 'sfp',
+      level: json['level'] as String? ?? 'intermediate',
+      description: json['description'] as String?,
+      imageUrl: json['image_url'] as String?,
+      muscleGroups: mg,
+      defaultSets: json['default_sets'] as int? ?? 3,
+      defaultReps: json['default_reps'] as String? ?? '6',
+      defaultRest: json['default_rest'] as String? ?? '180s',
+      targetWeightOptional: json['target_weight_optional'] as bool? ?? true,
+    );
+  }
 
   String get displayName => nameRu ?? name;
+
+  /// Создаёт CatalogExercise из WorkoutBlockExercise (для экрана выполнения).
+  static CatalogExercise fromWorkoutBlock(WorkoutBlockExercise w) {
+    String reps;
+    if (w.holdSeconds != null && w.holdSeconds! > 0) {
+      reps = '${w.holdSeconds}s';
+    } else if (w.defaultReps is int) {
+      reps = '${w.defaultReps}';
+    } else {
+      reps = w.defaultReps.toString();
+    }
+    return CatalogExercise(
+      id: w.exerciseId,
+      name: w.name,
+      nameRu: w.nameRu,
+      category: w.category,
+      level: 'intermediate',
+      defaultSets: w.defaultSets,
+      defaultReps: reps,
+      defaultRest: '${w.defaultRestSeconds}s',
+    );
+  }
 }
 
 class ExerciseCompletion {

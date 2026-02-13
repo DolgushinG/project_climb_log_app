@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/theme/app_theme.dart';
+import 'package:login_app/services/PremiumSubscriptionService.dart';
+import 'package:login_app/Screens/PremiumPaymentScreen.dart';
 
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
@@ -11,21 +13,59 @@ import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
 /// Объединяющий экран трекера трасс.
 /// Для гостей — лендинг с «Доступно после авторизации».
 /// Для авторизованных — вкладки: Обзор, Прогресс, История, Тестирование.
-/// Добавить тренировку — кнопка в Обзоре.
-/// Структура как у CompetitionScreen: AppBar + TabBar.
-class ClimbingLogScreen extends StatelessWidget {
+/// Premium: пробный период 7 дней, далее платная подписка.
+class ClimbingLogScreen extends StatefulWidget {
   final bool isGuest;
+  /// true когда пользователь переключился на вкладку «Тренировки» в нижней навигации
+  final bool isTabVisible;
 
-  const ClimbingLogScreen({super.key, required this.isGuest});
+  const ClimbingLogScreen({
+    super.key,
+    required this.isGuest,
+    this.isTabVisible = true,
+  });
+
+  @override
+  State<ClimbingLogScreen> createState() => _ClimbingLogScreenState();
+}
+
+class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTickerProviderStateMixin {
+  final PremiumSubscriptionService _premiumService = PremiumSubscriptionService();
+  PremiumStatus? _premiumStatus;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_onTabChanged);
+    _loadPremiumStatus();
+  }
+
+  void _onTabChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadPremiumStatus() async {
+    if (widget.isGuest) return;
+    await _premiumService.ensureTrialStarted();
+    final status = await _premiumService.getStatus();
+    if (mounted) setState(() => _premiumStatus = status);
+  }
 
   @override
   Widget build(BuildContext context) {
-    if (isGuest) {
+    if (widget.isGuest) {
       return const ClimbingLogLandingScreen();
     }
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
+    return Scaffold(
         backgroundColor: AppColors.anthracite,
         appBar: AppBar(
           backgroundColor: AppColors.anthracite,
@@ -41,6 +81,7 @@ class ClimbingLogScreen extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: TabBar(
+                  controller: _tabController,
                   indicatorColor: Colors.transparent,
                   overlayColor: MaterialStateProperty.all(Colors.transparent),
                   labelColor: AppColors.mutedGold,
@@ -61,15 +102,22 @@ class ClimbingLogScreen extends StatelessWidget {
             ),
           ),
         ),
-        body: const TabBarView(
-          children: [
-            ClimbingLogSummaryScreen(),
-            ClimbingLogProgressScreen(),
-            ClimbingLogHistoryScreen(),
-            ClimbingLogTestingScreen(),
-          ],
-        ),
-      ),
+        body: TabBarView(
+                controller: _tabController,
+                children: [
+                  ClimbingLogSummaryScreen(
+                    premiumStatus: _premiumStatus,
+                    onPremiumTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
+                    ).then((_) => _loadPremiumStatus()),
+                  ),
+                  const ClimbingLogProgressScreen(),
+                  const ClimbingLogHistoryScreen(),
+                  const ClimbingLogTestingScreen(),
+                ],
+              ),
     );
   }
+
 }

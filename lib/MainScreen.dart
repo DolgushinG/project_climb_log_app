@@ -72,12 +72,27 @@ class _MainScreenState extends State<MainScreen> {
     return shouldExit == true;
   }
 
+  List<Widget> _buildScreens() {
+    return widget.isGuest
+        ? [
+            ClimbingLogScreen(key: const ValueKey('climbing_log'), isGuest: true, isTabVisible: _selectedIndex == 0),
+            const RatingScreen(),
+            CompetitionsScreen(isGuest: true),
+            const GymsListScreen(),
+            const _GuestLoginScreen(),
+          ]
+        : [
+            ClimbingLogScreen(key: const ValueKey('climbing_log'), isGuest: false, isTabVisible: _selectedIndex == 0),
+            const RatingScreen(),
+            CompetitionsScreen(),
+            const GymsListScreen(),
+            ProfileScreen(),
+          ];
+  }
+
   @override
   void initState() {
     super.initState();
-    _screens = widget.isGuest
-        ? [ClimbingLogScreen(isGuest: true), const RatingScreen(), CompetitionsScreen(isGuest: true), const GymsListScreen(), const _GuestLoginScreen()]
-        : [ClimbingLogScreen(isGuest: false), const RatingScreen(), CompetitionsScreen(), const GymsListScreen(), ProfileScreen()];
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -280,7 +295,7 @@ class _MainScreenState extends State<MainScreen> {
                 if (!mounted) return;
                 setState(() => _selectedIndex = index);
               },
-              children: _screens,
+              children: _buildScreens(),
             ),
             if (!_isOnline && _offlineWithNoCache && !_offlineBannerDismissed)
               Positioned(

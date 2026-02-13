@@ -6,7 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/StrengthTier.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
-import 'package:login_app/Screens/TrainingPlanScreen.dart';
+import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 import 'package:login_app/Screens/StrengthHistoryScreen.dart';
 import 'package:login_app/services/StrengthDashboardService.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
@@ -27,6 +27,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     with TickerProviderStateMixin {
   static const String _keyBodyWeight = 'climbing_test_body_weight';
   static const String _keyLastRank = 'climbing_test_last_rank';
+  static const String _keyDraft = 'climbing_test_draft';
 
   final TextEditingController _bodyWeightController = TextEditingController();
   final TextEditingController _fingerLeftController = TextEditingController();
@@ -36,11 +37,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   final TextEditingController _pullRepsController = TextEditingController(text: '1');
   final TextEditingController _lockOffSecController = TextEditingController();
 
-  String _gripType = 'half_crimp';
   int _pinchBlockWidth = 40;
-
-  int? _restSecondsRemaining;
-  Timer? _restTimer;
 
   OverlayEntry? _levelUpOverlay;
   AnimationController? _levelUpController;
@@ -48,10 +45,15 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   StrengthMeasurementSession? _lastSession;
   StrengthLeaderboard? _leaderboard;
 
+  Timer? _draftSaveTimer;
+
   @override
   void initState() {
     super.initState();
-    _loadBodyWeight().then((_) => _loadLeaderboard());
+    _loadBodyWeight().then((_) {
+      _loadDraft();
+      _loadLeaderboard();
+    });
     _loadLastRank();
     _loadLastSession();
     _pullRepsController.addListener(_onMetricsChanged);
@@ -65,14 +67,12 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
 
   void _onMetricsChanged() {
     setState(() {});
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) _checkLevelUp();
-    });
+    _saveDraftLocally();
   }
 
   @override
   void dispose() {
-    _restTimer?.cancel();
+    _draftSaveTimer?.cancel();
     _levelUpController?.dispose();
     _removeLevelUpOverlay();
     _bodyWeightController.removeListener(_onMetricsChanged);
@@ -121,6 +121,67 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     if (mounted) setState(() => _leaderboard = lb);
   }
 
+  bool _hasUnsentDraft = false;
+
+  Future<void> _saveDraftLocally() async {
+    _draftSaveTimer?.cancel();
+    _draftSaveTimer = Timer(const Duration(milliseconds: 500), () async {
+      final prefs = await SharedPreferences.getInstance();
+      final draft = <String, String>{
+        'finger_left': _fingerLeftController.text.trim(),
+        'finger_right': _fingerRightController.text.trim(),
+        'pinch': _pinchWeightController.text.trim(),
+        'pull_added': _pullWeightController.text.trim(),
+        'pull_reps': _pullRepsController.text.trim(),
+        'lock_sec': _lockOffSecController.text.trim(),
+      };
+      final keys = draft.keys.toList();
+      for (final k in keys) {
+        await prefs.setString('${_keyDraft}_$k', draft[k]!);
+      }
+      await prefs.setInt('${_keyDraft}_pinch_block', _pinchBlockWidth);
+      final hasMeasurementData = _fingerLeftController.text.trim().isNotEmpty ||
+          _fingerRightController.text.trim().isNotEmpty ||
+          _pinchWeightController.text.trim().isNotEmpty ||
+          _pullWeightController.text.trim().isNotEmpty ||
+          _lockOffSecController.text.trim().isNotEmpty;
+      if (mounted) setState(() => _hasUnsentDraft = hasMeasurementData);
+    });
+  }
+
+  Future<void> _loadDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    final fingerLeft = prefs.getString('${_keyDraft}_finger_left');
+    final fingerRight = prefs.getString('${_keyDraft}_finger_right');
+    final pinch = prefs.getString('${_keyDraft}_pinch');
+    final pullAdded = prefs.getString('${_keyDraft}_pull_added');
+    final pullReps = prefs.getString('${_keyDraft}_pull_reps');
+    final lockSec = prefs.getString('${_keyDraft}_lock_sec');
+    final pinchBlock = prefs.getInt('${_keyDraft}_pinch_block');
+    final hasAny = fingerLeft != null || fingerRight != null || pinch != null ||
+        pullAdded != null || pullReps != null || lockSec != null || pinchBlock != null;
+    if (!hasAny || !mounted) return;
+    setState(() {
+      if (fingerLeft != null) _fingerLeftController.text = fingerLeft;
+      if (fingerRight != null) _fingerRightController.text = fingerRight;
+      if (pinch != null) _pinchWeightController.text = pinch;
+      if (pullAdded != null) _pullWeightController.text = pullAdded;
+      if (pullReps != null && pullReps.isNotEmpty) _pullRepsController.text = pullReps;
+      if (lockSec != null) _lockOffSecController.text = lockSec;
+      if (pinchBlock != null && [40, 60, 80].contains(pinchBlock)) _pinchBlockWidth = pinchBlock;
+      _hasUnsentDraft = true;
+    });
+  }
+
+  Future<void> _clearDraft() async {
+    final prefs = await SharedPreferences.getInstance();
+    for (final k in ['finger_left', 'finger_right', 'pinch', 'pull_added', 'pull_reps', 'lock_sec']) {
+      await prefs.remove('${_keyDraft}_$k');
+    }
+    await prefs.remove('${_keyDraft}_pinch_block');
+    if (mounted) setState(() => _hasUnsentDraft = false);
+  }
+
   Future<void> _loadLastSession() async {
     final api = StrengthTestApiService();
     var history = await api.getStrengthTestsHistory(periodDays: 365);
@@ -134,15 +195,17 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     if (mounted) setState(() => _lastSession = session);
   }
 
-  Future<void> _saveMeasurement() async {
+  Future<void> _saveMeasurement({bool silent = false}) async {
     final m = _buildMetrics();
     if (m.bodyWeightKg == null || m.bodyWeightKg! <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Сначала введи свой вес'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (!silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Сначала введи свой вес'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
       return;
     }
     final now = DateTime.now();
@@ -159,13 +222,78 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     await StrengthHistoryService().saveSession(m);
     await StrengthDashboardService().saveMetrics(m);
     await TrainingGamificationService().recordMeasurement();
+    await _clearDraft();
     if (mounted) {
       setState(() => _lastSession = StrengthMeasurementSession(date: dateStr, metrics: m));
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Записал! Посмотри в истории'),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.successMuted,
+      _checkLevelUp();
+      _loadLastSession();
+      _loadLeaderboard();
+      if (!silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Замер сохранён'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.successMuted,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+        _showRegeneratePlanDialog(m);
+      }
+    }
+  }
+
+  Future<void> _showRegeneratePlanDialog(StrengthMetrics m) async {
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Новые замеры сохранены',
+          style: GoogleFonts.unbounded(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        content: Text(
+          'Сгенерировать план с учётом новых данных?',
+          style: GoogleFonts.unbounded(
+            fontSize: 14,
+            color: Colors.white70,
+            height: 1.4,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Позже',
+              style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 14),
+            ),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.mutedGold,
+              foregroundColor: Colors.white,
+            ),
+            child: Text(
+              'Сгенерировать план',
+              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      await ExerciseCompletionScreen.clearCacheForToday();
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ExerciseCompletionScreen(metrics: m),
         ),
       );
     }
@@ -257,7 +385,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
       ),
     );
     Overlay.of(context).insert(_levelUpOverlay!);
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    Future.delayed(const Duration(milliseconds: 4000), () {
       if (mounted) _removeLevelUpOverlay();
     });
   }
@@ -282,21 +410,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   int? _parseInt(TextEditingController c) {
     final v = int.tryParse(c.text);
     return v != null && v >= 1 ? v : null;
-  }
-
-  void _startRestTimer() {
-    _restTimer?.cancel();
-    setState(() => _restSecondsRemaining = 180);
-    _restTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) return;
-      setState(() {
-        _restSecondsRemaining = (_restSecondsRemaining ?? 0) - 1;
-        if (_restSecondsRemaining! <= 0) {
-          t.cancel();
-          _restSecondsRemaining = null;
-        }
-      });
-    });
   }
 
   void _showInstruction(String title, String text, {String? proTip}) {
@@ -484,18 +597,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
 
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-            // Rest timer
-            if (_restSecondsRemaining != null && _restSecondsRemaining! > 0)
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: _buildRestTimer(),
-                ),
-              ),
-
-            if (_restSecondsRemaining != null && _restSecondsRemaining! > 0)
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
             // Block A: Finger Isometrics
             SliverToBoxAdapter(
               child: Padding(
@@ -668,21 +769,51 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   Widget _buildSaveMeasurementButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: FilledButton.icon(
-        onPressed: () => _saveMeasurement(),
-        icon: const Icon(Icons.save_outlined, size: 20),
-          label: Text(
-          'Записать замер',
-          style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: _hasUnsentDraft ? AppColors.successMuted.withOpacity(0.6) : AppColors.graphite,
+          width: _hasUnsentDraft ? 2 : 1,
         ),
-        style: FilledButton.styleFrom(
-          backgroundColor: AppColors.successMuted,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (_hasUnsentDraft)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Row(
+                children: [
+                  Icon(Icons.save_outlined, color: AppColors.successMuted, size: 18),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Черновик сохранён локально',
+                    style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.successMuted),
+                  ),
+                ],
+              ),
+            ),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton.icon(
+              onPressed: () => _saveMeasurement(silent: false),
+              icon: const Icon(Icons.check_circle_outline, size: 22),
+              label: Text(
+                'Закончить замер',
+                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.successMuted,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -780,8 +911,9 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
 
   Widget _buildBadgesCard() {
     final m = _buildMetrics();
-    final unlocked = strengthAchievements.where((a) => a.check(m)).map((a) => a).toList();
-    final locked = strengthAchievements.where((a) => !a.check(m)).toList();
+    final lastM = _lastSession?.metrics;
+    final unlocked = strengthAchievements.where((a) => a.check(m) || (lastM != null && a.check(lastM))).toList();
+    final locked = strengthAchievements.where((a) => !a.check(m) && (lastM == null || !a.check(lastM))).toList();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -940,7 +1072,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (ctx) => TrainingPlanScreen(metrics: m),
+                              builder: (ctx) => ExerciseCompletionScreen(metrics: m),
                             ),
                           ).then((_) {
                             if (mounted) _loadLastSession();
@@ -980,7 +1112,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
       child: _buildInputField(
         'Секунды',
         _lockOffSecController,
-        onChanged: () => _startRestTimer(),
       ),
     );
   }
@@ -1078,49 +1209,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     );
   }
 
-  Widget _buildRestTimer() {
-    final total = 180;
-    final remain = _restSecondsRemaining ?? 0;
-    final progress = 1 - (remain / total);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.successMuted.withOpacity(0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.timer_outlined, color: AppColors.successMuted, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'Отдых между попытками: ${remain ~/ 60}:${(remain % 60).toString().padLeft(2, '0')}',
-                style: GoogleFonts.unbounded(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w600,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 6,
-              backgroundColor: AppColors.rowAlt,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.successMuted),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildTestCard({
     required String title,
     required IconData icon,
@@ -1180,9 +1268,8 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   Widget _buildFingerIsometricsCard() {
-    const instruction = 'Планка 20 мм на грузовой ленте. Встань ровно, рука чуток согнута в локте. '
-        'Плавно тяни вес вверх 5 секунд, без читинга корпусом. '
-        'Фаланги параллельны планке (полуактив), не заламывай в full crimp — береги кольца.';
+    const instruction = 'Планка 8 мм на грузовой ленте. Встань ровно, рука чуток согнута в локте. '
+        'Плавно тяни вес вверх 5 секунд, без читинга корпусом.';
     const proTip = 'Если на блоке тянешь на 20% больше, чем в висе на финге — '
         'слабое звено не пальцы, а плечо или кор. Качай стабильность!';
 
@@ -1202,33 +1289,13 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     }
 
     return _buildTestCard(
-      title: 'Вис на пальцах (полуактив)',
+      title: 'Подъём веса на 8 мм планке',
       icon: Icons.back_hand_outlined,
       instruction: instruction,
-      onHelpTap: () => _showInstruction('Вис на пальцах', instruction, proTip: proTip),
+      onHelpTap: () => _showInstruction('Подъём веса 8 мм', instruction, proTip: proTip),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Grip selector
-          Text(
-            'Хват',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              _buildChip('Half-Crimp', _gripType == 'half_crimp', () {
-                setState(() => _gripType = 'half_crimp');
-                _startRestTimer();
-              }),
-              const SizedBox(width: 8),
-              _buildChip('Open', _gripType == 'open', () {
-                setState(() => _gripType = 'open');
-                _startRestTimer();
-              }),
-            ],
-          ),
-          const SizedBox(height: 16),
           if (leftWeak)
             Padding(
               padding: const EdgeInsets.only(bottom: 8),
@@ -1259,7 +1326,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 child: _buildInputField(
                   'Левая (кг)',
                   _fingerLeftController,
-                  onChanged: () => _startRestTimer(),
                   hasWarning: leftWeak,
                 ),
               ),
@@ -1268,7 +1334,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 child: _buildInputField(
                   'Правая (кг)',
                   _fingerRightController,
-                  onChanged: () => _startRestTimer(),
                   hasWarning: rightWeak,
                 ),
               ),
@@ -1310,10 +1375,10 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         'Подними вес вертикально и держи 3–5 сек. Без помощи ноги и корпуса — только кисть и предплечье.';
 
     return _buildTestCard(
-      title: 'Щипок (pinch)',
+      title: 'Подъём веса щипка ${_pinchBlockWidth} мм',
       icon: Icons.pan_tool_outlined,
       instruction: instruction,
-      onHelpTap: () => _showInstruction('Сила щипка', instruction),
+      onHelpTap: () => _showInstruction('Подъём веса щипка', instruction),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1325,26 +1390,31 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           Row(
             children: [
               _buildChip('40 мм', _pinchBlockWidth == 40, () {
-                setState(() => _pinchBlockWidth = 40);
-                _startRestTimer();
+                setState(() {
+                  _pinchBlockWidth = 40;
+                  _saveDraftLocally();
+                });
               }),
               const SizedBox(width: 8),
               _buildChip('60 мм', _pinchBlockWidth == 60, () {
-                setState(() => _pinchBlockWidth = 60);
-                _startRestTimer();
+                setState(() {
+                  _pinchBlockWidth = 60;
+                  _saveDraftLocally();
+                });
               }),
               const SizedBox(width: 8),
               _buildChip('80 мм', _pinchBlockWidth == 80, () {
-                setState(() => _pinchBlockWidth = 80);
-                _startRestTimer();
+                setState(() {
+                  _pinchBlockWidth = 80;
+                  _saveDraftLocally();
+                });
               }),
             ],
           ),
           const SizedBox(height: 16),
           _buildInputField(
-                          'Макс. (кг)',
+            'Макс. (кг)',
             _pinchWeightController,
-            onChanged: () => _startRestTimer(),
           ),
         ],
       ),
@@ -1399,9 +1469,8 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             children: [
               Expanded(
                 child: _buildInputField(
-                          'Доп. вес (кг)',
+                  'Доп. вес (кг)',
                   _pullWeightController,
-                  onChanged: () => _startRestTimer(),
                 ),
               ),
               const SizedBox(width: 12),
@@ -1410,7 +1479,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 child: _buildInputField(
                   'Повторения',
                   _pullRepsController,
-                  onChanged: () => _startRestTimer(),
                 ),
               ),
             ],
@@ -1434,20 +1502,27 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text(
-              '${relativeStrength.toStringAsFixed(0)}% от веса',
-              style: GoogleFonts.unbounded(
-                fontSize: 14,
-                color: AppColors.mutedGold,
-                fontWeight: FontWeight.w600,
+            Flexible(
+              child: Text(
+                '${relativeStrength.toStringAsFixed(0)}% от веса',
+                style: GoogleFonts.unbounded(
+                  fontSize: 14,
+                  color: AppColors.mutedGold,
+                  fontWeight: FontWeight.w600,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text(
-              level,
-              style: GoogleFonts.unbounded(
-                fontSize: 12,
-                color: Colors.white70,
-                fontWeight: FontWeight.w500,
+            const SizedBox(width: 8),
+            Flexible(
+              child: Text(
+                level,
+                style: GoogleFonts.unbounded(
+                  fontSize: 12,
+                  color: Colors.white70,
+                  fontWeight: FontWeight.w500,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],
@@ -1494,15 +1569,19 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Разница: ${diffPct.toStringAsFixed(1)}%',
-                  style: GoogleFonts.unbounded(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: diffPct > 10 ? Colors.orange : Colors.white,
+                Flexible(
+                  child: Text(
+                    'Разница: ${diffPct.toStringAsFixed(1)}%',
+                    style: GoogleFonts.unbounded(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: diffPct > 10 ? Colors.orange : Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                if (diffPct > 10)
+                if (diffPct > 10) ...[
+                  const SizedBox(width: 8),
                   TextButton(
                     onPressed: _showAsymmetryAlert,
                     child: Text(
@@ -1510,6 +1589,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                       style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 12),
                     ),
                   ),
+                ],
               ],
             ),
             if (diffPct > 10)

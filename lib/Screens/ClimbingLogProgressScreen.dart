@@ -22,6 +22,8 @@ class ClimbingLogProgressScreen extends StatefulWidget {
 class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
   final ClimbingLogService _service = ClimbingLogService();
   ClimbingProgress? _progress;
+  ClimbingLogStatistics? _statisticsDaily;
+  ClimbingLogStatistics? _statisticsWeekly;
   List<StrengthMeasurementSession> _strengthHistory = [];
   bool _loading = true;
   String? _error;
@@ -40,10 +42,14 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
     });
     final results = await Future.wait([
       _service.getProgress(),
+      _service.getStatistics(groupBy: 'day', periodDays: 14),
+      _service.getStatistics(groupBy: 'week', periodDays: 56),
       StrengthTestApiService().getStrengthTestsHistory(periodDays: 365),
     ]);
     var progress = results[0] as ClimbingProgress?;
-    var strengthList = results[1] as List<StrengthMeasurementSession>;
+    var statsDaily = results[1] as ClimbingLogStatistics?;
+    var statsWeekly = results[2] as ClimbingLogStatistics?;
+    var strengthList = results[3] as List<StrengthMeasurementSession>;
     if (strengthList.isEmpty) {
       strengthList = await StrengthHistoryService().getHistory();
     }
@@ -54,6 +60,8 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
     if (!mounted) return;
     setState(() {
       _progress = progress;
+      _statisticsDaily = statsDaily;
+      _statisticsWeekly = statsWeekly;
       _strengthHistory = strengthList;
       _loading = false;
       if (progress == null && _progress == null) {
@@ -113,6 +121,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                     ),
                   ),
                 ..._buildContent(context),
+                ..._buildRouteCharts(context),
                 ..._buildStrengthProgress(context),
               ],
             ],
@@ -217,7 +226,15 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
                         colors: gradientForGrade(grade),
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    if (count > 0)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: Icon(
+                          Icons.arrow_upward,
+                          size: 18,
+                          color: gradientForGrade(grade).first,
+                        ),
+                      ),
                     Text(
                       '$count',
                       style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
@@ -232,6 +249,248 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
       ),
       const SliverToBoxAdapter(child: SizedBox(height: 32)),
     ];
+  }
+
+  List<Widget> _buildRouteCharts(BuildContext context) {
+    final dailyStats = _statisticsDaily;
+    final weeklyStats = _statisticsWeekly;
+    final hasDailyData = dailyStats != null && dailyStats.routes.any((r) => r > 0);
+    final hasWeeklyData = weeklyStats != null && weeklyStats.routes.any((r) => r > 0);
+    final hasGradesData = weeklyStats != null &&
+        weeklyStats.gradesBreakdown.isNotEmpty &&
+        weeklyStats.gradesBreakdown.any((e) => e.value > 0);
+
+    if (!hasDailyData && !hasWeeklyData && !hasGradesData) return [];
+
+    return [
+      SliverToBoxAdapter(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
+          child: Text(
+            'Графики тренировок',
+            style: GoogleFonts.unbounded(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+      if (hasDailyData)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Трассы по дням (14 дней)',
+                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                ),
+                const SizedBox(height: 12),
+                _buildBarChart(dailyStats!),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      if (hasWeeklyData)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Трассы по неделям',
+                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                ),
+                const SizedBox(height: 12),
+                _buildBarChart(weeklyStats!),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      if (hasGradesData)
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Распределение по грейдам',
+                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                ),
+                const SizedBox(height: 12),
+                _buildGradesPieChart(weeklyStats!),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+    ];
+  }
+
+  static Color _barColor(int index) {
+    final colors = [
+      const Color(0xFF3B82F6),
+      const Color(0xFF8B5CF6),
+      const Color(0xFFD946EF),
+      const Color(0xFFF59E0B),
+      const Color(0xFF10B981),
+      const Color(0xFF06B6D4),
+      const Color(0xFF6366F1),
+      const Color(0xFF14B8A6),
+    ];
+    return colors[index % colors.length];
+  }
+
+  Widget _buildBarChart(ClimbingLogStatistics stats) {
+    final routes = stats.routes;
+    final labels = stats.labels;
+    final maxY = routes.isEmpty
+        ? 5.0
+        : (routes.reduce((a, b) => a > b ? a : b).toDouble() * 1.2).clamp(5.0, double.infinity);
+
+    return SizedBox(
+      height: 200,
+      child: BarChart(
+        BarChartData(
+          alignment: BarChartAlignment.spaceAround,
+          maxY: maxY,
+          barTouchData: BarTouchData(enabled: false),
+          titlesData: FlTitlesData(
+            show: true,
+            bottomTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 28,
+                getTitlesWidget: (value, meta) {
+                  final i = value.toInt();
+                  if (i >= 0 && i < labels.length) {
+                    final showEvery = labels.length > 12 ? 2 : 1;
+                    if (i % showEvery != 0) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        labels[i],
+                        style: const TextStyle(fontSize: 10, color: Colors.white54),
+                      ),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
+            ),
+            leftTitles: AxisTitles(
+              sideTitles: SideTitles(
+                showTitles: true,
+                reservedSize: 32,
+                getTitlesWidget: (value, meta) => Text(
+                  value.toInt().toString(),
+                  style: const TextStyle(fontSize: 10, color: Colors.white54),
+                ),
+              ),
+            ),
+            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          ),
+          gridData: FlGridData(
+            show: true,
+            drawVerticalLine: false,
+            horizontalInterval: maxY / 5,
+            getDrawingHorizontalLine: (value) => FlLine(
+              color: Colors.white.withOpacity(0.08),
+              strokeWidth: 1,
+            ),
+          ),
+          borderData: FlBorderData(show: false),
+          barGroups: routes.asMap().entries.map((e) {
+            final val = e.value.toDouble();
+            return BarChartGroupData(
+              x: e.key,
+              barRods: [
+                BarChartRodData(
+                  toY: val,
+                  color: _barColor(e.key),
+                  width: 16,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
+                  backDrawRodData: BackgroundBarChartRodData(
+                    show: true,
+                    toY: maxY,
+                    color: Colors.white.withOpacity(0.04),
+                  ),
+                ),
+              ],
+              showingTooltipIndicators: [],
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGradesPieChart(ClimbingLogStatistics stats) {
+    final breakdown = stats.gradesBreakdown.where((e) => e.value > 0).toList();
+    if (breakdown.isEmpty) return const SizedBox.shrink();
+    final total = breakdown.fold(0, (a, e) => a + e.value);
+    if (total == 0) return const SizedBox.shrink();
+
+    final sections = breakdown.map((e) {
+      final count = e.value;
+      return PieChartSectionData(
+        value: count.toDouble(),
+        title: '',
+        color: gradientForGrade(e.key).first,
+        radius: 52,
+      );
+    }).toList();
+
+    return SizedBox(
+      height: 220,
+      child: Column(
+        children: [
+          SizedBox(
+            height: 160,
+            child: PieChart(
+              PieChartData(
+                sections: sections,
+                sectionsSpace: 2,
+                centerSpaceRadius: 32,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 12,
+            runSpacing: 6,
+            alignment: WrapAlignment.center,
+            children: breakdown.map((e) {
+              return Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: gradientForGrade(e.key).first,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${e.key}: ${e.value}',
+                    style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
+      ),
+    );
   }
 
   bool _metricHasEnoughPoints(List<StrengthMeasurementSession> s, double? Function(StrengthMeasurementSession) get, {bool allowZero = false}) {

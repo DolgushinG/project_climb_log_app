@@ -91,6 +91,7 @@ tracer {
 }
 
 dependencies {
+    implementation "androidx.appcompat:appcompat:1.6.1"
     // RuStore Push SDK
     implementation("ru.rustore.sdk:pushclient:6.10.0")
     // Платформа Tracer

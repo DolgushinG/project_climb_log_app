@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
@@ -11,13 +12,22 @@ import 'package:login_app/services/StrengthDashboardService.dart';
 import 'package:login_app/services/TrainingPlanGenerator.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
-import 'package:login_app/utils/climbing_log_colors.dart';
+import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
+import 'package:login_app/models/Workout.dart';
 import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
+import 'package:login_app/Screens/WorkoutGenerateScreen.dart';
 
 /// Стартовый экран «Обзор» — summary, графики, рекомендации, strength dashboard.
 class ClimbingLogSummaryScreen extends StatefulWidget {
-  const ClimbingLogSummaryScreen({super.key});
+  final PremiumStatus? premiumStatus;
+  final VoidCallback? onPremiumTap;
+
+  const ClimbingLogSummaryScreen({
+    super.key,
+    this.premiumStatus,
+    this.onPremiumTap,
+  });
 
   @override
   State<ClimbingLogSummaryScreen> createState() =>
@@ -25,36 +35,131 @@ class ClimbingLogSummaryScreen extends StatefulWidget {
 }
 
 class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
+  static const String _keyExercisesDone = 'exercises_all_done_';
+  static const String _keyGeneratedWorkout = 'generated_workout_';
   final ClimbingLogService _service = ClimbingLogService();
   final StrengthDashboardService _strengthSvc = StrengthDashboardService();
   final TrainingGamificationService _gamification = TrainingGamificationService();
 
   ClimbingLogSummary? _summary;
-  ClimbingLogStatistics? _statisticsDaily;
-  ClimbingLogStatistics? _statisticsWeekly;
+  bool _exercisesAllDoneToday = false;
+  bool _hasGeneratedWorkoutToday = false;
   List<ClimbingLogRecommendation> _recommendations = [];
   bool _loading = true;
   String? _error;
 
   StrengthMetrics? _strengthMetrics;
+  double? _strengthChangePct;
   int _xp = 0;
   int _streak = 0;
   String _recoveryStatus = 'ready';
+
+  String get _todayKey {
+    final n = DateTime.now();
+    return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
 
   @override
   void initState() {
     super.initState();
     _load();
     _loadStrengthDashboard();
+    _loadExercisesDoneState();
+    _loadGeneratedWorkoutState();
+  }
+
+  Future<void> _loadGeneratedWorkoutState() async {
+    final w = await _loadGeneratedWorkout();
+    if (mounted) setState(() => _hasGeneratedWorkoutToday = w != null && w.entries.isNotEmpty);
+  }
+
+  Future<void> _loadExercisesDoneState() async {
+    final prefs = await SharedPreferences.getInstance();
+    final val = prefs.getBool('$_keyExercisesDone$_todayKey');
+    if (mounted) setState(() => _exercisesAllDoneToday = val == true);
+  }
+
+  Future<void> _saveExercisesDoneState(bool done) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('$_keyExercisesDone$_todayKey', done);
+  }
+
+  static const String _keyGeneratedWorkoutCoach = 'generated_workout_coach_';
+
+  Future<void> _saveGeneratedWorkout(GeneratedWorkoutResult result) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = result.entries.map((e) => {'block_key': e.key, ...e.value.toJson()}).toList();
+    await prefs.setString('$_keyGeneratedWorkout$_todayKey', jsonEncode(list));
+    final coach = <String, dynamic>{
+      if (result.coachComment != null) 'coach_comment': result.coachComment,
+      if (result.loadDistribution != null && result.loadDistribution!.isNotEmpty)
+        'load_distribution': result.loadDistribution,
+      if (result.progressionHint != null) 'progression_hint': result.progressionHint,
+    };
+    if (coach.isNotEmpty) {
+      await prefs.setString('$_keyGeneratedWorkoutCoach$_todayKey', jsonEncode(coach));
+    } else {
+      await prefs.remove('$_keyGeneratedWorkoutCoach$_todayKey');
+    }
+  }
+
+  Future<GeneratedWorkoutResult?> _loadGeneratedWorkout() async {
+    final prefs = await SharedPreferences.getInstance();
+    final json = prefs.getString('$_keyGeneratedWorkout$_todayKey');
+    if (json == null) return null;
+    try {
+      final list = jsonDecode(json) as List<dynamic>?;
+      if (list == null || list.isEmpty) return null;
+      final entries = list.map((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        final key = m.remove('block_key') as String? ?? 'main';
+        return MapEntry(key, WorkoutBlockExercise.fromJson(m));
+      }).toList();
+      String? coachComment;
+      Map<String, int>? loadDistribution;
+      String? progressionHint;
+      final coachJson = prefs.getString('$_keyGeneratedWorkoutCoach$_todayKey');
+      if (coachJson != null) {
+        try {
+          final coach = jsonDecode(coachJson) as Map<String, dynamic>?;
+          if (coach != null) {
+            coachComment = coach['coach_comment'] as String?;
+            progressionHint = coach['progression_hint'] as String?;
+            final ld = coach['load_distribution'] as Map<String, dynamic>?;
+            if (ld != null) {
+              loadDistribution = ld.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
+            }
+          }
+        } catch (_) {}
+      }
+      return GeneratedWorkoutResult(
+        entries: entries,
+        coachComment: coachComment,
+        loadDistribution: loadDistribution,
+        progressionHint: progressionHint,
+      );
+    } catch (_) {}
+    return null;
   }
 
   Future<void> _loadStrengthDashboard() async {
     final m = await _strengthSvc.getLastMetrics();
     final api = StrengthTestApiService();
     final gamification = await api.getGamification();
+    double? changePct;
+    final history = await api.getStrengthTestsHistory(periodDays: 365);
+    if (history.length >= 2) {
+      final sorted = List.of(history)..sort((a, b) => b.date.compareTo(a.date));
+      final prevAvg = _getAvgFromMetrics(sorted[1].metrics);
+      final currAvg = _getAvgFromMetrics(sorted[0].metrics);
+      if (prevAvg != null && prevAvg > 0 && currAvg != null) {
+        changePct = currAvg - prevAvg;
+      }
+    }
     if (gamification != null && mounted) {
       setState(() {
         _strengthMetrics = m;
+        _strengthChangePct = changePct;
         _xp = gamification.totalXp;
         _streak = gamification.streakDays;
         _recoveryStatus = gamification.recoveryStatus;
@@ -66,6 +171,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
       if (mounted) {
         setState(() {
           _strengthMetrics = m;
+          _strengthChangePct = changePct;
           _xp = xp;
           _streak = streak;
           _recoveryStatus = recovery;
@@ -82,16 +188,12 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
     try {
       final results = await Future.wait([
         _service.getSummary(),
-        _service.getStatistics(groupBy: 'day', periodDays: 14),
-        _service.getStatistics(groupBy: 'week', periodDays: 56),
         _service.getRecommendations(),
       ]);
       if (!mounted) return;
       setState(() {
         _summary = results[0] as ClimbingLogSummary?;
-        _statisticsDaily = results[1] as ClimbingLogStatistics?;
-        _statisticsWeekly = results[2] as ClimbingLogStatistics?;
-        _recommendations = results[3] as List<ClimbingLogRecommendation>;
+        _recommendations = results[1] as List<ClimbingLogRecommendation>;
         _loading = false;
       });
     } catch (_) {
@@ -107,12 +209,64 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   Future<void> _onRefresh() async {
     await _load();
     await _loadStrengthDashboard();
+    await _loadExercisesDoneState();
   }
 
   String _dayWord(int n) {
     if (n % 10 == 1 && n % 100 != 11) return 'день';
     if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'дня';
     return 'дней';
+  }
+
+  Widget _buildPremiumSection(BuildContext context) {
+    final status = widget.premiumStatus;
+    final onTap = widget.onPremiumTap!;
+    if (status?.hasActiveSubscription == true) return const SizedBox.shrink();
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.star_outline, color: AppColors.mutedGold, size: 28),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Premium',
+                    style: GoogleFonts.unbounded(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    status?.isInTrial == true
+                        ? 'Пробный период: ${status!.trialDaysLeft} ${_dayWord(status.trialDaysLeft)}'
+                        : 'Подписка — доступ ко всем функциям',
+                    style: GoogleFonts.unbounded(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(Icons.arrow_forward_ios, color: AppColors.mutedGold, size: 16),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -127,7 +281,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -135,7 +289,12 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                         'Обзор',
                         style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                       ),
-                      const SizedBox(height: 16),
+                      if (!_loading && _summary != null && (_summary!.totalSessions) > 0) ...[
+                        const SizedBox(height: 16),
+                        _buildSummaryCards(context, _summary!),
+                        const SizedBox(height: 16),
+                      ],
+                      const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
                         child: FilledButton.icon(
@@ -164,6 +323,10 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                           ),
                         ),
                       ),
+                      if (widget.onPremiumTap != null) ...[
+                        const SizedBox(height: 12),
+                        _buildPremiumSection(context),
+                      ],
                     ],
                   ),
                 ),
@@ -217,65 +380,41 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
 
   List<Widget> _buildContent(BuildContext context) {
     final s = _summary;
-    final dailyStats = _statisticsDaily;
-    final weeklyStats = _statisticsWeekly;
     final sessionsCount = s?.totalSessions ?? 0;
-    final hasDailyData = dailyStats != null && dailyStats.routes.any((r) => r > 0);
-    final hasWeeklyData = weeklyStats != null && weeklyStats.routes.any((r) => r > 0);
-    final hasGradesData = weeklyStats != null &&
-        weeklyStats.gradesBreakdown.isNotEmpty &&
-        weeklyStats.gradesBreakdown.any((e) => e.value > 0);
 
     return [
-      if (_strengthMetrics != null) ...[
+      if (_strengthMetrics != null)
         SliverToBoxAdapter(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
-            child: _buildStrengthDashboard(context),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildStrengthDashboard(context),
+                const SizedBox(height: 12),
+                _buildExerciseCompletionCard(context, compact: false),
+                const SizedBox(height: 12),
+                _buildWorkoutGenerateCard(context, compact: false),
+              ],
+            ),
           ),
         ),
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-            child: _buildExerciseCompletionCard(context),
-          ),
-        ),
-      ],
       SliverToBoxAdapter(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (sessionsCount == 0) ...[
-                _buildEmptyState(context),
-              ] else ...[
-                _buildSummaryCards(context, s!),
-                const SizedBox(height: 24),
-                if (hasDailyData) ...[
-                  _buildSectionTitle(context, 'Трассы по дням (14 дней)'),
-                  const SizedBox(height: 12),
-                  _buildBarChart(dailyStats),
-                  const SizedBox(height: 24),
-                ],
-                if (hasWeeklyData) ...[
-                  _buildSectionTitle(context, 'Трассы по неделям'),
-                  const SizedBox(height: 12),
-                  _buildBarChart(weeklyStats),
-                  const SizedBox(height: 24),
-                ],
-                if (hasGradesData) ...[
-                  _buildSectionTitle(context, 'Распределение по грейдам'),
-                  const SizedBox(height: 12),
-                  _buildGradesPieChart(weeklyStats!),
-                  const SizedBox(height: 24),
-                ],
-                _buildSectionTitle(context, 'Рекомендации'),
-                const SizedBox(height: 12),
-                _buildRecommendations(_recommendations),
-              ],
-            ],
-          ),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+          child: sessionsCount == 0
+              ? _buildEmptyState(context)
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Рекомендации',
+                      style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildRecommendations(_recommendations),
+                  ],
+                ),
         ),
       ),
       const SliverToBoxAdapter(child: SizedBox(height: 32)),
@@ -349,26 +488,29 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
             overflow: TextOverflow.ellipsis,
             maxLines: 2,
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: FilledButton.icon(
-              onPressed: () {
-                DefaultTabController.of(context).animateTo(3);
-              },
-              icon: const Icon(Icons.fitness_center, size: 18),
-              label: Text(
-                'Тренировка пальцев сегодня',
-                style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
-              ),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.mutedGold,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+          if (_strengthChangePct != null && (_strengthChangePct!.abs() >= 0.5)) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(
+                  _strengthChangePct! >= 0 ? Icons.trending_up : Icons.trending_down,
+                  size: 18,
+                  color: _strengthChangePct! >= 0 ? AppColors.successMuted : Colors.orange,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _strengthChangePct! >= 0
+                      ? 'Прирост +${_strengthChangePct!.toStringAsFixed(1)}%'
+                      : 'Регресс ${_strengthChangePct!.toStringAsFixed(1)}%',
+                  style: GoogleFonts.unbounded(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: _strengthChangePct! >= 0 ? AppColors.successMuted : Colors.orange,
+                  ),
+                ),
+              ],
             ),
-          ),
+          ],
           const SizedBox(height: 12),
           Row(
             children: [
@@ -384,7 +526,6 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                 child: Text(
                   'Восстановление: ${_gamification.recoveryStatusTextRu(_recoveryStatus)}',
                   style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ),
             ],
@@ -411,51 +552,158 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
     );
   }
 
-  Widget _buildExerciseCompletionCard(BuildContext context) {
+  Widget _buildExerciseCompletionCard(BuildContext context, {bool compact = false}) {
+    final done = _exercisesAllDoneToday;
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: () async {
-          await Navigator.push(
+          final workout = await _loadGeneratedWorkout();
+          final result = await Navigator.push<bool>(
             context,
             MaterialPageRoute(
-              builder: (_) => ExerciseCompletionScreen(metrics: _strengthMetrics),
+              builder: (_) => workout != null && workout.entries.isNotEmpty
+                  ? ExerciseCompletionScreen(
+                      workoutExerciseEntries: workout.entries,
+                      coachComment: workout.coachComment,
+                      loadDistribution: workout.loadDistribution,
+                      progressionHint: workout.progressionHint,
+                    )
+                  : ExerciseCompletionScreen(metrics: _strengthMetrics),
             ),
           );
-          _loadStrengthDashboard();
+          if (mounted) {
+            _loadStrengthDashboard();
+            if (result != null) {
+              setState(() => _exercisesAllDoneToday = result);
+              _saveExercisesDoneState(result);
+            }
+          }
         },
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          padding: const EdgeInsets.all(16),
+          padding: EdgeInsets.all(compact ? 12 : 16),
           decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.graphite),
+            color: done ? AppColors.successMuted.withOpacity(0.15) : AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: done ? AppColors.successMuted.withOpacity(0.5) : AppColors.graphite,
+            ),
           ),
           child: Row(
             children: [
-              Icon(Icons.check_circle_outline, color: AppColors.successMuted, size: 28),
-              const SizedBox(width: 14),
+              Icon(
+                done ? Icons.check_circle : Icons.check_circle_outline,
+                color: AppColors.successMuted,
+                size: compact ? 22 : 28,
+              ),
+              SizedBox(width: compact ? 10 : 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'Выполнить упражнения',
+                      done ? 'Готово!' : 'Выполнить упражнения',
                       style: GoogleFonts.unbounded(
-                        fontSize: 15,
+                        fontSize: compact ? 13 : 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    Text(
-                      'Отмечай сделанное из плана',
-                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
-                    ),
+                    if (!compact)
+                      Text(
+                        done
+                            ? 'Можно зайти и обновить данные'
+                            : _hasGeneratedWorkoutToday
+                                ? 'Из сгенерированной тренировки'
+                                : 'Из плана по замерам',
+                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                   ],
                 ),
               ),
-              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white38),
+              Icon(Icons.arrow_forward_ios, size: compact ? 12 : 14, color: Colors.white38),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWorkoutGenerateCard(BuildContext context, {bool compact = false}) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          final result = await Navigator.push<GeneratedWorkoutResult>(
+            context,
+            MaterialPageRoute(builder: (_) => const WorkoutGenerateScreen()),
+          );
+          if (!mounted) return;
+          if (result != null && result.entries.isNotEmpty) {
+            await _saveGeneratedWorkout(result);
+            if (!mounted) return;
+            final done = await Navigator.push<bool>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ExerciseCompletionScreen(
+                  workoutExerciseEntries: result.entries,
+                  coachComment: result.coachComment,
+                  loadDistribution: result.loadDistribution,
+                  progressionHint: result.progressionHint,
+                ),
+              ),
+            );
+            if (mounted && done != null) {
+              setState(() => _exercisesAllDoneToday = done);
+              await _saveExercisesDoneState(done);
+            }
+          }
+          if (mounted) {
+            _loadExercisesDoneState();
+            _loadStrengthDashboard();
+            _loadGeneratedWorkoutState();
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: EdgeInsets.all(compact ? 12 : 16),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome, color: AppColors.mutedGold, size: compact ? 22 : 28),
+              SizedBox(width: compact ? 10 : 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Сгенерировать тренировку',
+                      style: GoogleFonts.unbounded(
+                        fontSize: compact ? 13 : 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (!compact)
+                      Text(
+                        'План под ваш уровень и цель',
+                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: compact ? 12 : 14, color: Colors.white38),
             ],
           ),
         ),
@@ -604,181 +852,6 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildSectionTitle(BuildContext context, String title) {
-    return Text(
-      title,
-      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
-    );
-  }
-
-  Widget _buildBarChart(ClimbingLogStatistics stats) {
-    final routes = stats.routes;
-    final labels = stats.labels;
-    final maxY = routes.isEmpty
-        ? 5.0
-        : (routes.reduce((a, b) => a > b ? a : b).toDouble() * 1.2)
-            .clamp(5.0, double.infinity);
-
-    return SizedBox(
-      height: 200,
-      child: BarChart(
-        BarChartData(
-          alignment: BarChartAlignment.spaceAround,
-          maxY: maxY,
-          barTouchData: BarTouchData(enabled: false),
-          titlesData: FlTitlesData(
-            show: true,
-            bottomTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 28,
-                getTitlesWidget: (value, meta) {
-                  final i = value.toInt();
-                  if (i >= 0 && i < labels.length) {
-                    final showEvery = labels.length > 12 ? 2 : 1;
-                    if (i % showEvery != 0) return const SizedBox.shrink();
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Text(
-                        labels[i],
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: Colors.white54,
-                        ),
-                      ),
-                    );
-                  }
-                  return const SizedBox.shrink();
-                },
-              ),
-            ),
-            leftTitles: AxisTitles(
-              sideTitles: SideTitles(
-                showTitles: true,
-                reservedSize: 32,
-                getTitlesWidget: (value, meta) => Text(
-                  value.toInt().toString(),
-                  style: const TextStyle(fontSize: 10, color: Colors.white54),
-                ),
-              ),
-            ),
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          ),
-          gridData: FlGridData(
-            show: true,
-            drawVerticalLine: false,
-            horizontalInterval: maxY / 5,
-            getDrawingHorizontalLine: (value) => FlLine(
-              color: Colors.white.withOpacity(0.08),
-              strokeWidth: 1,
-            ),
-          ),
-          borderData: FlBorderData(show: false),
-          barGroups: routes.asMap().entries.map((e) {
-            final val = e.value.toDouble();
-            return BarChartGroupData(
-              x: e.key,
-              barRods: [
-                BarChartRodData(
-                  toY: val,
-                  color: _barColor(e.key),
-                  width: 16,
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(4)),
-                  backDrawRodData: BackgroundBarChartRodData(
-                    show: true,
-                    toY: maxY,
-                    color: Colors.white.withOpacity(0.04),
-                  ),
-                ),
-              ],
-              showingTooltipIndicators: [],
-            );
-          }).toList(),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildGradesPieChart(ClimbingLogStatistics stats) {
-    final breakdown = stats.gradesBreakdown
-        .where((e) => e.value > 0)
-        .toList();
-    if (breakdown.isEmpty) return const SizedBox.shrink();
-    final total = breakdown.fold(0, (a, e) => a + e.value);
-    if (total == 0) return const SizedBox.shrink();
-
-    final sections = breakdown.map((e) {
-      final grade = e.key;
-      final count = e.value;
-      final color = gradientForGrade(grade).first;
-      return PieChartSectionData(
-        value: count.toDouble(),
-        title: '',
-        color: color,
-        radius: 52,
-      );
-    }).toList();
-
-    return SizedBox(
-      height: 220,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 160,
-            child: PieChart(
-              PieChartData(
-                sections: sections,
-                sectionsSpace: 2,
-                centerSpaceRadius: 32,
-              ),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
-            alignment: WrapAlignment.center,
-            children: breakdown.map((e) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: gradientForGrade(e.key).first,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${e.key}: ${e.value}',
-                    style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Color _barColor(int index) {
-    final colors = [
-      const Color(0xFF3B82F6),
-      const Color(0xFF8B5CF6),
-      const Color(0xFFD946EF),
-      const Color(0xFFF59E0B),
-      const Color(0xFF10B981),
-      const Color(0xFF06B6D4),
-      const Color(0xFF6366F1),
-      const Color(0xFF14B8A6),
-    ];
-    return colors[index % colors.length];
   }
 
   Widget _buildRecommendations(List<ClimbingLogRecommendation> recs) {
