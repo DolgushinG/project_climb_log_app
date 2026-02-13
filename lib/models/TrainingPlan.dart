@@ -47,6 +47,10 @@ class TrainingDrill {
   final int sets;
   final String reps;
   final String rest;
+  /// Краткое пояснение «что это и зачем» — для подсказки в UI.
+  final String? hint;
+  /// Идентификатор для API exercise-completions (если бэк знает этот id).
+  final String? exerciseId;
 
   TrainingDrill({
     required this.name,
@@ -54,6 +58,8 @@ class TrainingDrill {
     required this.sets,
     required this.reps,
     required this.rest,
+    this.hint,
+    this.exerciseId,
   });
 
   Map<String, dynamic> toJson() => {
@@ -62,6 +68,8 @@ class TrainingDrill {
         'sets': sets,
         'reps': reps,
         'rest': rest,
+        if (hint != null) 'hint': hint,
+        if (exerciseId != null) 'exercise_id': exerciseId,
       };
 
   factory TrainingDrill.fromJson(Map<String, dynamic> json) => TrainingDrill(
@@ -70,5 +78,7 @@ class TrainingDrill {
         sets: json['sets'] as int? ?? 3,
         reps: json['reps'] as String? ?? '5s hold',
         rest: json['rest'] as String? ?? '180s',
+        hint: json['hint'] as String?,
+        exerciseId: json['exercise_id'] as String?,
       );
 }

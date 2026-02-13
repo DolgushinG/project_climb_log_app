@@ -164,6 +164,8 @@ class TrainingPlanGenerator {
         sets: 3,
         reps: '3 сек тяга / 5 сек отдых / 7 повторов',
         rest: '180s',
+        hint: 'Максимальные висы на фингерборде для пиковой силы. 3 сек вис → 5 сек отдых → так 7 раз = 1 подход.',
+        exerciseId: 'max_hangs_3_5_7',
       ));
     }
 
@@ -174,6 +176,8 @@ class TrainingPlanGenerator {
         sets: 4,
         reps: '5 взрывных подтягиваний',
         rest: '120s',
+        hint: 'Быстрый рывок вверх из виса — не медленные подтяги, а взрыв. Качаем тяговую силу.',
+        exerciseId: 'power_pulls',
       ));
     }
 
@@ -185,6 +189,8 @@ class TrainingPlanGenerator {
         sets: 5,
         reps: '5s hold',
         rest: '180s',
+        hint: 'Щипковый блок — большой палец напротив остальных. Поднимаешь вес и держишь 5 сек. Одна рука.',
+        exerciseId: 'pinch_lifting',
       ));
     }
 
@@ -195,6 +201,8 @@ class TrainingPlanGenerator {
         sets: 3,
         reps: 'Подтягивания с разной высотой рук',
         rest: '90s',
+        hint: 'Одна рука выше другой (на 1–2 захвата). Качаешь слабую сторону — меньше асимметрия.',
+        exerciseId: 'offset_pull_ups',
       ));
     }
 
@@ -209,6 +217,8 @@ class TrainingPlanGenerator {
         sets: 3,
         reps: '7 сек вис / 13 сек отдых, 6 повторов',
         rest: '180s',
+        hint: '7:13 — вис 7 сек, отдых 13 сек, так 6 раз подряд = 1 подход. Для выносливости на маршрутах.',
+        exerciseId: 'repeaters_7_13',
       ));
     }
 

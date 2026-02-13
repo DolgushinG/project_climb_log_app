@@ -334,7 +334,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
-                          'Pro tip: $proTip',
+                          'Подсказка: $proTip',
                           style: GoogleFonts.unbounded(
                             color: AppColors.mutedGold,
                             fontSize: 13,
@@ -691,6 +691,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     final rank = _currentRank;
     final avg = _averageStrengthPct;
     if (rank == null || avg == null) {
+      if (_lastSession != null) return const SizedBox.shrink();
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
@@ -1374,11 +1375,11 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     if (oneRm != null && bw > 0) {
       relStrength = (oneRm / bw) * 100;
       if (relStrength >= 180) {
-        level = 'Elite (8c+)';
+        level = 'Элита (8c+)';
       } else if (relStrength >= 150) {
-        level = 'Advanced (7c+)';
+        level = 'Продвинутый (7c+)';
       } else if (relStrength >= 120) {
-        level = 'Intermediate (6c)';
+        level = 'Средний (6c)';
       } else if (relStrength >= 100) {
         level = 'Старт';
       } else {
@@ -1434,7 +1435,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text(
-              '${relativeStrength.toStringAsFixed(0)}% BW',
+              '${relativeStrength.toStringAsFixed(0)}% от веса',
               style: GoogleFonts.unbounded(
                 fontSize: 14,
                 color: AppColors.mutedGold,

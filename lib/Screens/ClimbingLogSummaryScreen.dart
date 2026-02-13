@@ -13,6 +13,7 @@ import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
+import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 
 /// Стартовый экран «Обзор» — summary, графики, рекомендации, strength dashboard.
 class ClimbingLogSummaryScreen extends StatefulWidget {
@@ -229,8 +230,14 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
       if (_strengthMetrics != null) ...[
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
             child: _buildStrengthDashboard(context),
+          ),
+        ),
+        SliverToBoxAdapter(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+            child: _buildExerciseCompletionCard(context),
           ),
         ),
       ],
@@ -291,15 +298,15 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
             .clamp(0.0, 1.0)
         : null;
 
-    String focusHint = 'Focus on Pinch Grip';
+    String focusHint = 'Упор на щипок';
     if (analysis.pinchWeak && m.pinchKg != null && m.bodyWeightKg != null) {
       final target = m.bodyWeightKg! * 0.4;
       final needed = (target - m.pinchKg!).clamp(0.0, double.infinity);
-      focusHint = 'Focus on Pinch Grip (+${needed.toStringAsFixed(1)} кг)';
+      focusHint = 'Упор на щипок (+${needed.toStringAsFixed(1)} кг)';
     } else if (analysis.fingersWeak) {
-      focusHint = 'Focus on Max Hangs';
+      focusHint = 'Упор на висы (Max Hangs)';
     } else if (analysis.pullWeak) {
-      focusHint = 'Focus on Power Pulls';
+      focusHint = 'Упор на взрывные подтяги';
     }
 
     return Container(
@@ -321,22 +328,26 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
         children: [
           if (rank != null) ...[
             Text(
-              'Current Goal: ${next != null ? "Reach ${next.titleRu}" : rank.titleRu}'
-              '${progressToNext != null && next != null ? " — ${(progressToNext * 100).toStringAsFixed(0)}% complete" : ""}',
+              'Цель: ${next != null ? "достичь ${next.titleRu}" : rank.titleRu}'
+              '${progressToNext != null && next != null ? " — ${(progressToNext * 100).toStringAsFixed(0)}% готово" : ""}',
               style: GoogleFonts.unbounded(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
               ),
+              overflow: TextOverflow.ellipsis,
+              maxLines: 2,
             ),
             const SizedBox(height: 8),
           ],
           Text(
-            'AI Recommendation: $focusHint',
+            'Рекомендация: $focusHint',
             style: GoogleFonts.unbounded(
               fontSize: 13,
               color: AppColors.mutedGold,
             ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 2,
           ),
           const SizedBox(height: 12),
           SizedBox(
@@ -347,7 +358,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
               },
               icon: const Icon(Icons.fitness_center, size: 18),
               label: Text(
-                'Start Today\'s Finger Session',
+                'Тренировка пальцев сегодня',
                 style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
               ),
               style: FilledButton.styleFrom(
@@ -369,9 +380,12 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                     : Colors.white54,
               ),
               const SizedBox(width: 8),
-              Text(
-                'Recovery: ${_gamification.recoveryStatusTextRu(_recoveryStatus)}',
-                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+              Expanded(
+                child: Text(
+                  'Восстановление: ${_gamification.recoveryStatusTextRu(_recoveryStatus)}',
+                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
@@ -379,17 +393,72 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
           Row(
             children: [
               Text(
-                'XP: $_xp',
+                'Опыт: $_xp',
                 style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
               ),
               const SizedBox(width: 16),
-              Text(
-                'Streak: $_streak ${_dayWord(_streak)}',
-                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+              Expanded(
+                child: Text(
+                  'Серия: $_streak ${_dayWord(_streak)}',
+                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                  overflow: TextOverflow.ellipsis,
+                ),
               ),
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildExerciseCompletionCard(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ExerciseCompletionScreen(metrics: _strengthMetrics),
+            ),
+          );
+          _loadStrengthDashboard();
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.graphite),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_outline, color: AppColors.successMuted, size: 28),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Выполнить упражнения',
+                      style: GoogleFonts.unbounded(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      'Отмечай сделанное из плана',
+                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white38),
+            ],
+          ),
+        ),
       ),
     );
   }

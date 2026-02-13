@@ -151,7 +151,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Тренировка сохранена! +$xpGained XP'),
+              content: Text('Тренировка сохранена! +$xpGained опыт'),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.mutedGold,
             ),

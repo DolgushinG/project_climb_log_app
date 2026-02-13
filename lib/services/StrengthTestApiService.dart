@@ -198,6 +198,125 @@ class StrengthTestApiService {
     return null;
   }
 
+  /// GET /api/climbing-logs/strength-level
+  /// Уровень по силе + грейду лазания (бэкенд).
+  Future<StrengthLevel?> getStrengthLevel() async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final response = await http.get(
+        Uri.parse('$DOMAIN/api/climbing-logs/strength-level'),
+        headers: _headers(token),
+      );
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json != null && json['level'] != null) {
+          return StrengthLevel(
+            level: json['level'] as String,
+            averageStrengthPct: (json['average_strength_pct'] as num?)?.toDouble(),
+            maxClimbingGrade: json['max_climbing_grade'] as String?,
+            strengthTier: json['strength_tier'] as int?,
+            gradeTier: json['grade_tier'] as int?,
+          );
+        }
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// GET /api/climbing-logs/exercises
+  Future<List<CatalogExercise>> getExercises({
+    String? level,
+    String? category,
+  }) async {
+    final token = await _getToken();
+    if (token == null) return [];
+    try {
+      final params = <String, String>{};
+      if (level != null) params['level'] = level;
+      if (category != null) params['category'] = category;
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercises')
+          .replace(queryParameters: params.isNotEmpty ? params : null);
+      final response = await http.get(uri, headers: _headers(token));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        final list = json?['exercises'] as List<dynamic>? ?? [];
+        return list
+            .map((e) => CatalogExercise.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// GET /api/climbing-logs/exercise-completions
+  Future<List<ExerciseCompletion>> getExerciseCompletions({String? date, int? periodDays}) async {
+    final token = await _getToken();
+    if (token == null) return [];
+    try {
+      final params = <String, String>{};
+      if (date != null) params['date'] = date;
+      if (periodDays != null) params['period_days'] = periodDays.toString();
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions')
+          .replace(queryParameters: params.isNotEmpty ? params : null);
+      final response = await http.get(uri, headers: _headers(token));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        final list = json?['completions'] as List<dynamic>? ?? [];
+        return list
+            .map((e) => ExerciseCompletion.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// POST /api/climbing-logs/exercise-completions
+  Future<int?> saveExerciseCompletion({
+    required String date,
+    required String exerciseId,
+    int setsDone = 1,
+    double? weightKg,
+    String notes = '',
+  }) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final body = <String, dynamic>{
+        'date': date,
+        'exercise_id': exerciseId,
+        'sets_done': setsDone,
+        'notes': notes,
+      };
+      if (weightKg != null) body['weight_kg'] = weightKg;
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions'),
+        headers: _headers(token),
+        body: jsonEncode(body),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        final id = json?['id'];
+        return id is int ? id : (id is num ? id.toInt() : null);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// DELETE /api/climbing-logs/exercise-completions/:id (если бэк поддерживает отмену)
+  Future<bool> deleteExerciseCompletion(int id) async {
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions/$id'),
+        headers: _headers(token),
+      );
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {}
+    return false;
+  }
+
   /// Собрать тело запроса для POST strength-tests из StrengthMetrics.
   Map<String, dynamic> buildStrengthTestBody(
     StrengthMetrics m, {
@@ -326,4 +445,91 @@ class SessionXpResult {
   final int totalXp;
 
   SessionXpResult({required this.xpGained, required this.totalXp});
+}
+
+/// Выполнение упражнения (ответ API).
+/// Упражнение из каталога API.
+class CatalogExercise {
+  final String id;
+  final String name;
+  final String? nameRu;
+  final String category;
+  final String level;
+  final String? description;
+  final int defaultSets;
+  final String defaultReps;
+  final String defaultRest;
+  final bool targetWeightOptional;
+
+  CatalogExercise({
+    required this.id,
+    required this.name,
+    this.nameRu,
+    required this.category,
+    required this.level,
+    this.description,
+    this.defaultSets = 3,
+    this.defaultReps = '6',
+    this.defaultRest = '180s',
+    this.targetWeightOptional = true,
+  });
+
+  factory CatalogExercise.fromJson(Map<String, dynamic> json) => CatalogExercise(
+        id: json['id'] as String? ?? '',
+        name: json['name'] as String? ?? '',
+        nameRu: json['name_ru'] as String?,
+        category: json['category'] as String? ?? 'sfp',
+        level: json['level'] as String? ?? 'intermediate',
+        description: json['description'] as String?,
+        defaultSets: json['default_sets'] as int? ?? 3,
+        defaultReps: json['default_reps'] as String? ?? '6',
+        defaultRest: json['default_rest'] as String? ?? '180s',
+        targetWeightOptional: json['target_weight_optional'] as bool? ?? true,
+      );
+
+  String get displayName => nameRu ?? name;
+}
+
+class ExerciseCompletion {
+  final int id;
+  final String date;
+  final String exerciseId;
+  final String? exerciseName;
+  final int setsDone;
+  final double? weightKg;
+
+  ExerciseCompletion({
+    required this.id,
+    required this.date,
+    required this.exerciseId,
+    this.exerciseName,
+    this.setsDone = 1,
+    this.weightKg,
+  });
+
+  factory ExerciseCompletion.fromJson(Map<String, dynamic> json) => ExerciseCompletion(
+        id: json['id'] as int? ?? 0,
+        date: json['date'] as String? ?? '',
+        exerciseId: json['exercise_id'] as String? ?? '',
+        exerciseName: json['exercise_name'] as String?,
+        setsDone: json['sets_done'] as int? ?? 1,
+        weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      );
+}
+
+/// Уровень силы + грейда из GET /api/climbing-logs/strength-level.
+class StrengthLevel {
+  final String level;
+  final double? averageStrengthPct;
+  final String? maxClimbingGrade;
+  final int? strengthTier;
+  final int? gradeTier;
+
+  StrengthLevel({
+    required this.level,
+    this.averageStrengthPct,
+    this.maxClimbingGrade,
+    this.strengthTier,
+    this.gradeTier,
+  });
 }
