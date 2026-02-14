@@ -19,7 +19,10 @@ class ClimbingLogProgressScreen extends StatefulWidget {
       _ClimbingLogProgressScreenState();
 }
 
-class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
+class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final ClimbingLogService _service = ClimbingLogService();
   ClimbingProgress? _progress;
   ClimbingLogStatistics? _statisticsDaily;
@@ -72,6 +75,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.anthracite,
       body: SafeArea(

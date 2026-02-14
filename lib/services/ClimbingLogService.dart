@@ -270,4 +270,14 @@ class ClimbingLogService {
     } catch (_) {}
     return [];
   }
+
+  /// Сессия лазания за указанную дату (YYYY-MM-DD). Для связи плана с лазанием.
+  Future<HistorySession?> getSessionForDate(String date) async {
+    final list = await getHistory();
+    try {
+      return list.firstWhere((s) => s.date == date);
+    } catch (_) {
+      return null;
+    }
+  }
 }

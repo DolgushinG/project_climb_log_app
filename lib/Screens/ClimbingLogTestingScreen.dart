@@ -8,6 +8,7 @@ import 'package:login_app/models/StrengthTier.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
 import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 import 'package:login_app/Screens/StrengthHistoryScreen.dart';
+import 'package:login_app/Screens/StrengthLeaderboardScreen.dart';
 import 'package:login_app/services/StrengthDashboardService.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthHistoryService.dart';
@@ -24,7 +25,9 @@ class ClimbingLogTestingScreen extends StatefulWidget {
 }
 
 class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   static const String _keyBodyWeight = 'climbing_test_body_weight';
   static const String _keyLastRank = 'climbing_test_last_rank';
   static const String _keyDraft = 'climbing_test_draft';
@@ -46,6 +49,9 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   StrengthLeaderboard? _leaderboard;
 
   Timer? _draftSaveTimer;
+  DateTime? _lockOffStart;
+  Timer? _lockOffTimer;
+  int _lockOffElapsedSec = 0;
 
   @override
   void initState() {
@@ -73,6 +79,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   @override
   void dispose() {
     _draftSaveTimer?.cancel();
+    _lockOffTimer?.cancel();
     _levelUpController?.dispose();
     _removeLevelUpOverlay();
     _bodyWeightController.removeListener(_onMetricsChanged);
@@ -237,65 +244,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             duration: const Duration(seconds: 2),
           ),
         );
-        _showRegeneratePlanDialog(m);
       }
-    }
-  }
-
-  Future<void> _showRegeneratePlanDialog(StrengthMetrics m) async {
-    if (!mounted) return;
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.cardDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Новые замеры сохранены',
-          style: GoogleFonts.unbounded(
-            fontSize: 18,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        content: Text(
-          'Сгенерировать план с учётом новых данных?',
-          style: GoogleFonts.unbounded(
-            fontSize: 14,
-            color: Colors.white70,
-            height: 1.4,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(
-              'Позже',
-              style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 14),
-            ),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.mutedGold,
-              foregroundColor: Colors.white,
-            ),
-            child: Text(
-              'Сгенерировать план',
-              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-    if (ok == true && mounted) {
-      await ExerciseCompletionScreen.clearCacheForToday();
-      if (!mounted) return;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => ExerciseCompletionScreen(metrics: m),
-        ),
-      );
     }
   }
 
@@ -498,6 +447,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.anthracite,
       body: SafeArea(
@@ -587,11 +537,11 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
 
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-            // Generator + Leaderboard
+            // Топ недели (открывается полный экран)
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildGeneratorCard(),
+                child: _buildLeaderboardCard(),
               ),
             ),
 
@@ -824,6 +774,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     if (rank == null || avg == null) {
       if (_lastSession != null) return const SizedBox.shrink();
       return Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.cardDark,
@@ -831,6 +782,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           border: Border.all(color: AppColors.graphite),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Icon(Icons.emoji_events_outlined, color: Colors.white38, size: 32),
             const SizedBox(width: 12),
@@ -838,7 +790,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               child: Text(
                 'Сделай хотя бы один тест — и узнаешь свой уровень',
                 style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
-                overflow: TextOverflow.ellipsis,
+                softWrap: true,
               ),
             ),
           ],
@@ -956,176 +908,230 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   Widget _buildBadgeChip(StrengthAchievement a, bool unlocked) {
-    return Tooltip(
-      message: '${a.titleRu}\n${a.descriptionRu}',
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: unlocked
-              ? AppColors.mutedGold.withOpacity(0.25)
-              : AppColors.rowAlt,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: unlocked ? AppColors.mutedGold : Colors.white12,
+    final message = unlocked
+        ? '${a.titleRu}\n${a.descriptionRu}'
+        : '${a.titleRu}\n${a.descriptionRu}\n\nКак получить: ${a.hintRu ?? "Выполни замеры в разделе «Тест»."}';
+    final chip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: unlocked
+            ? AppColors.mutedGold.withOpacity(0.25)
+            : AppColors.rowAlt,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: unlocked ? AppColors.mutedGold : Colors.white12,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            a.icon,
+            size: 18,
+            color: unlocked ? AppColors.mutedGold : Colors.white38,
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              a.icon,
-              size: 18,
-              color: unlocked ? AppColors.mutedGold : Colors.white38,
+          const SizedBox(width: 6),
+          Text(
+            a.titleRu,
+            style: GoogleFonts.unbounded(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: unlocked ? Colors.white : Colors.white54,
             ),
-            const SizedBox(width: 6),
-            Text(
-              a.titleRu,
-              style: GoogleFonts.unbounded(
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-                color: unlocked ? Colors.white : Colors.white54,
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+    return Tooltip(
+      message: message,
+      child: InkWell(
+        onTap: unlocked ? null : () => _showAchievementHint(a),
+        borderRadius: BorderRadius.circular(12),
+        child: chip,
       ),
     );
   }
 
-  Widget _buildGeneratorCard() {
-    final m = _buildMetrics();
-    final hasMinData = m.bodyWeightKg != null &&
-        (m.fingerBestPct != null || m.pinchPct != null || m.pull1RmPct != null);
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: hasMinData
-                ? LinearGradient(
-                    colors: [
-                      AppColors.mutedGold.withOpacity(0.2),
-                      AppColors.cardDark,
-                    ],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  )
-                : null,
-            color: hasMinData ? null : AppColors.cardDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: hasMinData ? AppColors.mutedGold.withOpacity(0.4) : AppColors.graphite,
+  void _showAchievementHint(StrengthAchievement a) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(a.icon, color: AppColors.mutedGold, size: 28),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                a.titleRu,
+                style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
             ),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-          Row(
-            children: [
-              Icon(
-                Icons.auto_awesome,
-                color: AppColors.mutedGold,
-                size: 24,
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  'Генератор плана',
-                  style: GoogleFonts.unbounded(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-              const SizedBox(height: 12),
-              Text(
-                hasMinData
-                    ? 'Найдём слабое звено и подберём висы/щипки/тяги под тебя.'
-                    : 'Сделай минимум один тест (пальцы, щипок или тяга) + введи вес.',
-                style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton.icon(
-                  onPressed: hasMinData
-                      ? () async {
-                          final api = StrengthTestApiService();
-                          final rank = _currentRank;
-                          final badges = strengthAchievements.where((a) => a.check(m)).map((a) => a.id).toList();
-                          final body = api.buildStrengthTestBody(
-                            m,
-                            currentRank: rank?.titleEn,
-                            unlockedBadges: badges.isNotEmpty ? badges : null,
-                          );
-                          await api.saveStrengthTest(body);
-                          await StrengthHistoryService().saveSession(m);
-                          await StrengthDashboardService().saveMetrics(m);
-                          await TrainingGamificationService().recordMeasurement();
-                          if (!mounted) return;
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (ctx) => ExerciseCompletionScreen(metrics: m),
-                            ),
-                          ).then((_) {
-                            if (mounted) _loadLastSession();
-                          });
-                        }
-                      : null,
-                  icon: Icon(hasMinData ? Icons.play_arrow : Icons.lock_outline, size: 20),
-                  label: Text(
-                    'Собрать план под замеры',
-                    style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
-                  ),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.mutedGold,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          ],
         ),
-        const SizedBox(height: 12),
-        _buildLeaderboardCard(),
-      ],
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              a.descriptionRu,
+              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Как получить:',
+              style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              a.hintRu ?? 'Выполни замеры в разделе «Тест».',
+              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Понятно', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+          ),
+        ],
+      ),
     );
+  }
+
+  void _startLockOffTimer() {
+    _lockOffTimer?.cancel();
+    _lockOffStart = DateTime.now();
+    _lockOffElapsedSec = 0;
+    setState(() {});
+    _lockOffTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final sec = DateTime.now().difference(_lockOffStart!).inSeconds;
+      setState(() => _lockOffElapsedSec = sec);
+    });
+  }
+
+  void _stopLockOffTimer() {
+    _lockOffTimer?.cancel();
+    _lockOffTimer = null;
+    if (_lockOffStart != null) {
+      final sec = DateTime.now().difference(_lockOffStart!).inSeconds;
+      _lockOffSecController.text = sec.toString();
+    }
+    _lockOffStart = null;
+    _lockOffElapsedSec = 0;
+    if (mounted) setState(() {});
   }
 
   Widget _buildLockOffCard() {
     const instruction = 'Вис на одной руке, локоть 90°. Засекай время до отказа. '
         'Без раскачки и киппинга — чистый lock-off.';
+    final isRunning = _lockOffStart != null;
     return _buildTestCard(
       title: 'Lock-off 90° (одна рука)',
       icon: Icons.lock,
       instruction: instruction,
       onHelpTap: () => _showInstruction('Lock-off', instruction),
-      child: _buildInputField(
-        'Секунды',
-        _lockOffSecController,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: _buildInputField(
+                  'Секунды',
+                  _lockOffSecController,
+                ),
+              ),
+              const SizedBox(width: 12),
+              if (isRunning) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: AppColors.successMuted.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.successMuted),
+                  ),
+                  child: Text(
+                    '$_lockOffElapsedSec сек',
+                    style: GoogleFonts.unbounded(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.successMuted,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                SizedBox(
+                  height: 44,
+                  child: FilledButton(
+                    onPressed: _stopLockOffTimer,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: Colors.red.shade700,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(0, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    child: Text('Стоп', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ] else ...[
+                SizedBox(
+                  height: 44,
+                  child: FilledButton.icon(
+                    onPressed: _startLockOffTimer,
+                    icon: const Icon(Icons.timer, size: 16),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.mutedGold,
+                      foregroundColor: AppColors.anthracite,
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      minimumSize: const Size(0, 44),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                    label: Text('Старт', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildLeaderboardCard() {
     final lb = _leaderboard;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
+    final bw = _bodyWeight;
+    final range = bw != null && bw >= 30 && bw <= 200
+        ? '${(bw - 5).clamp(30.0, 195.0).round()}-${(bw + 5).clamp(35.0, 200.0).round()}'
+        : null;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => StrengthLeaderboardScreen(weightRangeKg: range),
+            ),
+          ).then((_) {
+            if (mounted) _loadLeaderboard();
+          });
+        },
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.graphite),
-      ),
-      child: Column(
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.graphite),
+          ),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
@@ -1204,7 +1210,14 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               'Рейтинг по твоей весовой. Грузим…',
               style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
             ),
+          const SizedBox(height: 8),
+          Text(
+            'Нажми для полного списка',
+            style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold.withOpacity(0.8)),
+          ),
         ],
+      ),
+        ),
       ),
     );
   }

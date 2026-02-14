@@ -51,7 +51,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
         Navigator.pushAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
+          MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
           (route) => false,
         );
       } else {
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (!mounted) return;
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: false)),
+        MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: false, openOnProfile: true)),
         (route) => false,
       );
     } on WebAuthnLoginException catch (e) {

@@ -5,6 +5,8 @@ class StrengthAchievement {
   final String id;
   final String titleRu;
   final String descriptionRu;
+  /// Подсказка, как получить достижение.
+  final String? hintRu;
   final IconData icon;
   final bool Function(StrengthMetrics m) check;
 
@@ -12,6 +14,7 @@ class StrengthAchievement {
     required this.id,
     required this.titleRu,
     required this.descriptionRu,
+    this.hintRu,
     required this.icon,
     required this.check,
   });
@@ -72,6 +75,7 @@ final List<StrengthAchievement> strengthAchievements = [
     id: 'crab_claws',
     titleRu: 'Клешни краба',
     descriptionRu: 'Щипок — твоя фишка. Колониты не страшны.',
+    hintRu: 'Щипок ≥40% от веса тела. Введи вес и замер щипка в разделе «Тест».',
     icon: Icons.pan_tool,
     check: (m) => m.pinchPct != null && m.pinchPct! >= 40,
   ),
@@ -79,6 +83,7 @@ final List<StrengthAchievement> strengthAchievements = [
     id: 'steel_crimp',
     titleRu: 'Стальной crimp',
     descriptionRu: 'Активники — твоя тема.',
+    hintRu: 'Лучший палец (левая или правая) ≥60% от веса. Замерь пальцы в «Тест».',
     icon: Icons.back_hand,
     check: (m) =>
         m.fingerBestPct != null &&
@@ -88,6 +93,7 @@ final List<StrengthAchievement> strengthAchievements = [
     id: 'hauler',
     titleRu: 'Тягач',
     descriptionRu: 'Вертикаль — как лифт. +50% к весу на подтяге.',
+    hintRu: 'Добавочный вес на подтяге ≥50% от веса тела. Введи вес и замер в «Тест».',
     icon: Icons.fitness_center,
     check: (m) =>
         m.hasPullData &&
@@ -97,6 +103,7 @@ final List<StrengthAchievement> strengthAchievements = [
     id: 'balance_of_power',
     titleRu: 'Баланс',
     descriptionRu: 'Левая = правая. Асимметрия меньше 3%.',
+    hintRu: 'Разница между левой и правой рукой <3%. Замерь оба пальца в «Тест».',
     icon: Icons.balance,
     check: (m) =>
         m.asymmetryPct != null &&
@@ -106,6 +113,7 @@ final List<StrengthAchievement> strengthAchievements = [
     id: 'iron_lock',
     titleRu: 'Железный lock',
     descriptionRu: '30+ сек lock-off на одной — мало кто так может.',
+    hintRu: 'Lock-off 90° на одной руке ≥30 сек. Засеки время в «Тест».',
     icon: Icons.lock,
     check: (m) =>
         m.lockOffSec != null &&

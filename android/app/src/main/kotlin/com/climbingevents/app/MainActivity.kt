@@ -8,6 +8,12 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : FlutterActivity() {
 
+    companion object {
+        private const val REQUEST_PAY_ANYWAY = 1001
+    }
+
+    private var payAnyWayResult: MethodChannel.Result? = null
+
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
 
@@ -38,11 +44,21 @@ class MainActivity : FlutterActivity() {
                         putExtra(PayAnyWayActivity.EXTRA_AMOUNT, amount)
                         putExtra(PayAnyWayActivity.EXTRA_CURRENCY, currency)
                     }
-                    startActivity(intent)
-                    result.success(true)
+                    payAnyWayResult = result
+                    @Suppress("DEPRECATION")
+                    startActivityForResult(intent, REQUEST_PAY_ANYWAY)
                 }
                 else -> result.notImplemented()
             }
+        }
+    }
+
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == REQUEST_PAY_ANYWAY) {
+            payAnyWayResult?.success(resultCode == RESULT_OK)
+            payAnyWayResult = null
         }
     }
 }

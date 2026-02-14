@@ -191,7 +191,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               'Регистрация успешно выполнена', AppColors.successMuted);
           Navigator.pushAndRemoveUntil(
             context,
-            MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true)),
+            MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
             (route) => false,
           );
         } else {

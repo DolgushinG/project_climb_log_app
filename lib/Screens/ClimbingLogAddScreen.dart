@@ -15,8 +15,10 @@ import 'package:login_app/services/StrengthTestApiService.dart';
 class ClimbingLogAddScreen extends StatefulWidget {
   final HistorySession? session;
   final VoidCallback? onSaved;
+  /// Начальная дата (при открытии из плана — дата плана).
+  final DateTime? initialDate;
 
-  const ClimbingLogAddScreen({super.key, this.session, this.onSaved});
+  const ClimbingLogAddScreen({super.key, this.session, this.onSaved, this.initialDate});
 
   @override
   State<ClimbingLogAddScreen> createState() => _ClimbingLogAddScreenState();
@@ -28,7 +30,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
   List<String> _grades = [];
   bool _loadingGrades = true;
   bool _saving = false;
-  DateTime _selectedDate = DateTime.now();
+  late DateTime _selectedDate;
   GymSearchItem? _selectedGym;
   final TextEditingController _gymQueryController = TextEditingController();
   List<GymSearchItem> _gymResults = [];
@@ -40,6 +42,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedDate = widget.initialDate ?? DateTime.now();
     _loadGrades();
     _loadUsedGyms();
     if (widget.session != null) _applySession(widget.session!);

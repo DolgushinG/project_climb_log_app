@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/Screens/PremiumPaymentScreen.dart';
 
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
+import 'package:login_app/Screens/ClimbingLogPremiumStub.dart';
 import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
 import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
+import 'package:login_app/Screens/PlanOverviewScreen.dart';
 
 /// Объединяющий экран трекера трасс.
 /// Для гостей — лендинг с «Доступно после авторизации».
@@ -37,7 +40,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
     _loadPremiumStatus();
   }
@@ -53,11 +56,115 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     super.dispose();
   }
 
+  bool _firstTimeTrialShown = false;
+
+  @override
+  void didUpdateWidget(covariant ClimbingLogScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!oldWidget.isTabVisible && widget.isTabVisible) {
+      _maybeShowTrialModal();
+    }
+  }
+
+  Future<void> _onReturnFromPremiumPayment(bool paymentSuccess) async {
+    final hadAccess = _premiumStatus?.hasAccess ?? false;
+    await _loadPremiumStatus();
+    if (paymentSuccess && mounted) {
+      if (_premiumStatus?.hasActiveSubscription == true && !hadAccess) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Подписка оформлена! Спасибо за поддержку.',
+              style: GoogleFonts.unbounded(color: Colors.white),
+            ),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.successMuted,
+          ),
+        );
+      }
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) _loadPremiumStatus();
+      });
+    }
+  }
+
   Future<void> _loadPremiumStatus() async {
     if (widget.isGuest) return;
-    await _premiumService.ensureTrialStarted();
     final status = await _premiumService.getStatus();
-    if (mounted) setState(() => _premiumStatus = status);
+    if (mounted) {
+      setState(() => _premiumStatus = status);
+      if (widget.isTabVisible) _maybeShowTrialModal();
+    }
+  }
+
+  void _maybeShowTrialModal() {
+    if (_firstTimeTrialShown) return;
+    if (_premiumStatus == null || _premiumStatus!.trialStarted || _premiumStatus!.hasActiveSubscription) return;
+    _firstTimeTrialShown = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _showFirstTimeTrialModal();
+    });
+  }
+
+  Future<void> _showFirstTimeTrialModal() async {
+    if (!mounted) return;
+    final ok = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Пробный период',
+          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        content: Text(
+          'У вас 7 дней бесплатного доступа ко всем функциям раздела «Тренировки»: план, замеры, история. Нажмите «Начать», чтобы активировать.',
+          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Позже', style: GoogleFonts.unbounded(color: Colors.white54)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: Colors.white),
+            child: Text('Начать', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) {
+      final started = await _premiumService.startTrial();
+      if (mounted) {
+        await _loadPremiumStatus();
+        if (started) {
+          final endsAt = _premiumStatus?.trialEndsAt;
+          final dateStr = endsAt != null
+              ? DateFormat('d MMMM yyyy', 'ru').format(endsAt)
+              : null;
+          final msg = dateStr != null
+              ? 'Ваша пробная подписка активирована до $dateStr'
+              : 'Ваша пробная подписка активирована на 7 дней';
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(msg, style: GoogleFonts.unbounded(color: Colors.white)),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.successMuted,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Не удалось активировать. Попробуйте позже.', style: GoogleFonts.unbounded(color: Colors.white)),
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: AppColors.graphite,
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -65,52 +172,67 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     if (widget.isGuest) {
       return const ClimbingLogLandingScreen();
     }
+    final showPaywall = _premiumStatus != null && !_premiumStatus!.hasAccess;
+
     return Scaffold(
         backgroundColor: AppColors.anthracite,
         appBar: AppBar(
           backgroundColor: AppColors.anthracite,
           automaticallyImplyLeading: false,
           title: Text('Тренировки', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.rowAlt,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: Colors.transparent,
-                  overlayColor: MaterialStateProperty.all(Colors.transparent),
-                  labelColor: AppColors.mutedGold,
-                  unselectedLabelColor: Colors.white70,
-                  indicator: BoxDecoration(
-                    borderRadius: BorderRadius.circular(999),
-                    color: AppColors.mutedGold.withOpacity(0.3),
+          bottom: showPaywall
+              ? null
+              : PreferredSize(
+                  preferredSize: const Size.fromHeight(48),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.rowAlt,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        indicatorColor: Colors.transparent,
+                        overlayColor: MaterialStateProperty.all(Colors.transparent),
+                        labelColor: AppColors.mutedGold,
+                        unselectedLabelColor: Colors.white70,
+                        indicator: BoxDecoration(
+                          borderRadius: BorderRadius.circular(999),
+                          color: AppColors.mutedGold.withOpacity(0.3),
+                        ),
+                        labelPadding: const EdgeInsets.symmetric(horizontal: 4),
+                        tabs: [
+                          Tab(child: FittedBox(child: Text('План', style: GoogleFonts.unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Обзор', style: GoogleFonts.unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Прогресс', style: GoogleFonts.unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('История', style: GoogleFonts.unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Тест', style: GoogleFonts.unbounded(fontSize: 13)))),
+                        ],
+                      ),
+                    ),
                   ),
-                  labelPadding: const EdgeInsets.symmetric(horizontal: 4),
-                  tabs: [
-                    Tab(child: FittedBox(child: Text('Обзор', style: GoogleFonts.unbounded(fontSize: 13)))),
-                    Tab(child: FittedBox(child: Text('Прогресс', style: GoogleFonts.unbounded(fontSize: 13)))),
-                    Tab(child: FittedBox(child: Text('История', style: GoogleFonts.unbounded(fontSize: 13)))),
-                    Tab(child: FittedBox(child: Text('Тестирование', style: GoogleFonts.unbounded(fontSize: 13)))),
-                  ],
                 ),
-              ),
-            ),
-          ),
         ),
-        body: TabBarView(
+        body: showPaywall
+            ? ClimbingLogPremiumStub(onPurchased: _onReturnFromPremiumPayment)
+            : TabBarView(
                 controller: _tabController,
                 children: [
+                  PlanOverviewScreen(
+                    isTabVisible: _tabController.index == 0,
+                    premiumStatus: _premiumStatus,
+                    onPremiumTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
+                    ).then((paymentSuccess) => _onReturnFromPremiumPayment(paymentSuccess == true)),
+                  ),
                   ClimbingLogSummaryScreen(
                     premiumStatus: _premiumStatus,
                     onPremiumTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
-                    ).then((_) => _loadPremiumStatus()),
+                    ).then((paymentSuccess) => _onReturnFromPremiumPayment(paymentSuccess == true)),
                   ),
                   const ClimbingLogProgressScreen(),
                   const ClimbingLogHistoryScreen(),

@@ -1,11 +1,13 @@
 package ru.integrationmonitoring.monetasdkapp;
 
+import android.app.Activity;
 import android.content.Context;
 import android.util.Log;
-import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Random;
@@ -45,6 +47,8 @@ public class MonetaSdk {
         String mntDemoUrl = sdkConfig.get("monetasdk_demo_url");
         String mntProdUrl = sdkConfig.get("monetasdk_production_url");
         String mntWidgLink = sdkConfig.get("monetasdk_assistant_widget_link");
+        String mntSuccessUrl = sdkConfig.get("monetasdk_success_url");
+        String mntFailUrl = sdkConfig.get("monetasdk_fail_url");
 
         String mntAmountString = String.format("%.2f", mntAmount).replace(",", ".");
         String mntWidgUrl = "1".equals(mntDemoMode) ? mntDemoUrl : mntProdUrl;
@@ -59,6 +63,16 @@ public class MonetaSdk {
                 + "&paymentSystem.limitIds=" + mntPaymentSystemUnitId
                 + "&paymentSystem.accountId=" + mntPaymentSystemAccountId
                 + "&MNT_TEST_MODE=" + mntTestMode;
+        try {
+            if (!mntSuccessUrl.isEmpty()) {
+                queryString = queryString + "&MNT_SUCCESS_URL=" + URLEncoder.encode(mntSuccessUrl, "UTF-8");
+            }
+            if (!mntFailUrl.isEmpty()) {
+                queryString = queryString + "&MNT_FAIL_URL=" + URLEncoder.encode(mntFailUrl, "UTF-8");
+            }
+        } catch (UnsupportedEncodingException e) {
+            Log.e(TAG, "URL encode error", e);
+        }
 
         if (!mntAccountCode.isEmpty()) {
             queryString = queryString + "&MNT_SIGNATURE=" + md5(mntAccountId + mntOrderId
@@ -73,7 +87,7 @@ public class MonetaSdk {
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setDomStorageEnabled(true);
         webView.setInitialScale(1);
-        webView.setWebViewClient(new WebViewClient());
+        webView.setWebViewClient(new PaymentWebViewClient(context, mntSuccessUrl, mntFailUrl));
         webView.loadUrl(queryString);
     }
 
@@ -111,5 +125,41 @@ public class MonetaSdk {
     }
 
     private MonetaSdk() {
+    }
+
+    /**
+     * WebViewClient that intercepts climbingevents:// redirects (success/fail) and closes the payment activity.
+     */
+    private static class PaymentWebViewClient extends WebViewClient {
+        private final Context context;
+        private final String successUrl;
+        private final String failUrl;
+
+        PaymentWebViewClient(Context context, String successUrl, String failUrl) {
+            this.context = context;
+            this.successUrl = successUrl != null ? successUrl : "";
+            this.failUrl = failUrl != null ? failUrl : "";
+        }
+
+        @Override
+        public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            if (isOurDeepLink(url)) {
+                if (context instanceof Activity) {
+                    Activity activity = (Activity) context;
+                    boolean isSuccess = url.contains("success") || url.equals(successUrl);
+                    activity.setResult(isSuccess ? Activity.RESULT_OK : Activity.RESULT_CANCELED);
+                    activity.finish();
+                }
+                return true;
+            }
+            return false;
+        }
+
+        private boolean isOurDeepLink(String url) {
+            if (url == null || url.isEmpty()) return false;
+            return url.startsWith("climbingevents://")
+                    || url.equals(successUrl)
+                    || url.equals(failUrl);
+        }
     }
 }

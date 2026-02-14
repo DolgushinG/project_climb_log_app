@@ -17,6 +17,7 @@ import 'package:login_app/services/StrengthTestApiService.dart';
 /// Экран «Выполнить упражнения» — упражнения из плана + ОФП по уровню с чекбоксами.
 /// Сохранение через API с fallback на локальное хранилище.
 /// При передаче [workoutExerciseEntries] показываются только эти упражнения, сгруппированные по секциям (режим сгенерированной тренировки).
+/// При передаче [date] используется эта дата для сохранения (иначе — сегодня).
 class ExerciseCompletionScreen extends StatefulWidget {
   final StrengthMetrics? metrics;
   /// Упражнения из сгенерированной тренировки (blockKey, exercise) — при наличии используются вместо плана и ОФП.
@@ -27,6 +28,8 @@ class ExerciseCompletionScreen extends StatefulWidget {
   final Map<String, int>? loadDistribution;
   /// Подсказка по прогрессии (при workoutExerciseEntries).
   final String? progressionHint;
+  /// Дата сессии — для плана тренировок (иначе сегодня).
+  final DateTime? date;
 
   const ExerciseCompletionScreen({
     super.key,
@@ -35,6 +38,7 @@ class ExerciseCompletionScreen extends StatefulWidget {
     this.coachComment,
     this.loadDistribution,
     this.progressionHint,
+    this.date,
   });
 
   /// Очищает кэш плана на сегодня (например, после нового замера).
@@ -79,7 +83,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   @override
   void initState() {
     super.initState();
-    _dateKey = _todayKey();
+    _dateKey = _dateKeyFrom(widget.date);
     _loadFromCache().then((_) => _load());
   }
 
@@ -145,6 +149,11 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   String _todayKey() {
     final n = DateTime.now();
     return '${n.year}-${n.month.toString().padLeft(2, '0')}-${n.day.toString().padLeft(2, '0')}';
+  }
+
+  String _dateKeyFrom(DateTime? d) {
+    if (d == null) return _todayKey();
+    return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
   }
 
   /// Fallback level для ОФП, если бэкенд не вернул упражнения по уровню.
@@ -1000,7 +1009,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   static const _sectionBlocks = {
     'Разминка': ['warmup'],
     'СФП (план)': ['main', 'secondary'],
-    'ОФП': ['antagonist', 'core'],
+    'ОФП': ['antagonist', 'core', 'plan'],
     'Растяжка': ['cooldown'],
   };
 
@@ -1208,18 +1217,30 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${e.defaultSets} × ${e.defaultReps} • отдых ${e.defaultRest}',
+                        '${e.dosageDisplay} • отдых ${e.defaultRest}',
                         style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        Text(
-                          e.description!,
-                          style: GoogleFonts.unbounded(
-                            fontSize: 11,
-                            color: Colors.white38,
-                            height: 1.3,
-                          ),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Icon(Icons.lightbulb_outline, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                e.description!,
+                                style: GoogleFonts.unbounded(
+                                  fontSize: 12,
+                                  color: AppColors.mutedGold.withOpacity(0.9),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -1235,6 +1256,54 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
 
   Future<void> _toggleStretchingCompleted(CatalogExercise e, bool value) async {
     await _toggleExerciseCompleted(e.id, value, setsDone: e.defaultSets, weightKg: null);
+  }
+
+  void _showHintModal(String title, String hint) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.help_outline, color: AppColors.mutedGold, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Как выполнять: $title',
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  hint,
+                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildExerciseThumbnail(CatalogExercise e) {
@@ -1336,17 +1405,50 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        '${e.defaultSets} × ${e.defaultReps} • отдых ${e.defaultRest}',
+                        '${e.dosageDisplay} • отдых ${e.defaultRest}',
                         style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        Text(
-                          e.description!,
-                          style: GoogleFonts.unbounded(
-                            fontSize: 11,
-                            color: Colors.white38,
-                            height: 1.3,
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Icon(Icons.lightbulb_outline, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
+                            ),
+                            const SizedBox(width: 6),
+                            Expanded(
+                              child: Text(
+                                e.description!,
+                                style: GoogleFonts.unbounded(
+                                  fontSize: 12,
+                                  color: AppColors.mutedGold.withOpacity(0.9),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (e.hint != null && e.hint!.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        InkWell(
+                          onTap: () => _showHintModal(e.displayName, e.hint!),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.help_outline, size: 14, color: AppColors.linkMuted),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Как выполнять',
+                                  style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],

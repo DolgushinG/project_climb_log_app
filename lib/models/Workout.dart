@@ -114,6 +114,9 @@ class WorkoutBlockExercise {
   final int defaultRestSeconds;
   final String executionType;
   final String? progressionType;
+  final String? comment;
+  final String? hint;
+  final String? dosage;
 
   WorkoutBlockExercise({
     required this.exerciseId,
@@ -129,6 +132,9 @@ class WorkoutBlockExercise {
     this.defaultRestSeconds = 90,
     this.executionType = 'reps',
     this.progressionType,
+    this.comment,
+    this.hint,
+    this.dosage,
   });
 
   Map<String, dynamic> toJson() => {
@@ -145,6 +151,9 @@ class WorkoutBlockExercise {
         'default_rest_seconds': defaultRestSeconds,
         'execution_type': executionType,
         if (progressionType != null) 'progression_type': progressionType,
+        if (comment != null) 'comment': comment,
+        if (hint != null) 'hint': hint,
+        if (dosage != null) 'dosage': dosage,
       };
 
   factory WorkoutBlockExercise.fromJson(Map<String, dynamic> json) {
@@ -163,6 +172,9 @@ class WorkoutBlockExercise {
       defaultRestSeconds: json['default_rest_seconds'] as int? ?? 90,
       executionType: json['execution_type'] as String? ?? 'reps',
       progressionType: json['progression_type'] as String?,
+      comment: json['comment'] as String?,
+      hint: json['hint'] as String?,
+      dosage: json['dosage'] as String?,
     );
   }
 

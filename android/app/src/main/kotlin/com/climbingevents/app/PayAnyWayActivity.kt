@@ -2,6 +2,7 @@ package com.climbingevents.app
 
 import android.os.Bundle
 import android.webkit.WebView
+import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import ru.integrationmonitoring.monetasdkapp.MonetaSdk
 
@@ -13,6 +14,12 @@ class PayAnyWayActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                setResult(RESULT_CANCELED)
+                finish()
+            }
+        })
         setContentView(R.layout.activity_payanyway)
 
         val orderId = intent.getStringExtra(EXTRA_ORDER_ID) ?: MonetaSdk.getInstance().getOrderId()
@@ -35,6 +42,7 @@ class PayAnyWayActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean {
+        setResult(RESULT_CANCELED)
         finish()
         return true
     }

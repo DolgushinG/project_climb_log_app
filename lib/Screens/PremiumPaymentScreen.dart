@@ -1,18 +1,22 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/services/PayAnyWayNativeService.dart';
+import 'package:login_app/Screens/PremiumPaymentHistoryScreen.dart';
 
 /// URL оферты — публичный договор на премиум-подписку
 const String offertaUrl = 'https://climbing-events.ru/offerta-premium';
 
 /// Стоимость подписки (из оферты)
-const int subscriptionPriceRub = 199;
+/// В debug-сборке — 10 ₽ для теста платежей; в release — 199 ₽
+int get subscriptionPriceRub => kDebugMode ? 10 : 199;
 
 /// Экран оплаты премиум-подписки.
 /// Пояснение, подтверждение, ссылка на оферту, сумма, переход на платёж PayAnyWay.
@@ -27,6 +31,28 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
   final PremiumSubscriptionService _service = PremiumSubscriptionService();
   bool _isLoading = false;
   String? _error;
+  PremiumStatus? _premiumStatus;
+  bool _statusLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatus();
+  }
+
+  Future<void> _loadStatus() async {
+    final status = await _service.getStatus();
+    if (mounted) setState(() {
+      _premiumStatus = status;
+      _statusLoading = false;
+    });
+  }
+
+  String _dayWord(int n) {
+    if (n % 10 == 1 && n % 100 != 11) return 'день';
+    if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'дня';
+    return 'дней';
+  }
 
   Future<void> _openUrl(String url) async {
     final uri = Uri.parse(url);
@@ -43,14 +69,27 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
     try {
       // Android: нативный PayAnyWay SDK (WebView в приложении)
       if (Platform.isAndroid) {
-        final ok = await PayAnyWayNativeService.showPayment(
-          orderId: null, // SDK сгенерирует сам
-          amount: subscriptionPriceRub.toDouble(),
-          currency: 'RUB',
-        );
+        final token = await getToken();
+        if (token == null) {
+          setState(() {
+            _error = 'Необходимо войти в аккаунт';
+            _isLoading = false;
+          });
+          return;
+        }
+        final amount = subscriptionPriceRub.toDouble();
+        final orderId = await _service.registerOrder(token, amount: amount);
+        if (orderId == null) {
+          setState(() {
+            _error = 'Не удалось создать заказ. Проверьте интернет и попробуйте позже.';
+            _isLoading = false;
+          });
+          return;
+        }
+        final ok = await PayAnyWayNativeService.showPayment(orderId: orderId, amount: amount, currency: 'RUB');
         if (!mounted) return;
         if (ok) {
-          Navigator.pop(context);
+          Navigator.pop(context, true);
           return;
         }
       }
@@ -67,7 +106,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
       if (!mounted) return;
       if (paymentUrl != null && paymentUrl.isNotEmpty) {
         await _openUrl(paymentUrl);
-        if (mounted) Navigator.pop(context);
+        if (mounted) Navigator.pop(context, true);
       } else {
         setState(() {
           _error = Platform.isAndroid
@@ -104,47 +143,259 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PremiumPaymentHistoryScreen()),
+            ),
+            child: Text(
+              'История',
+              style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
+            ),
+          ),
+        ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 24),
-              _buildBenefits(),
-              const SizedBox(height: 24),
-              _buildPriceCard(),
-              const SizedBox(height: 24),
-              _buildOffertaLink(),
-              const SizedBox(height: 32),
-              if (_error != null) ...[
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
+        child: _statusLoading
+            ? const Center(child: CircularProgressIndicator(color: AppColors.mutedGold))
+            : _premiumStatus?.hasActiveSubscription == true
+                ? _buildSubscriptionActiveContent()
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _buildHeader(),
+                        const SizedBox(height: 24),
+                        _buildBenefits(),
+                        const SizedBox(height: 24),
+                        _buildPriceCard(),
+                        const SizedBox(height: 24),
+                        _buildOffertaLink(),
+                        const SizedBox(height: 32),
+                        if (_error != null) ...[
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.red.withOpacity(0.2),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline, color: Colors.redAccent),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    _error!,
+                                    style: GoogleFonts.unbounded(color: Colors.redAccent, fontSize: 13),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+                        _buildPayButton(),
+                      ],
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.error_outline, color: Colors.redAccent),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          _error!,
-                          style: GoogleFonts.unbounded(color: Colors.redAccent, fontSize: 13),
-                        ),
-                      ),
-                    ],
+      ),
+    );
+  }
+
+  static const List<Map<String, String>> _cancelReasons = [
+    {'code': 'expensive', 'label': 'Дорого'},
+    {'code': 'rarely_use', 'label': 'Редко пользуюсь'},
+    {'code': 'need_other_features', 'label': 'Нужны другие функции'},
+    {'code': 'temporary_pause', 'label': 'Временно приостановлю'},
+    {'code': 'other', 'label': 'Другое'},
+    {'code': 'prefer_not_say', 'label': 'Не хочу указывать'},
+  ];
+
+  Future<void> _onCancelSubscriptionPressed() async {
+    String? reasonCode;
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setState) {
+          return AlertDialog(
+            backgroundColor: AppColors.cardDark,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: Text(
+              'Почему отменяете подписку?',
+              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ..._cancelReasons.map((r) => RadioListTile<String>(
+                    title: Text(
+                      r['label']!,
+                      style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white),
+                    ),
+                    value: r['code']!,
+                    groupValue: reasonCode,
+                    onChanged: (v) => setState(() => reasonCode = v),
+                    activeColor: AppColors.mutedGold,
+                  )),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Подписка останется активной до конца оплаченного периода.',
+                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54, height: 1.3),
                   ),
-                ),
-                const SizedBox(height: 16),
-              ],
-              _buildPayButton(),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, null),
+                child: Text('Не отменять', style: GoogleFonts.unbounded(color: Colors.white54)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, {'confirmed': true, 'reason': reasonCode ?? 'prefer_not_say'}),
+                child: Text('Отменить подписку', style: GoogleFonts.unbounded(color: Colors.redAccent)),
+              ),
             ],
+          );
+        },
+      ),
+    );
+    if (result == null || result['confirmed'] != true || !mounted) return;
+    final reason = result['reason'] as String?;
+    final ok = await _service.cancelSubscription(reason: reason);
+    if (!mounted) return;
+    await _loadStatus();
+    if (ok) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Подписка отменена. Доступ сохранится до конца оплаченного периода.',
+            style: GoogleFonts.unbounded(color: Colors.white),
           ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.successMuted,
         ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Не удалось отменить. Попробуйте позже.',
+            style: GoogleFonts.unbounded(color: Colors.white),
+          ),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.graphite,
+        ),
+      );
+    }
+  }
+
+  Widget _buildSubscriptionActiveContent() {
+    final days = _premiumStatus!.subscriptionDaysLeft ?? 0;
+    final cancelled = _premiumStatus!.subscriptionCancelled;
+    final endsAt = _premiumStatus!.subscriptionEndsAt;
+    final dateStr = endsAt != null ? DateFormat('d MMMM yyyy', 'ru').format(endsAt) : null;
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: cancelled
+                  ? AppColors.graphite.withOpacity(0.5)
+                  : AppColors.successMuted.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: cancelled
+                    ? AppColors.graphite
+                    : AppColors.successMuted.withOpacity(0.5),
+              ),
+            ),
+            child: Column(
+              children: [
+                Icon(
+                  cancelled ? Icons.cancel_outlined : Icons.check_circle_rounded,
+                  size: 64,
+                  color: cancelled ? Colors.white54 : AppColors.successMuted,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  cancelled ? 'Подписка отменена' : 'У вас действует подписка',
+                  style: GoogleFonts.unbounded(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  cancelled
+                      ? (dateStr != null ? 'Действует до $dateStr' : 'Осталось $days ${_dayWord(days)}')
+                      : 'Осталось $days ${_dayWord(days)}',
+                  style: GoogleFonts.unbounded(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w600,
+                    color: cancelled ? Colors.white70 : AppColors.successMuted,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  cancelled
+                      ? 'Доступ к Premium сохранится до конца оплаченного периода.'
+                      : 'Спасибо за поддержку! Все функции Premium доступны — продолжайте отслеживать тренировки и прогресс.',
+                  style: GoogleFonts.unbounded(
+                    fontSize: 14,
+                    color: Colors.white70,
+                    height: 1.5,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+          OutlinedButton(
+            onPressed: () => Navigator.pop(context),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.mutedGold,
+              side: BorderSide(color: AppColors.mutedGold.withOpacity(0.6)),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(
+              'Вернуться',
+              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+          ),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const PremiumPaymentHistoryScreen()),
+            ),
+            child: Text(
+              'История оплат',
+              style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
+            ),
+          ),
+          if (!cancelled) ...[
+            const SizedBox(height: 24),
+            TextButton(
+              onPressed: _onCancelSubscriptionPressed,
+              child: Text(
+                'Отменить подписку',
+                style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 13),
+              ),
+            ),
+          ],
+        ],
       ),
     );
   }

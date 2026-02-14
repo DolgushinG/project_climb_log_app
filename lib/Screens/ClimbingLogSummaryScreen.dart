@@ -1,7 +1,5 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
@@ -13,10 +11,10 @@ import 'package:login_app/services/TrainingPlanGenerator.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
+import 'package:login_app/services/TrainingPlanApiService.dart';
+import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
-import 'package:login_app/models/Workout.dart';
-import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
-import 'package:login_app/Screens/WorkoutGenerateScreen.dart';
+import 'package:login_app/Screens/PlanDayScreen.dart';
 
 /// Стартовый экран «Обзор» — summary, графики, рекомендации, strength dashboard.
 class ClimbingLogSummaryScreen extends StatefulWidget {
@@ -34,16 +32,18 @@ class ClimbingLogSummaryScreen extends StatefulWidget {
       _ClimbingLogSummaryScreenState();
 }
 
-class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
-  static const String _keyExercisesDone = 'exercises_all_done_';
-  static const String _keyGeneratedWorkout = 'generated_workout_';
+class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
+    with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
   final ClimbingLogService _service = ClimbingLogService();
   final StrengthDashboardService _strengthSvc = StrengthDashboardService();
   final TrainingGamificationService _gamification = TrainingGamificationService();
+  final TrainingPlanApiService _planApi = TrainingPlanApiService();
 
   ClimbingLogSummary? _summary;
-  bool _exercisesAllDoneToday = false;
-  bool _hasGeneratedWorkoutToday = false;
+  ActivePlan? _plan;
+  PlanDayResponse? _todayPlanDay;
   List<ClimbingLogRecommendation> _recommendations = [];
   bool _loading = true;
   String? _error;
@@ -62,154 +62,161 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   @override
   void initState() {
     super.initState();
-    _load();
-    _loadStrengthDashboard();
-    _loadExercisesDoneState();
-    _loadGeneratedWorkoutState();
+    _loadAll();
   }
 
-  Future<void> _loadGeneratedWorkoutState() async {
-    final w = await _loadGeneratedWorkout();
-    if (mounted) setState(() => _hasGeneratedWorkoutToday = w != null && w.entries.isNotEmpty);
-  }
-
-  Future<void> _loadExercisesDoneState() async {
-    final prefs = await SharedPreferences.getInstance();
-    final val = prefs.getBool('$_keyExercisesDone$_todayKey');
-    if (mounted) setState(() => _exercisesAllDoneToday = val == true);
-  }
-
-  Future<void> _saveExercisesDoneState(bool done) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('$_keyExercisesDone$_todayKey', done);
-  }
-
-  static const String _keyGeneratedWorkoutCoach = 'generated_workout_coach_';
-
-  Future<void> _saveGeneratedWorkout(GeneratedWorkoutResult result) async {
-    final prefs = await SharedPreferences.getInstance();
-    final list = result.entries.map((e) => {'block_key': e.key, ...e.value.toJson()}).toList();
-    await prefs.setString('$_keyGeneratedWorkout$_todayKey', jsonEncode(list));
-    final coach = <String, dynamic>{
-      if (result.coachComment != null) 'coach_comment': result.coachComment,
-      if (result.loadDistribution != null && result.loadDistribution!.isNotEmpty)
-        'load_distribution': result.loadDistribution,
-      if (result.progressionHint != null) 'progression_hint': result.progressionHint,
-    };
-    if (coach.isNotEmpty) {
-      await prefs.setString('$_keyGeneratedWorkoutCoach$_todayKey', jsonEncode(coach));
-    } else {
-      await prefs.remove('$_keyGeneratedWorkoutCoach$_todayKey');
-    }
-  }
-
-  Future<GeneratedWorkoutResult?> _loadGeneratedWorkout() async {
-    final prefs = await SharedPreferences.getInstance();
-    final json = prefs.getString('$_keyGeneratedWorkout$_todayKey');
-    if (json == null) return null;
+  Future<(StrengthMetrics?, double?, int, int, String)> _loadStrengthDashboard() async {
     try {
-      final list = jsonDecode(json) as List<dynamic>?;
-      if (list == null || list.isEmpty) return null;
-      final entries = list.map((e) {
-        final m = Map<String, dynamic>.from(e as Map);
-        final key = m.remove('block_key') as String? ?? 'main';
-        return MapEntry(key, WorkoutBlockExercise.fromJson(m));
-      }).toList();
-      String? coachComment;
-      Map<String, int>? loadDistribution;
-      String? progressionHint;
-      final coachJson = prefs.getString('$_keyGeneratedWorkoutCoach$_todayKey');
-      if (coachJson != null) {
-        try {
-          final coach = jsonDecode(coachJson) as Map<String, dynamic>?;
-          if (coach != null) {
-            coachComment = coach['coach_comment'] as String?;
-            progressionHint = coach['progression_hint'] as String?;
-            final ld = coach['load_distribution'] as Map<String, dynamic>?;
-            if (ld != null) {
-              loadDistribution = ld.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
-            }
-          }
-        } catch (_) {}
+      final m = await _strengthSvc.getLastMetrics();
+      final api = StrengthTestApiService();
+      final gamification = await api.getGamification();
+      double? changePct;
+      final history = await api.getStrengthTestsHistory(periodDays: 365);
+      if (history.length >= 2) {
+        final sorted = List.of(history)..sort((a, b) => b.date.compareTo(a.date));
+        final prevAvg = _getAvgFromMetrics(sorted[1].metrics);
+        final currAvg = _getAvgFromMetrics(sorted[0].metrics);
+        if (prevAvg != null && prevAvg > 0 && currAvg != null) {
+          changePct = currAvg - prevAvg;
+        }
       }
-      return GeneratedWorkoutResult(
-        entries: entries,
-        coachComment: coachComment,
-        loadDistribution: loadDistribution,
-        progressionHint: progressionHint,
-      );
-    } catch (_) {}
-    return null;
-  }
-
-  Future<void> _loadStrengthDashboard() async {
-    final m = await _strengthSvc.getLastMetrics();
-    final api = StrengthTestApiService();
-    final gamification = await api.getGamification();
-    double? changePct;
-    final history = await api.getStrengthTestsHistory(periodDays: 365);
-    if (history.length >= 2) {
-      final sorted = List.of(history)..sort((a, b) => b.date.compareTo(a.date));
-      final prevAvg = _getAvgFromMetrics(sorted[1].metrics);
-      final currAvg = _getAvgFromMetrics(sorted[0].metrics);
-      if (prevAvg != null && prevAvg > 0 && currAvg != null) {
-        changePct = currAvg - prevAvg;
+      if (gamification != null) {
+        return (m, changePct, gamification.totalXp, gamification.streakDays, gamification.recoveryStatus);
       }
-    }
-    if (gamification != null && mounted) {
-      setState(() {
-        _strengthMetrics = m;
-        _strengthChangePct = changePct;
-        _xp = gamification.totalXp;
-        _streak = gamification.streakDays;
-        _recoveryStatus = gamification.recoveryStatus;
-      });
-    } else {
       final xp = await _gamification.getTotalXp();
       final streak = await _gamification.getStreakDays();
       final recovery = await _gamification.getRecoveryStatus();
-      if (mounted) {
-        setState(() {
-          _strengthMetrics = m;
-          _strengthChangePct = changePct;
-          _xp = xp;
-          _streak = streak;
-          _recoveryStatus = recovery;
-        });
-      }
+      return (m, changePct, xp, streak, recovery);
+    } catch (_) {
+      return (null, null, 0, 0, 'ready');
     }
   }
 
-  Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+  Future<void> _loadAll() async {
+    final hadData = _summary != null;
+    if (!hadData) setState(() { _loading = true; _error = null; });
     try {
-      final results = await Future.wait([
+      final summaryFuture = Future.wait([
         _service.getSummary(),
         _service.getRecommendations(),
       ]);
+      final dashboardFuture = _loadStrengthDashboard();
+      final planFuture = _loadPlanForToday();
+      final results = await Future.wait([summaryFuture, dashboardFuture, planFuture]);
+      final summaryResults = results[0] as List;
+      final dash = results[1] as (StrengthMetrics?, double?, int, int, String);
+      final planData = results[2] as (ActivePlan?, PlanDayResponse?);
       if (!mounted) return;
       setState(() {
-        _summary = results[0] as ClimbingLogSummary?;
-        _recommendations = results[1] as List<ClimbingLogRecommendation>;
+        _summary = summaryResults[0] as ClimbingLogSummary?;
+        _recommendations = summaryResults[1] as List<ClimbingLogRecommendation>;
+        _strengthMetrics = dash.$1;
+        _strengthChangePct = dash.$2;
+        _xp = dash.$3;
+        _streak = dash.$4;
+        _recoveryStatus = dash.$5;
+        _plan = planData.$1;
+        _todayPlanDay = planData.$2;
         _loading = false;
       });
     } catch (_) {
       if (mounted) {
         setState(() {
           _loading = false;
-          _error = 'Не удалось загрузить данные';
+          _error = _summary == null ? 'Не удалось загрузить данные' : null;
         });
       }
     }
   }
 
+  Future<(ActivePlan?, PlanDayResponse?)> _loadPlanForToday() async {
+    try {
+      final plan = await _planApi.getActivePlan();
+      if (plan == null) return (null, null);
+      final today = DateTime.now();
+      final weekdays = plan.scheduledWeekdays;
+      if (weekdays != null && weekdays.isNotEmpty && !weekdays.contains(today.weekday)) {
+        return (plan, null);
+      }
+      final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final day = await _planApi.getPlanDay(plan.id, dateStr);
+      if (day == null || day.isRest) return (plan, null);
+      return (plan, day);
+    } catch (_) {
+      return (null, null);
+    }
+  }
+
   Future<void> _onRefresh() async {
-    await _load();
-    await _loadStrengthDashboard();
-    await _loadExercisesDoneState();
+    await _loadAll();
+  }
+
+  Widget _buildPlanTodayBanner(BuildContext context) {
+    final plan = _plan!;
+    final day = _todayPlanDay!;
+    final typeLabel = day.isOfp ? 'ОФП' : 'СФП';
+    final exCount = day.exercises.length;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PlanDayScreen(
+                plan: plan,
+                date: DateTime.now(),
+                onCompletedChanged: () => _loadAll(),
+              ),
+            ),
+          ).then((_) => _loadAll());
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.mutedGold.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.fitness_center, color: AppColors.mutedGold, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'План на сегодня: $typeLabel',
+                      style: GoogleFonts.unbounded(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                    Text(
+                      '$exCount ${exCount == 1 ? 'упражнение' : exCount >= 2 && exCount <= 4 ? 'упражнения' : 'упражнений'}',
+                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, color: AppColors.mutedGold, size: 14),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   String _dayWord(int n) {
@@ -221,7 +228,58 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
   Widget _buildPremiumSection(BuildContext context) {
     final status = widget.premiumStatus;
     final onTap = widget.onPremiumTap!;
-    if (status?.hasActiveSubscription == true) return const SizedBox.shrink();
+    if (status?.hasActiveSubscription == true) {
+      final days = status!.subscriptionDaysLeft ?? 0;
+      final cancelled = status.subscriptionCancelled;
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: cancelled
+              ? AppColors.graphite.withOpacity(0.5)
+              : AppColors.successMuted.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: cancelled ? AppColors.graphite : AppColors.successMuted.withOpacity(0.4),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              cancelled ? Icons.cancel_outlined : Icons.check_circle_rounded,
+              color: cancelled ? Colors.white54 : AppColors.successMuted,
+              size: 28,
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    cancelled ? 'Подписка отменена' : 'Подписка активна',
+                    style: GoogleFonts.unbounded(
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Text(
+                    cancelled
+                        ? 'Действует до конца периода ($days ${_dayWord(days)})'
+                        : 'Осталось $days ${_dayWord(days)}. Спасибо за поддержку!',
+                    style: GoogleFonts.unbounded(
+                      color: Colors.white70,
+                      fontSize: 13,
+                      height: 1.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(12),
@@ -271,6 +329,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
     return Scaffold(
       backgroundColor: AppColors.anthracite,
       body: SafeArea(
@@ -294,6 +353,10 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                         _buildSummaryCards(context, _summary!),
                         const SizedBox(height: 16),
                       ],
+                      if (_plan != null && _todayPlanDay != null) ...[
+                        const SizedBox(height: 12),
+                        _buildPlanTodayBanner(context),
+                      ],
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,
@@ -305,10 +368,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                                 builder: (ctx) => const ClimbingLogAddScreen(),
                               ),
                             );
-                            if (mounted) {
-                              _load();
-                              _loadStrengthDashboard();
-                            }
+                            if (mounted) _loadAll();
                           },
                           icon: const Icon(Icons.add, size: 20),
                           label: Text(
@@ -356,7 +416,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
-                            onPressed: _load,
+                            onPressed: _loadAll,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AppColors.mutedGold,
                               foregroundColor: Colors.white,
@@ -391,10 +451,6 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 _buildStrengthDashboard(context),
-                const SizedBox(height: 12),
-                _buildExerciseCompletionCard(context, compact: false),
-                const SizedBox(height: 12),
-                _buildWorkoutGenerateCard(context, compact: false),
               ],
             ),
           ),
@@ -552,165 +608,6 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
     );
   }
 
-  Widget _buildExerciseCompletionCard(BuildContext context, {bool compact = false}) {
-    final done = _exercisesAllDoneToday;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          final workout = await _loadGeneratedWorkout();
-          final result = await Navigator.push<bool>(
-            context,
-            MaterialPageRoute(
-              builder: (_) => workout != null && workout.entries.isNotEmpty
-                  ? ExerciseCompletionScreen(
-                      workoutExerciseEntries: workout.entries,
-                      coachComment: workout.coachComment,
-                      loadDistribution: workout.loadDistribution,
-                      progressionHint: workout.progressionHint,
-                    )
-                  : ExerciseCompletionScreen(metrics: _strengthMetrics),
-            ),
-          );
-          if (mounted) {
-            _loadStrengthDashboard();
-            if (result != null) {
-              setState(() => _exercisesAllDoneToday = result);
-              _saveExercisesDoneState(result);
-            }
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(compact ? 12 : 16),
-          decoration: BoxDecoration(
-            color: done ? AppColors.successMuted.withOpacity(0.15) : AppColors.cardDark,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: done ? AppColors.successMuted.withOpacity(0.5) : AppColors.graphite,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                done ? Icons.check_circle : Icons.check_circle_outline,
-                color: AppColors.successMuted,
-                size: compact ? 22 : 28,
-              ),
-              SizedBox(width: compact ? 10 : 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      done ? 'Готово!' : 'Выполнить упражнения',
-                      style: GoogleFonts.unbounded(
-                        fontSize: compact ? 13 : 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (!compact)
-                      Text(
-                        done
-                            ? 'Можно зайти и обновить данные'
-                            : _hasGeneratedWorkoutToday
-                                ? 'Из сгенерированной тренировки'
-                                : 'Из плана по замерам',
-                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: compact ? 12 : 14, color: Colors.white38),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWorkoutGenerateCard(BuildContext context, {bool compact = false}) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () async {
-          final result = await Navigator.push<GeneratedWorkoutResult>(
-            context,
-            MaterialPageRoute(builder: (_) => const WorkoutGenerateScreen()),
-          );
-          if (!mounted) return;
-          if (result != null && result.entries.isNotEmpty) {
-            await _saveGeneratedWorkout(result);
-            if (!mounted) return;
-            final done = await Navigator.push<bool>(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ExerciseCompletionScreen(
-                  workoutExerciseEntries: result.entries,
-                  coachComment: result.coachComment,
-                  loadDistribution: result.loadDistribution,
-                  progressionHint: result.progressionHint,
-                ),
-              ),
-            );
-            if (mounted && done != null) {
-              setState(() => _exercisesAllDoneToday = done);
-              await _saveExercisesDoneState(done);
-            }
-          }
-          if (mounted) {
-            _loadExercisesDoneState();
-            _loadStrengthDashboard();
-            _loadGeneratedWorkoutState();
-          }
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: EdgeInsets.all(compact ? 12 : 16),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.auto_awesome, color: AppColors.mutedGold, size: compact ? 22 : 28),
-              SizedBox(width: compact ? 10 : 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Сгенерировать тренировку',
-                      style: GoogleFonts.unbounded(
-                        fontSize: compact ? 13 : 15,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (!compact)
-                      Text(
-                        'План под ваш уровень и цель',
-                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                  ],
-                ),
-              ),
-              Icon(Icons.arrow_forward_ios, size: compact ? 12 : 14, color: Colors.white38),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   StrengthTier? _getRankFromMetrics(StrengthMetrics m) {
     final avg = _getAvgFromMetrics(m);
     if (avg == null) return null;
@@ -761,7 +658,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Добавьте первую тренировку во вкладке «Тренировка» — здесь появится сводка, графики и рекомендации.',
+            'Нажмите «Добавить тренировку» выше — здесь появится сводка, графики и рекомендации.',
             style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),

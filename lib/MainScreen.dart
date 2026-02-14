@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import 'CompetitionScreen.dart';
 import 'theme/app_theme.dart';
@@ -22,31 +23,33 @@ class MainScreen extends StatefulWidget {
   final bool showPasskeyPrompt;
   /// Гостевой режим: только соревнования + вкладка «Войти», без истории и профиля.
   final bool isGuest;
+  /// Открыть сразу на вкладке «Профиль» (после авторизации: логин, регистрация, OAuth).
+  final bool openOnProfile;
 
-  const MainScreen({super.key, this.showPasskeyPrompt = false, this.isGuest = false});
+  const MainScreen({super.key, this.showPasskeyPrompt = false, this.isGuest = false, this.openOnProfile = false});
 
   @override
   _MainScreenState createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _selectedIndex = 0;
-  final PageController _pageController = PageController();
+  /// Для авторизованных — открываем на профиле с приветственным окном; гости — на тренировках.
+  late int _selectedIndex;
+  late final PageController _pageController;
   bool _isOnline = true;
   bool _offlineBannerDismissed = false;
-  /// Показывать баннер «нет интернета» только когда офлайн и в кэше нет данных.
   bool _offlineWithNoCache = false;
   StreamSubscription<bool>? _connectivitySubscription;
-  late final List<Widget> _screens;
+  /// Целевая страница при нажатии на таб — чтобы onPageChanged не перезаписывала активным промежуточным при анимации.
+  int? _programmaticTargetIndex;
 
   void _onItemTapped(int index) {
     if (!mounted) return;
-    setState(() => _selectedIndex = index);
-    _pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
+    setState(() {
+      _selectedIndex = index;
+      _programmaticTargetIndex = index;
+    });
+    _pageController.jumpToPage(index);
   }
 
   Future<bool> _onWillPop() async {
@@ -72,27 +75,52 @@ class _MainScreenState extends State<MainScreen> {
     return shouldExit == true;
   }
 
-  List<Widget> _buildScreens() {
-    return widget.isGuest
-        ? [
-            ClimbingLogScreen(key: const ValueKey('climbing_log'), isGuest: true, isTabVisible: _selectedIndex == 0),
-            const RatingScreen(),
-            CompetitionsScreen(isGuest: true),
-            const GymsListScreen(),
-            const _GuestLoginScreen(),
-          ]
-        : [
-            ClimbingLogScreen(key: const ValueKey('climbing_log'), isGuest: false, isTabVisible: _selectedIndex == 0),
-            const RatingScreen(),
-            CompetitionsScreen(),
-            const GymsListScreen(),
-            ProfileScreen(),
-          ];
+  static const int _pageCount = 5;
+
+  Widget _buildPage(int index) {
+    if (widget.isGuest) {
+      switch (index) {
+        case 0:
+          return ClimbingLogScreen(key: const ValueKey('climbing_log'), isGuest: true, isTabVisible: _selectedIndex == 0);
+        case 1:
+          return const RatingScreen(key: ValueKey('rating'));
+        case 2:
+          return CompetitionsScreen(key: const ValueKey('competitions'), isGuest: true);
+        case 3:
+          return const GymsListScreen(key: ValueKey('gyms'));
+        case 4:
+          return const KeyedSubtree(key: ValueKey('guest_login'), child: _GuestLoginScreen());
+        default:
+          return const SizedBox.shrink();
+      }
+    }
+    switch (index) {
+      case 0:
+        return ClimbingLogScreen(key: const ValueKey('climbing_log'), isGuest: false, isTabVisible: _selectedIndex == 0);
+      case 1:
+        return const RatingScreen(key: ValueKey('rating'));
+      case 2:
+        return CompetitionsScreen(key: const ValueKey('competitions'));
+      case 3:
+        return const GymsListScreen(key: ValueKey('gyms'));
+      case 4:
+        return KeyedSubtree(key: const ValueKey('profile'), child: ProfileScreen());
+      default:
+        return const SizedBox.shrink();
+    }
   }
+
+  static const String _keyWelcomeShown = 'profile_welcome_shown';
 
   @override
   void initState() {
     super.initState();
+    final startPage = widget.isGuest ? 0 : (widget.openOnProfile ? 4 : 0);
+    _selectedIndex = startPage;
+    _pageController = PageController(initialPage: startPage);
+    if (!widget.isGuest && !widget.openOnProfile) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _checkFirstTimeAndGoToProfile());
+    }
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -112,6 +140,14 @@ class _MainScreenState extends State<MainScreen> {
     if (widget.showPasskeyPrompt) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPasskeyPrompt());
     }
+  }
+
+  Future<void> _checkFirstTimeAndGoToProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_keyWelcomeShown) == true) return;
+    if (!mounted) return;
+    setState(() => _selectedIndex = 4);
+    _pageController.jumpToPage(4);
   }
 
   Future<void> _maybeShowPasskeyPrompt() async {
@@ -288,14 +324,18 @@ class _MainScreenState extends State<MainScreen> {
       child: Scaffold(
         body: Stack(
           children: [
-            PageView(
+            PageView.builder(
               controller: _pageController,
               physics: const BouncingScrollPhysics(),
+              itemCount: _pageCount,
               onPageChanged: (index) {
                 if (!mounted) return;
-                setState(() => _selectedIndex = index);
+                setState(() {
+                  _selectedIndex = index;
+                  if (_programmaticTargetIndex == index) _programmaticTargetIndex = null;
+                });
               },
-              children: _buildScreens(),
+              itemBuilder: (context, index) => _buildPage(index),
             ),
             if (!_isOnline && _offlineWithNoCache && !_offlineBannerDismissed)
               Positioned(

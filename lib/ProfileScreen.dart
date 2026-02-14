@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'package:login_app/Screens/AuthSettingScreen.dart';
 import 'dart:convert';
@@ -12,6 +13,8 @@ import 'Screens/RelatedUsersScreen.dart';
 import 'Screens/ChangePasswordScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
 import 'Screens/AboutScreen.dart';
+import 'Screens/PremiumPaymentScreen.dart';
+import 'services/PremiumSubscriptionService.dart';
 import 'login.dart';
 import 'main.dart';
 import 'utils/display_helper.dart';
@@ -33,6 +36,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String birthYear = 'День рождения';
   bool isLoading = true;
   String? _loadError;
+  PremiumStatus? _premiumStatus;
+
+  Widget _buildSubscriptionCard() {
+    final s = _premiumStatus;
+    String subtitle = 'Оформить подписку';
+    if (s != null) {
+      if (s.hasActiveSubscription) {
+        final days = s.subscriptionDaysLeft;
+        if (days != null && s.subscriptionEndsAt != null) {
+          final d = s.subscriptionEndsAt!;
+          final prefix = s.subscriptionCancelled ? 'Отменена, действует до ' : 'Активна до ';
+          subtitle = '$prefix${d.day.toString().padLeft(2, '0')}.${d.month.toString().padLeft(2, '0')} (осталось $days ${_dayWord(days)})';
+        } else {
+          subtitle = s.subscriptionCancelled ? 'Подписка отменена' : 'Подписка оформлена';
+        }
+      } else if (s.isInTrial) {
+        subtitle = 'Пробный период: ${s.trialDaysLeft} ${_dayWord(s.trialDaysLeft)}';
+      }
+    }
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () async {
+          final paymentSuccess = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
+          );
+          if (mounted) {
+            final hadSubscription = _premiumStatus?.hasActiveSubscription ?? false;
+            final st = await PremiumSubscriptionService().getStatus();
+            setState(() => _premiumStatus = st);
+            if (paymentSuccess == true && st.hasActiveSubscription && !hadSubscription) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Подписка оформлена! Спасибо за поддержку.',
+                    style: GoogleFonts.unbounded(color: Colors.white),
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: AppColors.successMuted,
+                ),
+              );
+            }
+            if (paymentSuccess == true) {
+              Future.delayed(const Duration(seconds: 2), () async {
+                if (!mounted) return;
+                final st2 = await PremiumSubscriptionService().getStatus();
+                if (mounted) setState(() => _premiumStatus = st2);
+              });
+            }
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(Icons.workspace_premium, color: AppColors.mutedGold, size: 22),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Подписка',
+                      style: AppTypography.athleteName().copyWith(fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right_rounded, color: Colors.white.withOpacity(0.5), size: 22),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _dayWord(int n) {
+    if (n == 1) return 'день';
+    if (n >= 2 && n <= 4) return 'дня';
+    return 'дней';
+  }
 
   void _applyProfileData(Map<String, dynamic> data) {
     if (!mounted) return;
@@ -112,10 +214,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  static const String _keyWelcomeShown = 'profile_welcome_shown';
+
   @override
   void initState() {
     super.initState();
     fetchProfileData();
+    PremiumSubscriptionService().getStatus().then((s) {
+      if (mounted) setState(() => _premiumStatus = s);
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcomeModal());
+  }
+
+  Future<void> _maybeShowWelcomeModal() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getBool(_keyWelcomeShown) == true) return;
+    if (!mounted) return;
+    await _showWelcomeModal();
+    if (mounted) await prefs.setBool(_keyWelcomeShown, true);
+  }
+
+  Future<void> _showWelcomeModal() async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => Dialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.waving_hand_rounded, size: 56, color: AppColors.mutedGold),
+              const SizedBox(height: 20),
+              Text(
+                'Добро пожаловать!',
+                style: GoogleFonts.unbounded(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'В приложении вы можете:\n\n'
+                '• Записываться на соревнования и вносить результаты\n'
+                '• Отслеживать тренировки и прогресс в скалолазании\n'
+                '• Искать скалодромы и соревнования рядом\n'
+                '• Вести историю залов и трасс',
+                style: GoogleFonts.unbounded(
+                  fontSize: 14,
+                  color: Colors.white70,
+                  height: 1.5,
+                ),
+                textAlign: TextAlign.left,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: () => Navigator.of(ctx).pop(),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.mutedGold,
+                    foregroundColor: AppColors.anthracite,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Начать',
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -265,6 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  _buildSubscriptionCard(),
                   ProfileActionCard(
                     title: 'Авторизация',
                     icon: Icons.login,

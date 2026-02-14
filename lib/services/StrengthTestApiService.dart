@@ -314,6 +314,48 @@ class StrengthTestApiService {
     return null;
   }
 
+  /// DELETE /api/climbing-logs/exercise-completions?date=YYYY-MM-DD — массовая очистка за дату (для тестирования).
+  /// Бэкенд удаляет все exercise-completions пользователя за указанную дату.
+  /// Возвращает количество удалённых записей или null при ошибке.
+  Future<int?> clearExerciseCompletionsForDate(String date) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions')
+          .replace(queryParameters: {'date': date});
+      final response = await http.delete(uri, headers: _headers(token));
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        final body = response.body.trim();
+        if (body.isEmpty) return 0;
+        final json = jsonDecode(body) as Map<String, dynamic>?;
+        final deleted = json?['deleted'];
+        return deleted is int ? deleted : (deleted is num ? deleted.toInt() : 0);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// DELETE /api/climbing-logs/exercise-completions — полная очистка всех отметок пользователя (для тестирования).
+  /// Бэкенд удаляет все exercise-completions. Возвращает количество или null.
+  Future<int?> clearAllExerciseCompletions() async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final response = await http.delete(
+        Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions'),
+        headers: _headers(token),
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        final body = response.body.trim();
+        if (body.isEmpty) return 0;
+        final json = jsonDecode(body) as Map<String, dynamic>?;
+        final deleted = json?['deleted'];
+        return deleted is int ? deleted : (deleted is num ? deleted.toInt() : 0);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// DELETE /api/climbing-logs/exercise-completions/:id (если бэк поддерживает отмену)
   Future<bool> deleteExerciseCompletion(int id) async {
     final token = await _getToken();
@@ -439,6 +481,11 @@ class LeaderboardEntry {
   final double averageStrengthPct;
   final int rank;
   final double? weightKg;
+  final double? fingerLeftKg;
+  final double? fingerRightKg;
+  final double? pinchKg;
+  final double? pullAddedKg;
+  final double? pull1RmKg;
 
   LeaderboardEntry({
     required this.userId,
@@ -447,6 +494,11 @@ class LeaderboardEntry {
     required this.averageStrengthPct,
     required this.rank,
     this.weightKg,
+    this.fingerLeftKg,
+    this.fingerRightKg,
+    this.pinchKg,
+    this.pullAddedKg,
+    this.pull1RmKg,
   });
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json) => LeaderboardEntry(
@@ -456,7 +508,15 @@ class LeaderboardEntry {
         averageStrengthPct: (json['average_strength_pct'] as num?)?.toDouble() ?? 0,
         rank: json['rank'] as int? ?? 0,
         weightKg: (json['weight_kg'] as num?)?.toDouble(),
+        fingerLeftKg: (json['finger_left_kg'] as num?)?.toDouble(),
+        fingerRightKg: (json['finger_right_kg'] as num?)?.toDouble(),
+        pinchKg: (json['pinch_kg'] as num?)?.toDouble(),
+        pullAddedKg: (json['pull_added_kg'] as num?)?.toDouble(),
+        pull1RmKg: (json['pull_1rm_kg'] as num?)?.toDouble(),
       );
+
+  bool get hasDetailedMetrics =>
+      fingerLeftKg != null || fingerRightKg != null || pinchKg != null || pullAddedKg != null || pull1RmKg != null;
 }
 
 class GamificationData {
@@ -502,6 +562,8 @@ class CatalogExercise {
   final String category;
   final String level;
   final String? description;
+  final String? hint;
+  final String? dosage;
   final String? imageUrl;
   final List<String> muscleGroups;
   final int defaultSets;
@@ -516,6 +578,8 @@ class CatalogExercise {
     required this.category,
     required this.level,
     this.description,
+    this.hint,
+    this.dosage,
     this.imageUrl,
     this.muscleGroups = const [],
     this.defaultSets = 3,
@@ -531,6 +595,8 @@ class CatalogExercise {
         'category': category,
         'level': level,
         if (description != null) 'description': description,
+        if (hint != null) 'hint': hint,
+        if (dosage != null) 'dosage': dosage,
         if (imageUrl != null) 'image_url': imageUrl,
         if (muscleGroups.isNotEmpty) 'muscle_groups': muscleGroups,
         'default_sets': defaultSets,
@@ -552,6 +618,8 @@ class CatalogExercise {
       category: json['category'] as String? ?? 'sfp',
       level: json['level'] as String? ?? 'intermediate',
       description: json['description'] as String?,
+      hint: json['hint'] as String?,
+      dosage: json['dosage'] as String?,
       imageUrl: json['image_url'] as String?,
       muscleGroups: mg,
       defaultSets: json['default_sets'] as int? ?? 3,
@@ -562,6 +630,10 @@ class CatalogExercise {
   }
 
   String get displayName => nameRu ?? name;
+
+  /// Текст дозировки: dosage, если есть, иначе «defaultSets × defaultReps».
+  String get dosageDisplay =>
+      (dosage != null && dosage!.isNotEmpty) ? dosage! : '$defaultSets × $defaultReps';
 
   /// Создаёт CatalogExercise из WorkoutBlockExercise (для экрана выполнения).
   static CatalogExercise fromWorkoutBlock(WorkoutBlockExercise w) {
@@ -579,6 +651,9 @@ class CatalogExercise {
       nameRu: w.nameRu,
       category: w.category,
       level: 'intermediate',
+      description: w.comment,
+      hint: w.hint,
+      dosage: w.dosage,
       defaultSets: w.defaultSets,
       defaultReps: reps,
       defaultRest: '${w.defaultRestSeconds}s',

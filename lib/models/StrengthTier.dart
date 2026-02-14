@@ -15,45 +15,45 @@ extension StrengthTierExt on StrengthTier {
   String get titleRu {
     switch (this) {
       case StrengthTier.grasshopper:
-        return 'Кузнечик';
+        return 'Камешек';
       case StrengthTier.stoneGecko:
-        return 'Геккон';
+        return 'Скала';
       case StrengthTier.mountainLynx:
-        return 'Рысь';
+        return 'Рокки';
       case StrengthTier.gravityDefier:
-        return 'Атлант';
+        return 'Нео';
       case StrengthTier.apexPredator:
-        return 'Вершина';
+        return 'Терминатор';
     }
   }
 
   String get titleEn {
     switch (this) {
       case StrengthTier.grasshopper:
-        return 'Grasshopper';
+        return 'Pebble';
       case StrengthTier.stoneGecko:
-        return 'Stone Gecko';
+        return 'The Rock';
       case StrengthTier.mountainLynx:
-        return 'Mountain Lynx';
+        return 'Rocky';
       case StrengthTier.gravityDefier:
-        return 'Gravity Defier';
+        return 'Neo';
       case StrengthTier.apexPredator:
-        return 'Apex Predator';
+        return 'Terminator';
     }
   }
 
   IconData get icon {
     switch (this) {
       case StrengthTier.grasshopper:
-        return Icons.nature;
+        return Icons.grain;
       case StrengthTier.stoneGecko:
-        return Icons.pets;
+        return Icons.landscape;
       case StrengthTier.mountainLynx:
-        return Icons.filter_vintage;
+        return Icons.fitness_center;
       case StrengthTier.gravityDefier:
-        return Icons.sports_martial_arts;
+        return Icons.flight_takeoff;
       case StrengthTier.apexPredator:
-        return Icons.emoji_events;
+        return Icons.smart_toy;
     }
   }
 
