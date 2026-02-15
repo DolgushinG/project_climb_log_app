@@ -27,8 +27,21 @@ class PremiumPaymentScreen extends StatefulWidget {
   State<PremiumPaymentScreen> createState() => _PremiumPaymentScreenState();
 }
 
+/// Deep-link URL для результата оплаты (PayAnyWay редирект).
+const String _successUrl = 'climbing-events://premium/success';
+const String _failUrl = 'climbing-events://premium/fail';
+
+/// Регулярка для валидации email (чек для чека самозанятого).
+bool _isValidEmail(String s) {
+  if (s.isEmpty) return false;
+  final regex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+  return regex.hasMatch(s.trim());
+}
+
 class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
   final PremiumSubscriptionService _service = PremiumSubscriptionService();
+  final TextEditingController _emailController = TextEditingController();
+  final FocusNode _emailFocusNode = FocusNode();
   bool _isLoading = false;
   String? _error;
   PremiumStatus? _premiumStatus;
@@ -38,6 +51,13 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
   void initState() {
     super.initState();
     _loadStatus();
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _emailFocusNode.dispose();
+    super.dispose();
   }
 
   Future<void> _loadStatus() async {
@@ -62,6 +82,17 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
   }
 
   Future<void> _onPayPressed() async {
+    final email = _emailController.text.trim();
+    if (email.isEmpty) {
+      setState(() => _error = 'Введите email для чека');
+      _emailFocusNode.requestFocus();
+      return;
+    }
+    if (!_isValidEmail(email)) {
+      setState(() => _error = 'Введите корректный email');
+      _emailFocusNode.requestFocus();
+      return;
+    }
     setState(() {
       _isLoading = true;
       _error = null;
@@ -78,7 +109,13 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           return;
         }
         final amount = subscriptionPriceRub.toDouble();
-        final orderId = await _service.registerOrder(token, amount: amount);
+        final orderId = await _service.registerOrder(
+          token,
+          amount: amount,
+          email: email,
+          successUrl: _successUrl,
+          failUrl: _failUrl,
+        );
         if (orderId == null) {
           setState(() {
             _error = 'Не удалось создать заказ. Проверьте интернет и попробуйте позже.';
@@ -102,7 +139,13 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
         });
         return;
       }
-      final paymentUrl = await _service.createPayment(token);
+      final paymentUrl = await _service.createPayment(
+        token,
+        email: email,
+        amount: subscriptionPriceRub.toDouble(),
+        successUrl: _successUrl,
+        failUrl: _failUrl,
+      );
       if (!mounted) return;
       if (paymentUrl != null && paymentUrl.isNotEmpty) {
         await _openUrl(paymentUrl);
@@ -173,7 +216,9 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                         _buildPriceCard(),
                         const SizedBox(height: 24),
                         _buildOffertaLink(),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 24),
+                        _buildEmailField(),
+                        const SizedBox(height: 24),
                         if (_error != null) ...[
                           Container(
                             padding: const EdgeInsets.all(12),
@@ -581,6 +626,61 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildEmailField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Email для чека',
+          style: GoogleFonts.unbounded(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextField(
+          controller: _emailController,
+          focusNode: _emailFocusNode,
+          keyboardType: TextInputType.emailAddress,
+          autocorrect: false,
+          style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+          decoration: InputDecoration(
+            hintText: 'user@example.com',
+            hintStyle: GoogleFonts.unbounded(color: Colors.white38),
+            filled: true,
+            fillColor: AppColors.cardDark,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.graphite),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.graphite),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: AppColors.mutedGold, width: 1.5),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Colors.redAccent),
+            ),
+            prefixIcon: Icon(Icons.email_outlined, color: AppColors.mutedGold, size: 22),
+          ),
+          onChanged: (_) {
+            if (_error != null) setState(() => _error = null);
+          },
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'На этот адрес придёт чек об оплате',
+          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+        ),
+      ],
     );
   }
 

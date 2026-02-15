@@ -5,7 +5,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
 
-/// Экран выбора плана: аудитория, шаблон, длительность, дата старта.
+/// Экран выбора плана: уровень, шаблон, длительность, дата старта.
 class PlanSelectionScreen extends StatefulWidget {
   final void Function(ActivePlan plan)? onPlanCreated;
 
@@ -197,7 +197,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Аудитория', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        Text('Уровень', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,

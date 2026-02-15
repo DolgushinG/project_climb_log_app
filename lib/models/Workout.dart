@@ -189,6 +189,90 @@ class WorkoutBlockExercise {
   String get restDisplay => '${defaultRestSeconds}с';
 }
 
+/// Стимулы сессии из workout/generate.
+class SessionStimulus {
+  final double? fingerLoad;
+  final double? pullStrengthLoad;
+  final double? powerLoad;
+  final double? enduranceLoad;
+  final double? coreLoad;
+  final double? cnsStress;
+  final String? injuryRiskLevel;
+  final double? sessionLoadScore; // 0–5
+
+  SessionStimulus({
+    this.fingerLoad,
+    this.pullStrengthLoad,
+    this.powerLoad,
+    this.enduranceLoad,
+    this.coreLoad,
+    this.cnsStress,
+    this.injuryRiskLevel,
+    this.sessionLoadScore,
+  });
+
+  factory SessionStimulus.fromJson(Map<String, dynamic> json) => SessionStimulus(
+        fingerLoad: (json['finger_load'] as num?)?.toDouble(),
+        pullStrengthLoad: (json['pull_strength_load'] as num?)?.toDouble(),
+        powerLoad: (json['power_load'] as num?)?.toDouble(),
+        enduranceLoad: (json['endurance_load'] as num?)?.toDouble(),
+        coreLoad: (json['core_load'] as num?)?.toDouble(),
+        cnsStress: (json['cns_stress'] as num?)?.toDouble(),
+        injuryRiskLevel: json['injury_risk_level'] as String?,
+        sessionLoadScore: (json['session_load_score'] as num?)?.toDouble(),
+      );
+}
+
+/// Распределение нагрузки за неделю (%).
+class WeeklyLoadDistribution {
+  final int? finger;
+  final int? endurance;
+  final int? strength;
+  final int? mobility;
+
+  WeeklyLoadDistribution({
+    this.finger,
+    this.endurance,
+    this.strength,
+    this.mobility,
+  });
+
+  factory WeeklyLoadDistribution.fromJson(Map<String, dynamic> json) => WeeklyLoadDistribution(
+        finger: (json['finger'] as num?)?.toInt(),
+        endurance: (json['endurance'] as num?)?.toInt(),
+        strength: (json['strength'] as num?)?.toInt(),
+        mobility: (json['mobility'] as num?)?.toInt(),
+      );
+
+  bool get hasAny =>
+      (finger ?? 0) > 0 ||
+      (endurance ?? 0) > 0 ||
+      (strength ?? 0) > 0 ||
+      (mobility ?? 0) > 0;
+}
+
+/// Состояние атлета в coach context.
+class AthleteState {
+  final double? formScore;
+  final double? fatigueScore;
+  final double? injuryRisk;
+  final String? progressTrend;
+
+  AthleteState({
+    this.formScore,
+    this.fatigueScore,
+    this.injuryRisk,
+    this.progressTrend,
+  });
+
+  factory AthleteState.fromJson(Map<String, dynamic> json) => AthleteState(
+        formScore: (json['form_score'] as num?)?.toDouble(),
+        fatigueScore: (json['fatigue_score'] as num?)?.toDouble(),
+        injuryRisk: (json['injury_risk'] as num?)?.toDouble(),
+        progressTrend: json['progress_trend'] as String?,
+      );
+}
+
 /// Ответ POST /workout/generate.
 class WorkoutGenerateResponse {
   final Map<String, WorkoutBlockExercise?> blocks;
@@ -199,6 +283,9 @@ class WorkoutGenerateResponse {
   final String? progressionHint;
   final Map<String, int>? loadDistribution;
   final String? coachComment;
+  final SessionStimulus? sessionStimulus;
+  final WeeklyLoadDistribution? weeklyLoadDistribution;
+  final AthleteState? athleteState;
 
   WorkoutGenerateResponse({
     required this.blocks,
@@ -209,6 +296,9 @@ class WorkoutGenerateResponse {
     this.progressionHint,
     this.loadDistribution,
     this.coachComment,
+    this.sessionStimulus,
+    this.weeklyLoadDistribution,
+    this.athleteState,
   });
 
   factory WorkoutGenerateResponse.fromJson(Map<String, dynamic> json) {
@@ -228,6 +318,15 @@ class WorkoutGenerateResponse {
     if (ld != null) {
       loadDist = ld.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
     }
+    SessionStimulus? sessionStimulus;
+    final ss = json['session_stimulus'] as Map<String, dynamic>?;
+    if (ss != null) sessionStimulus = SessionStimulus.fromJson(ss);
+    WeeklyLoadDistribution? weeklyLoadDist;
+    final wld = json['weekly_load_distribution'] as Map<String, dynamic>?;
+    if (wld != null) weeklyLoadDist = WeeklyLoadDistribution.fromJson(wld);
+    AthleteState? athleteState;
+    final ast = json['athlete_state'] as Map<String, dynamic>?;
+    if (ast != null) athleteState = AthleteState.fromJson(ast);
     return WorkoutGenerateResponse(
       blocks: blocks,
       warnings: warningsRaw.map((e) => e.toString()).toList(),
@@ -237,6 +336,9 @@ class WorkoutGenerateResponse {
       progressionHint: json['progression_hint'] as String?,
       loadDistribution: loadDist,
       coachComment: json['coach_comment'] as String?,
+      sessionStimulus: sessionStimulus,
+      weeklyLoadDistribution: weeklyLoadDist,
+      athleteState: athleteState,
     );
   }
 

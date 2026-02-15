@@ -172,7 +172,8 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     if (widget.isGuest) {
       return const ClimbingLogLandingScreen();
     }
-    final showPaywall = _premiumStatus != null && !_premiumStatus!.hasAccess;
+    final networkUnavailable = _premiumStatus?.networkUnavailable == true;
+    final showPaywall = _premiumStatus != null && !_premiumStatus!.hasAccess && !networkUnavailable;
 
     return Scaffold(
         backgroundColor: AppColors.anthracite,
@@ -214,9 +215,11 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                   ),
                 ),
         ),
-        body: showPaywall
-            ? ClimbingLogPremiumStub(onPurchased: _onReturnFromPremiumPayment)
-            : TabBarView(
+        body: networkUnavailable
+            ? _buildNetworkUnavailableState()
+            : showPaywall
+                ? ClimbingLogPremiumStub(onPurchased: _onReturnFromPremiumPayment)
+                : TabBarView(
                 controller: _tabController,
                 children: [
                   PlanOverviewScreen(
@@ -239,6 +242,49 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                   const ClimbingLogTestingScreen(),
                 ],
               ),
+    );
+  }
+
+  Widget _buildNetworkUnavailableState() {
+    return SafeArea(
+      child: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.wifi_off_rounded, size: 64, color: Colors.white38),
+              const SizedBox(height: 20),
+              Text(
+                'Нет подключения к интернету',
+                style: GoogleFonts.unbounded(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Проверьте соединение и нажмите «Повторить»',
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              FilledButton.icon(
+                onPressed: _loadPremiumStatus,
+                icon: const Icon(Icons.refresh, size: 20),
+                label: const Text('Повторить'),
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.mutedGold,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 

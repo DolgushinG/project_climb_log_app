@@ -76,8 +76,12 @@ class WorkoutResultScreen extends StatelessWidget {
 
   bool get _hasCoachContent =>
       workout.coachComment != null ||
+      workout.whyThisSession != null ||
       (workout.loadDistribution != null && workout.loadDistribution!.isNotEmpty) ||
-      workout.progressionHint != null;
+      (workout.weeklyLoadDistribution != null && workout.weeklyLoadDistribution!.hasAny) ||
+      workout.progressionHint != null ||
+      workout.sessionStimulus != null ||
+      workout.athleteState != null;
 
   Widget _buildCoachSection() {
     return Column(
@@ -87,8 +91,24 @@ class WorkoutResultScreen extends StatelessWidget {
           _buildCoachCommentCard(),
           const SizedBox(height: 12),
         ],
+        if (workout.whyThisSession != null) ...[
+          _buildWhyThisSessionCard(),
+          const SizedBox(height: 12),
+        ],
         if (workout.loadDistribution != null && workout.loadDistribution!.isNotEmpty) ...[
           _buildLoadDistributionCard(),
+          const SizedBox(height: 12),
+        ],
+        if (workout.weeklyLoadDistribution != null && workout.weeklyLoadDistribution!.hasAny) ...[
+          _buildWeeklyLoadDistributionCard(),
+          const SizedBox(height: 12),
+        ],
+        if (workout.sessionStimulus != null) ...[
+          _buildSessionStimulusCard(),
+          const SizedBox(height: 12),
+        ],
+        if (workout.athleteState != null) ...[
+          _buildAthleteStateCard(),
           const SizedBox(height: 12),
         ],
         if (workout.progressionHint != null) _buildProgressionHintCard(),
@@ -219,6 +239,225 @@ class WorkoutResultScreen extends StatelessWidget {
             text,
             style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhyThisSessionCard() {
+    final text = workout.whyThisSession!;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.linkMuted.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.linkMuted.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Почему эта тренировка',
+                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyLoadDistributionCard() {
+    final wld = workout.weeklyLoadDistribution!;
+    final labels = {'finger': 'Пальцы', 'endurance': 'Выносливость', 'strength': 'Сила', 'mobility': 'Мобильность'};
+    final entries = <MapEntry<String, int>>[];
+    if ((wld.finger ?? 0) > 0) entries.add(MapEntry('finger', wld.finger!));
+    if ((wld.endurance ?? 0) > 0) entries.add(MapEntry('endurance', wld.endurance!));
+    if ((wld.strength ?? 0) > 0) entries.add(MapEntry('strength', wld.strength!));
+    if ((wld.mobility ?? 0) > 0) entries.add(MapEntry('mobility', wld.mobility!));
+    if (entries.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Распределение нагрузки за неделю',
+            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          const SizedBox(height: 10),
+          ...entries.map((e) {
+            final label = labels[e.key] ?? e.key;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                    softWrap: true,
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: LinearProgressIndicator(
+                          value: (e.value / 100).clamp(0.0, 1.0),
+                          backgroundColor: AppColors.graphite,
+                          valueColor: AlwaysStoppedAnimation<Color>(AppColors.mutedGold),
+                          minHeight: 5,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '${e.value}%',
+                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionStimulusCard() {
+    final ss = workout.sessionStimulus!;
+    final rows = <Widget>[];
+    final items = [
+      ('finger_load', ss.fingerLoad, 'Пальцы'),
+      ('pull_strength_load', ss.pullStrengthLoad, 'Тяга'),
+      ('power_load', ss.powerLoad, 'Мощность'),
+      ('endurance_load', ss.enduranceLoad, 'Выносливость'),
+      ('core_load', ss.coreLoad, 'Кор'),
+      ('cns_stress', ss.cnsStress, 'ЦНС'),
+    ];
+    for (final t in items) {
+      if (t.$2 != null && t.$2! > 0) {
+        final v = t.$2!;
+        final display = v <= 1 ? '${(v * 100).round()}%' : v.toStringAsFixed(1);
+        rows.add(Padding(
+          padding: const EdgeInsets.only(bottom: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(t.$3, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70)),
+              Text(
+                display,
+                style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold),
+              ),
+            ],
+          ),
+        ));
+      }
+    }
+    if (ss.sessionLoadScore != null) {
+      rows.add(Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text('Интенсивность', style: GoogleFonts.unbounded(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+            Text(
+              '${ss.sessionLoadScore!.toStringAsFixed(1)}/5',
+              style: GoogleFonts.unbounded(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            ),
+          ],
+        ),
+      ));
+    }
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Профиль сессии',
+            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          const SizedBox(height: 8),
+          ...rows,
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAthleteStateCard() {
+    final ast = workout.athleteState!;
+    final rows = <Widget>[];
+    if (ast.formScore != null) {
+      rows.add(_athleteStateRow('Форма', '${(ast.formScore! * 100).round()}%'));
+    }
+    if (ast.fatigueScore != null) {
+      rows.add(_athleteStateRow('Усталость', '${(ast.fatigueScore! * 100).round()}%'));
+    }
+    if (ast.injuryRisk != null && ast.injuryRisk! > 0) {
+      rows.add(_athleteStateRow('Риск травм', '${(ast.injuryRisk! * 100).round()}%'));
+    }
+    if (ast.progressTrend != null && ast.progressTrend!.isNotEmpty) {
+      rows.add(_athleteStateRow('Прогресс', ast.progressTrend!));
+    }
+    if (rows.isEmpty) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.person, color: AppColors.mutedGold, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Состояние атлета',
+                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ...rows,
+        ],
+      ),
+    );
+  }
+
+  Widget _athleteStateRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70)),
+          Text(value, style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold)),
         ],
       ),
     );

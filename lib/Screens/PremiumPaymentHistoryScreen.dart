@@ -106,8 +106,10 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
                         : ListView.builder(
                             physics: const AlwaysScrollableScrollPhysics(),
                             padding: const EdgeInsets.all(20),
-                            itemCount: _payments.length,
-                            itemBuilder: (context, i) => _buildPaymentCard(_payments[i]),
+                            itemCount: _payments.length + 1,
+                            itemBuilder: (context, i) => i < _payments.length
+                                ? _buildPaymentCard(_payments[i])
+                                : _buildPolicyNote(),
                           ),
               ),
       ),
@@ -169,9 +171,21 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
     );
   }
 
+  Widget _buildPolicyNote() {
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Text(
+        'Возврат после оплаты не предусмотрен.',
+        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white38, height: 1.4),
+        textAlign: TextAlign.center,
+      ),
+    );
+  }
+
   Widget _buildPaymentCard(PremiumPayment p) {
     final date = p.paidAt ?? p.createdAt;
     final dateStr = DateFormat('d MMM yyyy', 'ru').format(date);
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Container(
@@ -181,55 +195,60 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: AppColors.graphite),
         ),
-        child: Row(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(
-                color: _statusColor(p.status).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                p.status == 'paid' ? Icons.check_circle : Icons.payment,
-                color: _statusColor(p.status),
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '${p.amount.toInt()} ₽',
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: _statusColor(p.status).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    p.status == 'paid' ? Icons.check_circle : Icons.payment,
+                    color: _statusColor(p.status),
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${p.amount.toInt()} ₽',
+                        style: GoogleFonts.unbounded(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        dateStr,
+                        style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white60),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _statusColor(p.status).withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    _statusLabel(p.status),
                     style: GoogleFonts.unbounded(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: _statusColor(p.status),
                     ),
                   ),
-                  Text(
-                    dateStr,
-                    style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white60),
-                  ),
-                ],
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _statusColor(p.status).withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                _statusLabel(p.status),
-                style: GoogleFonts.unbounded(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: _statusColor(p.status),
                 ),
-              ),
+              ],
             ),
           ],
         ),

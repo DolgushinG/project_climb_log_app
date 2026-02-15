@@ -90,6 +90,10 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       !_day!.isRest &&
       (_day!.expectsClimbing || widget.plan.includeClimbingInDays);
 
+  bool get _hasCoachContent =>
+      (_day?.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty) ||
+      (_day?.whyThisSession != null && _day!.whyThisSession!.isNotEmpty);
+
   Future<void> _toggleComplete() async {
     if (_day == null) return;
     final sessionType = _day!.sessionType;
@@ -210,7 +214,15 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     _buildNoDataState()
                   else ...[
                     _buildSessionTypeHeader(),
+                    if (_day!.sessionIntensityModifier != null && _day!.sessionIntensityModifier! < 1.0) ...[
+                      const SizedBox(height: 12),
+                      _buildIntensityModifierHint(),
+                    ],
                     const SizedBox(height: 20),
+                    if (_hasCoachContent) ...[
+                      _buildCoachContentSection(),
+                      const SizedBox(height: 20),
+                    ],
                     if (_day!.isRest)
                       _buildRestDay()
                     else ...[
@@ -265,6 +277,118 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               backgroundColor: AppColors.mutedGold,
               foregroundColor: Colors.white,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildIntensityModifierHint() {
+    final mod = _day!.sessionIntensityModifier!;
+    final pct = (mod * 100).round();
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.mutedGold.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.schedule, color: AppColors.mutedGold, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Объём снижен до ~$pct% из‑за нехватки времени или самочувствия',
+              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCoachContentSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (_day!.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty)
+          _buildCoachCommentCard(_day!.coachRecommendation!),
+        if (_day!.coachRecommendation != null &&
+            _day!.coachRecommendation!.isNotEmpty &&
+            _day!.whyThisSession != null &&
+            _day!.whyThisSession!.isNotEmpty)
+          const SizedBox(height: 12),
+        if (_day!.whyThisSession != null && _day!.whyThisSession!.isNotEmpty)
+          _buildWhyThisSessionCard(_day!.whyThisSession!),
+      ],
+    );
+  }
+
+  Widget _buildCoachCommentCard(String text) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.mutedGold.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sports_martial_arts, color: AppColors.mutedGold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'От тренера',
+                style: GoogleFonts.unbounded(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedGold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWhyThisSessionCard(String text) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.linkMuted.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.linkMuted.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Почему эта тренировка',
+                style: GoogleFonts.unbounded(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.linkMuted,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
         ],
       ),

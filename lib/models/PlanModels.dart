@@ -132,6 +132,10 @@ class PlanDayResponse {
   final String? sessionFocus;
   /// Ожидается лазание в этот день (от бэка или из плана). Показывать блок «1. Лазание» перед ОФП/СФП.
   final bool expectsClimbing;
+  /// Обоснование нагрузки — для экрана «Почему эта тренировка».
+  final String? whyThisSession;
+  /// 0.6 / 0.8 или null (при 1.0) — можно показывать подсказку «Объём снижен».
+  final double? sessionIntensityModifier;
 
   PlanDayResponse({
     required this.date,
@@ -148,6 +152,8 @@ class PlanDayResponse {
     this.loadLevel,
     this.sessionFocus,
     this.expectsClimbing = false,
+    this.whyThisSession,
+    this.sessionIntensityModifier,
   });
 
   bool get isRest => sessionType == 'rest';
@@ -172,6 +178,8 @@ class PlanDayResponse {
       loadLevel: json['load_level'] as String?,
       sessionFocus: json['session_focus'] as String?,
       expectsClimbing: json['expects_climbing'] as bool? ?? false,
+      whyThisSession: json['why_this_session'] as String?,
+      sessionIntensityModifier: (json['session_intensity_modifier'] as num?)?.toDouble(),
     );
   }
 }

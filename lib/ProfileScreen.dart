@@ -42,7 +42,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final s = _premiumStatus;
     String subtitle = 'Оформить подписку';
     if (s != null) {
-      if (s.hasActiveSubscription) {
+      if (s.networkUnavailable) {
+        subtitle = 'Нет подключения. Проверьте интернет';
+      } else if (s.hasActiveSubscription) {
         final days = s.subscriptionDaysLeft;
         if (days != null && s.subscriptionEndsAt != null) {
           final d = s.subscriptionEndsAt!;
@@ -59,6 +61,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: InkWell(
         onTap: () async {
+          if (_premiumStatus?.networkUnavailable == true) {
+            _showNetworkUnavailableDialog();
+            return;
+          }
           final paymentSuccess = await Navigator.push<bool>(
             context,
             MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
@@ -134,6 +140,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (n == 1) return 'день';
     if (n >= 2 && n <= 4) return 'дня';
     return 'дней';
+  }
+
+  void _showNetworkUnavailableDialog() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.wifi_off_rounded, color: Colors.white54, size: 28),
+            const SizedBox(width: 12),
+            Text(
+              'Нет подключения',
+              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+          ],
+        ),
+        content: Text(
+          'Проверьте подключение к интернету и нажмите «Повторить», чтобы обновить статус подписки.',
+          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Закрыть', style: GoogleFonts.unbounded(color: Colors.white54)),
+          ),
+          FilledButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              final st = await PremiumSubscriptionService().getStatus();
+              if (mounted) setState(() => _premiumStatus = st);
+            },
+            style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+            child: Text('Повторить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
   }
 
   void _applyProfileData(Map<String, dynamic> data) {
