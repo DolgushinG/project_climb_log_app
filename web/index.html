@@ -1,41 +1,153 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="Climbing Events — регистрация и результаты соревнований по скалолазанию.">
+  <meta name="theme-color" content="#0A0A0C">
 
   <!-- iOS meta tags & icons -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="login_app">
+  <meta name="apple-mobile-web-app-title" content="Climbing Events">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
-  <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>login_app</title>
+  <title>Climbing Events</title>
   <link rel="manifest" href="manifest.json">
 
   <!-- Passkeys Web SDK (Face ID / Touch ID через WebAuthn) — обязателен для web -->
   <script src="https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js" defer></script>
+
+  <!-- Шрифт в стиле приложения -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    /* Цвета как в приложении */
+    :root {
+      --anthracite: #0A0A0C;
+      --surface-dark: #121214;
+      --muted-gold: #B59D7E;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    #loading {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+      color: white;
+      font-family: 'Unbounded', system-ui, sans-serif;
+      z-index: 9999;
+      transition: opacity 0.4s ease;
+    }
+
+    #loading.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #loading .logo {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: 1.2px;
+      margin-bottom: 8px;
+    }
+
+    #loading .tagline {
+      font-size: 12px;
+      font-weight: 400;
+      letter-spacing: 0.3px;
+      color: rgba(255, 255, 255, 0.6);
+      text-align: center;
+      max-width: 260px;
+      line-height: 1.4;
+      margin-bottom: 24px;
+    }
+
+    #loading .loader {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        rgba(181, 157, 126, 0.8) 0%,
+        #2A2A2E 90deg,
+        rgba(181, 157, 126, 0.6) 180deg,
+        rgba(181, 157, 126, 0.8) 360deg
+      );
+      animation: loader-spin 1.2s linear infinite;
+      box-shadow: 0 0 14px rgba(181, 157, 126, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #loading .loader::before {
+      content: '';
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--anthracite);
+      flex-shrink: 0;
+    }
+
+    @keyframes loader-spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #loading .progress-bar {
+      width: 200px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      margin-top: 28px;
+      overflow: hidden;
+    }
+
+    #loading .progress-bar-fill {
+      height: 100%;
+      width: 40%;
+      background: linear-gradient(90deg, var(--muted-gold), rgba(181, 157, 126, 0.8));
+      border-radius: 2px;
+      animation: progress-slide 1.5s ease-in-out infinite;
+    }
+
+    @keyframes progress-slide {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(350%); }
+    }
+  </style>
 </head>
 <body>
+  <div id="loading">
+    <span class="logo">Climbing Events</span>
+    <span class="tagline">Регистрация и результаты соревнований по скалолазанию в одном месте</span>
+    <div class="loader"></div>
+    <div class="progress-bar">
+      <div class="progress-bar-fill"></div>
+    </div>
+  </div>
+
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    function hideLoading() {
+      var loading = document.getElementById('loading');
+      if (loading) {
+        loading.classList.add('hidden');
+        setTimeout(function() { loading.remove(); }, 400);
+      }
+    }
+    window.addEventListener('flutter-first-frame', hideLoading);
+    setTimeout(hideLoading, 15000); /* fallback на случай ошибки */
+  </script>
 </body>
 </html>
