@@ -53,7 +53,8 @@ class ExerciseCompletionScreen extends StatefulWidget {
   State<ExerciseCompletionScreen> createState() => _ExerciseCompletionScreenState();
 }
 
-class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
+class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
+    with SingleTickerProviderStateMixin {
   static const String _keyCompleted = 'exercise_completions';
   static const String _keyCache = 'exercise_completion_screen_cache';
   static const String _keySectionExpanded = 'exercise_completion_section_expanded';
@@ -83,6 +84,9 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   int _restTotal = 180;
   Timer? _restTimer;
 
+  bool _showSwipeHint = false;
+  AnimationController? _swipeHintController;
+
   @override
   void initState() {
     super.initState();
@@ -93,6 +97,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   @override
   void dispose() {
     _restTimer?.cancel();
+    _swipeHintController?.dispose();
     super.dispose();
   }
 
@@ -444,28 +449,24 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
       prefs.setBool(_keySwipeHintShown, true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                Icon(Icons.swipe_left, color: AppColors.mutedGold, size: 24),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'Смайпните влево, чтобы пропустить упражнение',
-                    style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: AppColors.cardDark,
-            behavior: SnackBarBehavior.floating,
-            margin: const EdgeInsets.all(16),
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        _swipeHintController?.dispose();
+        _swipeHintController = AnimationController(
+          vsync: this,
+          duration: const Duration(milliseconds: 1500),
+        )..repeat(reverse: true);
+        setState(() => _showSwipeHint = true);
+        Future.delayed(const Duration(seconds: 6), () {
+          if (mounted && _showSwipeHint) _dismissSwipeHint();
+        });
       });
     } catch (_) {}
+  }
+
+  void _dismissSwipeHint() {
+    if (!_showSwipeHint) return;
+    _swipeHintController?.dispose();
+    _swipeHintController = null;
+    setState(() => _showSwipeHint = false);
   }
 
   Future<void> _toggleCompleted(TrainingDrill d, bool value) async {
@@ -717,7 +718,13 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                           const SizedBox(height: 20),
                         ],
                         _buildHeader(),
+                        if (_showSwipeHint) ...[
+                          const SizedBox(height: 16),
+                          _buildSwipeHintBanner(),
                           const SizedBox(height: 20),
+                        ] else ...[
+                          const SizedBox(height: 20),
+                        ],
                           if (_plan != null) ...[
                             _buildTip(),
                             const SizedBox(height: 20),
@@ -1050,6 +1057,67 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
           if (_resolvedCount == total && total > 0)
             Icon(Icons.check_circle, color: AppColors.successMuted, size: 28),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSwipeHintBanner() {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, 12 * (1 - value)),
+            child: child,
+          ),
+        );
+      },
+      child: GestureDetector(
+        onTap: _dismissSwipeHint,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.mutedGold.withOpacity(0.5)),
+          ),
+          child: Row(
+            children: [
+              if (_swipeHintController != null)
+                AnimatedBuilder(
+                  animation: _swipeHintController!,
+                  builder: (context, _) {
+                    final dx = -32.0 * _swipeHintController!.value;
+                    return Transform.translate(
+                      offset: Offset(dx, 0),
+                      child: Icon(
+                        Icons.swipe_left,
+                        color: AppColors.mutedGold,
+                        size: 32,
+                      ),
+                    );
+                  },
+                )
+              else
+                Icon(Icons.swipe_left, color: AppColors.mutedGold, size: 32),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Свайпните влево, чтобы пропустить упражнение',
+                  style: GoogleFonts.unbounded(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Icon(Icons.close, size: 18, color: Colors.white54),
+            ],
+          ),
+        ),
       ),
     );
   }
