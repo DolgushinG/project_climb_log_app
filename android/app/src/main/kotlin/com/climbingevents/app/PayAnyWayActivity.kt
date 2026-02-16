@@ -14,23 +14,24 @@ class PayAnyWayActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        setContentView(R.layout.activity_payanyway)
+
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
                 setResult(RESULT_CANCELED)
                 finish()
             }
         })
-        setContentView(R.layout.activity_payanyway)
+
+        val webView = findViewById<WebView>(R.id.webView)
 
         val orderId = intent.getStringExtra(EXTRA_ORDER_ID) ?: MonetaSdk.getInstance().getOrderId()
         val amount = intent.getDoubleExtra(EXTRA_AMOUNT, 199.0)
         val currency = intent.getStringExtra(EXTRA_CURRENCY) ?: "RUB"
-        val paymentSystem = intent.getStringExtra(EXTRA_PAYMENT_SYSTEM) ?: "plastic"
+        val paymentSystem = intent.getStringExtra(EXTRA_PAYMENT_SYSTEM) ?: "all"
 
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         title = "Оплата Premium"
-
-        val webView = findViewById<WebView>(R.id.webView)
         MonetaSdk.getInstance().showPaymentForm(
             orderId,
             amount,

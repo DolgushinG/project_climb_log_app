@@ -80,6 +80,8 @@ class MyApp extends StatelessWidget {
         appBarTheme: AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
+          scrolledUnderElevation: 0,
+          surfaceTintColor: Colors.transparent,
           centerTitle: true,
           titleTextStyle: baseTheme.textTheme.titleLarge?.copyWith(
             fontWeight: FontWeight.w600,

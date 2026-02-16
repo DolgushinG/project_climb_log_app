@@ -454,45 +454,48 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
 
     return SizedBox(
       height: 220,
-      child: Column(
-        children: [
-          SizedBox(
-            height: 160,
-            child: PieChart(
-              PieChartData(
-                sections: sections,
-                sectionsSpace: 2,
-                centerSpaceRadius: 32,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SizedBox(
+              height: 160,
+              child: PieChart(
+                PieChartData(
+                  sections: sections,
+                  sectionsSpace: 2,
+                  centerSpaceRadius: 32,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 12,
-            runSpacing: 6,
-            alignment: WrapAlignment.center,
-            children: breakdown.map((e) {
-              return Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 10,
-                    height: 10,
-                    decoration: BoxDecoration(
-                      color: gradientForGrade(e.key).first,
-                      borderRadius: BorderRadius.circular(2),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 6,
+              alignment: WrapAlignment.center,
+              children: breakdown.map((e) {
+                return Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: gradientForGrade(e.key).first,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    '${e.key}: ${e.value}',
-                    style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
-                  ),
-                ],
-              );
-            }).toList(),
-          ),
-        ],
+                    const SizedBox(width: 6),
+                    Text(
+                      '${e.key}: ${e.value}',
+                      style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
+                    ),
+                  ],
+                );
+              }).toList(),
+            ),
+          ],
+        ),
       ),
     );
   }

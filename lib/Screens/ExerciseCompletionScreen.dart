@@ -57,11 +57,14 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   static const String _keyCompleted = 'exercise_completions';
   static const String _keyCache = 'exercise_completion_screen_cache';
   static const String _keySectionExpanded = 'exercise_completion_section_expanded';
+  static const String _keySwipeHintShown = 'exercise_skip_swipe_hint_shown';
   TrainingPlan? _plan;
   List<CatalogExercise> _ofpExercises = [];
   List<CatalogExercise> _stretchingExercises = [];
   Map<String, bool> _completed = {};
   Map<String, int> _completionIds = {};
+  Map<String, bool> _skipped = {};
+  Map<String, int> _skipIds = {};
   Map<String, List<bool>> _approachDone = {};
   final Map<String, String> _workoutBlockKeys = {};
   final Map<String, bool> _workoutSectionExpanded = {};
@@ -250,6 +253,16 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
       if (idsRaw != null) {
         completionIds = idsRaw.map((k, v) => MapEntry(k, (v as num).toInt()));
       }
+      Map<String, bool> skipped = {};
+      final skippedRaw = data['skipped'] as Map<String, dynamic>?;
+      if (skippedRaw != null) {
+        skipped = skippedRaw.map((k, v) => MapEntry(k, v == true));
+      }
+      Map<String, int> skipIds = {};
+      final skipIdsRaw = data['skip_ids'] as Map<String, dynamic>?;
+      if (skipIdsRaw != null) {
+        skipIds = skipIdsRaw.map((k, v) => MapEntry(k, (v as num).toInt()));
+      }
       if (mounted && (plan != null || ofp.isNotEmpty || stretching.isNotEmpty)) {
         setState(() {
           _plan = plan;
@@ -257,6 +270,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
           _stretchingExercises = stretching;
           _completed = completed;
           _completionIds = completionIds;
+          _skipped = skipped;
+          _skipIds = skipIds;
           _userLevel = data['user_level'] as String? ?? _userLevel;
           _loading = false;
         });
@@ -270,6 +285,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
     List<CatalogExercise> stretching,
     Map<String, bool> completed,
     Map<String, int> completionIds,
+    Map<String, bool> skipped,
+    Map<String, int> skipIds,
     String userLevel,
   ) async {
     try {
@@ -279,6 +296,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         'stretching_exercises': stretching.map((e) => e.toJson()).toList(),
         'completed': completed.map((k, v) => MapEntry(k, v)),
         'completion_ids': completionIds.map((k, v) => MapEntry(k, v)),
+        'skipped': skipped.map((k, v) => MapEntry(k, v)),
+        'skip_ids': skipIds.map((k, v) => MapEntry(k, v)),
         'user_level': userLevel,
       };
       if (plan != null) data['plan'] = plan.toJson();
@@ -300,11 +319,18 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
   Future<void> _loadWorkoutMode() async {
     final api = StrengthTestApiService();
     final completions = await api.getExerciseCompletions(date: _dateKey);
+    final skips = await api.getExerciseSkips(date: _dateKey);
     Map<String, bool> completed = {};
     Map<String, int> completionIds = {};
+    Map<String, bool> skipped = {};
+    Map<String, int> skipIds = {};
     for (final c in completions) {
       completed[c.exerciseId] = true;
       completionIds[c.exerciseId] = c.id;
+    }
+    for (final s in skips) {
+      skipped[s.exerciseId] = true;
+      skipIds[s.exerciseId] = s.id;
     }
     final entries = widget.workoutExerciseEntries!;
     final ofpList = entries.map((e) => CatalogExercise.fromWorkoutBlock(e.value)).toList();
@@ -319,9 +345,12 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         _stretchingExercises = [];
         _completed = completed;
         _completionIds = completionIds;
+        _skipped = skipped;
+        _skipIds = skipIds;
         _userLevel = 'intermediate';
         _loading = false;
       });
+      _maybeShowSwipeHint();
     }
   }
 
@@ -341,11 +370,18 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
     }
 
     final completions = await api.getExerciseCompletions(date: _dateKey);
+    final skips = await api.getExerciseSkips(date: _dateKey);
     Map<String, bool> completed = {};
     Map<String, int> completionIds = {};
+    Map<String, bool> skipped = {};
+    Map<String, int> skipIds = {};
     for (final c in completions) {
       completed[c.exerciseId] = true;
       completionIds[c.exerciseId] = c.id;
+    }
+    for (final s in skips) {
+      skipped[s.exerciseId] = true;
+      skipIds[s.exerciseId] = s.id;
     }
 
     final dayOffset = DateTime.now().weekday % 7;
@@ -389,11 +425,47 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         _stretchingExercises = stretchingList;
         _completed = completed;
         _completionIds = completionIds;
+        _skipped = skipped;
+        _skipIds = skipIds;
         _userLevel = level;
         _loading = false;
       });
-      _saveToCache(plan, ofpList, stretchingList, completed, completionIds, level);
+      _saveToCache(plan, ofpList, stretchingList, completed, completionIds, skipped, skipIds, level);
+      _maybeShowSwipeHint();
     }
+  }
+
+  Future<void> _maybeShowSwipeHint() async {
+    if (_totalCount == 0) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.getBool(_keySwipeHintShown) == true) return;
+      if (!mounted) return;
+      prefs.setBool(_keySwipeHintShown, true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.swipe_left, color: AppColors.mutedGold, size: 24),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Смайпните влево, чтобы пропустить упражнение',
+                    style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: AppColors.cardDark,
+            behavior: SnackBarBehavior.floating,
+            margin: const EdgeInsets.all(16),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      });
+    } catch (_) {}
   }
 
   Future<void> _toggleCompleted(TrainingDrill d, bool value) async {
@@ -411,10 +483,18 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
     int setsDone = 1,
     double? weightKg,
   }) async {
-    setState(() => _completed[exerciseId] = value);
+    final sid = _skipIds[exerciseId];
+    setState(() {
+      _completed[exerciseId] = value;
+      if (value) {
+        _skipped.remove(exerciseId);
+        _skipIds.remove(exerciseId);
+      }
+    });
 
     final api = StrengthTestApiService();
     if (value) {
+      if (sid != null) await api.deleteExerciseSkip(sid);
       final id = await api.saveExerciseCompletion(
         date: _dateKey,
         exerciseId: exerciseId,
@@ -445,7 +525,72 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
     }
   }
 
+  Future<void> _toggleExerciseSkipped(String exerciseId, bool value, {bool skipConfirmation = false}) async {
+    if (value && !skipConfirmation) {
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Пропустить упражнение?',
+            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          content: Text(
+            'Упражнение будет отмечено как пропущенное. Вы сможете отменить, нажав на иконку пропуска.',
+            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+              child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      );
+      if (confirmed != true || !mounted) return;
+    }
+    final cid = _completionIds[exerciseId];
+    setState(() {
+      _skipped[exerciseId] = value;
+      if (value) {
+        _completed.remove(exerciseId);
+        _completionIds.remove(exerciseId);
+      } else {
+        _skipIds.remove(exerciseId);
+      }
+    });
+
+    final api = StrengthTestApiService();
+    if (value) {
+      if (cid != null) await api.deleteExerciseCompletion(cid);
+      final id = await api.saveExerciseSkip(
+        date: _dateKey,
+        exerciseId: exerciseId,
+      );
+      if (id != null && mounted) {
+        setState(() => _skipIds[exerciseId] = id);
+      }
+      if (mounted) _maybeShowAllDoneCelebration();
+    } else {
+      final sid = _skipIds[exerciseId];
+      if (sid != null) {
+        final ok = await api.deleteExerciseSkip(sid);
+        if (ok && mounted) {
+          setState(() => _skipIds.remove(exerciseId));
+        }
+      }
+    }
+  }
+
   int get _doneCount => _completed.values.where((v) => v).length;
+  int get _skippedCount => _skipped.values.where((v) => v).length;
+  int get _resolvedCount => _doneCount + _skippedCount;
   int get _totalCount =>
       (_plan?.drills.length ?? 0) + _ofpExercises.length + _stretchingExercises.length;
 
@@ -465,7 +610,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
 
   void _maybeShowAllDoneCelebration() {
     if (_allDoneCelebrationShown || !mounted) return;
-    if (_totalCount == 0 || _doneCount != _totalCount) return;
+    if (_totalCount == 0 || _resolvedCount != _totalCount) return;
     _allDoneCelebrationShown = true;
     final msg = _allDoneMessages[(DateTime.now().millisecond % _allDoneMessages.length)];
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -539,7 +684,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           tooltip: 'Назад',
-          onPressed: () => Navigator.pop(context, _doneCount == _totalCount && _totalCount > 0),
+          onPressed: () => Navigator.pop(context, _resolvedCount == _totalCount && _totalCount > 0),
         ),
         actions: [
           IconButton(
@@ -622,7 +767,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                               child: _buildStretchingSectionContent(),
                             ),
                           ],
-                          if (_doneCount == _totalCount && _totalCount > 0) ...[
+                          if (_resolvedCount == _totalCount && _totalCount > 0) ...[
                             const SizedBox(height: 24),
                             _buildFinishWorkoutButton(),
                           ],
@@ -667,7 +812,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         SizedBox(
           width: double.infinity,
           child: FilledButton.icon(
-            onPressed: () => Navigator.pop(context, _doneCount == _totalCount && _totalCount > 0),
+            onPressed: () => Navigator.pop(context, _resolvedCount == _totalCount && _totalCount > 0),
             icon: const Icon(Icons.check_circle, size: 22),
             label: Text(
               'Завершить тренировку',
@@ -891,7 +1036,9 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                   ),
                 ),
                 Text(
-                  '$_doneCount из $total выполнено',
+                  _skippedCount > 0
+                      ? '$_doneCount выполнено, $_skippedCount пропущено из $total'
+                      : '$_doneCount из $total выполнено',
                   style: GoogleFonts.unbounded(
                     fontSize: 13,
                     color: Colors.white70,
@@ -900,7 +1047,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
               ],
             ),
           ),
-          if (_doneCount == total && total > 0)
+          if (_resolvedCount == total && total > 0)
             Icon(Icons.check_circle, color: AppColors.successMuted, size: 28),
         ],
       ),
@@ -1008,12 +1155,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
 
   static const _sectionBlocks = {
     'Разминка': ['warmup'],
-    'СФП (план)': ['main', 'secondary'],
-    'ОФП': ['antagonist', 'core', 'plan'],
+    'СФП (план)': ['main', 'secondary', 'sfp'],
+    'ОФП': ['antagonist', 'core', 'plan', 'ofp'],
     'Растяжка': ['cooldown'],
   };
 
   Widget _buildWorkoutGroupedSections() {
+    final sectionsWithContent = _sectionBlocks.entries
+        .map((e) => MapEntry(e.key, _ofpExercises.where((ex) => e.value.contains(_workoutBlockKeys[ex.id])).toList()))
+        .where((e) => e.value.isNotEmpty)
+        .toList();
+    final onlyOneSection = sectionsWithContent.length == 1;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: _sectionBlocks.entries.map((section) {
@@ -1027,7 +1179,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
           padding: const EdgeInsets.only(bottom: 24),
           child: _buildCollapsibleSection(
             title: section.key,
-            expanded: _workoutSectionExpanded[expKey] ?? false,
+            expanded: _workoutSectionExpanded[expKey] ?? onlyOneSection,
             onToggle: () {
               setState(() {
                 _workoutSectionExpanded[expKey] = !(_workoutSectionExpanded[expKey] ?? false);
@@ -1169,17 +1321,22 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
 
   Widget _buildStretchingTile(CatalogExercise e) {
     final done = _completed[e.id] ?? false;
-    return Padding(
+    final skipped = _skipped[e.id] ?? false;
+    final tile = Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: () => _toggleStretchingCompleted(e, !done),
+          onTap: skipped ? null : () => _toggleStretchingCompleted(e, !done),
           borderRadius: BorderRadius.circular(12),
           child: Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: done ? AppColors.successMuted.withOpacity(0.2) : AppColors.cardDark,
+              color: done
+                  ? AppColors.successMuted.withOpacity(0.2)
+                  : skipped
+                      ? AppColors.graphite.withOpacity(0.2)
+                      : AppColors.cardDark,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
                 color: done ? AppColors.successMuted : AppColors.graphite,
@@ -1190,15 +1347,26 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
               children: [
                 _buildExerciseThumbnail(e),
                 const SizedBox(width: 12),
-                SizedBox(
-                  width: 28,
-                  height: 28,
-                  child: Checkbox(
-                    value: done,
-                    onChanged: (v) => _toggleStretchingCompleted(e, v ?? false),
-                    activeColor: AppColors.successMuted,
+                if (skipped)
+                  InkWell(
+                    onTap: () => _toggleExerciseSkipped(e.id, false),
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Icon(Icons.remove_circle_outline, color: Colors.white54, size: 28),
+                    ),
+                  )
+                else
+                  SizedBox(
+                    width: 28,
+                    height: 28,
+                    child: Checkbox(
+                      value: done,
+                      onChanged: (v) => _toggleStretchingCompleted(e, v ?? false),
+                      activeColor: AppColors.successMuted,
+                    ),
                   ),
-                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -1211,8 +1379,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                         style: GoogleFonts.unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: done ? Colors.white70 : Colors.white,
-                          decoration: done ? TextDecoration.lineThrough : null,
+                          color: done || skipped ? Colors.white70 : Colors.white,
+                          decoration: done || skipped ? TextDecoration.lineThrough : null,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1252,6 +1420,50 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         ),
       ),
     );
+    if (!done && !skipped) {
+      return Dismissible(
+        key: ValueKey('stretch_${e.id}'),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: AppColors.mutedGold.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Пропустить',
+            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.cardDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              content: Text(
+                'Смайпните влево для пропуска. Нажмите на иконку, чтобы отменить.',
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+                  child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          );
+          return ok == true;
+        },
+        onDismissed: (_) => _toggleExerciseSkipped(e.id, true, skipConfirmation: true),
+        child: tile,
+      );
+    }
+    return tile;
   }
 
   Future<void> _toggleStretchingCompleted(CatalogExercise e, bool value) async {
@@ -1344,18 +1556,23 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
 
   Widget _buildOfpTile(CatalogExercise e) {
     final done = _completed[e.id] ?? false;
+    final skipped = _skipped[e.id] ?? false;
     final sets = e.defaultSets;
     final approaches = _approachDone[e.id] ?? List.filled(sets, false);
     final nextIndex = approaches.indexWhere((a) => !a);
     final canTapNext = nextIndex >= 0 && _restExerciseKey == null;
     final isRestingForThis = _restExerciseKey == e.id;
 
-    return Padding(
+    final tile = Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: done ? AppColors.successMuted.withOpacity(0.2) : AppColors.cardDark,
+          color: done
+              ? AppColors.successMuted.withOpacity(0.2)
+              : skipped
+                  ? AppColors.graphite.withOpacity(0.2)
+                  : AppColors.cardDark,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: done ? AppColors.successMuted : AppColors.graphite,
@@ -1369,7 +1586,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
               children: [
                 _buildExerciseThumbnail(e),
                 const SizedBox(width: 12),
-                if (sets <= 1)
+                if (skipped)
+                  InkWell(
+                    onTap: () => _toggleExerciseSkipped(e.id, false),
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Icon(Icons.remove_circle_outline, color: Colors.white54, size: 28),
+                    ),
+                  )
+                else if (sets <= 1)
                   SizedBox(
                     width: 28,
                     height: 28,
@@ -1399,8 +1626,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                         style: GoogleFonts.unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: done ? Colors.white70 : Colors.white,
-                          decoration: done ? TextDecoration.lineThrough : null,
+                          color: done || skipped ? Colors.white70 : Colors.white,
+                          decoration: done || skipped ? TextDecoration.lineThrough : null,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1452,7 +1679,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                           ),
                         ),
                       ],
-                      if (sets > 1 && !done) ...[
+                      if (sets > 1 && !done && !skipped) ...[
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
@@ -1521,10 +1748,55 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         ),
       ),
     );
+    if (!done && !skipped) {
+      return Dismissible(
+        key: ValueKey('ofp_${e.id}'),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: AppColors.mutedGold.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Пропустить',
+            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.cardDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              content: Text(
+                'Смайпните влево для пропуска. Нажмите на иконку, чтобы отменить.',
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+                  child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          );
+          return ok == true;
+        },
+        onDismissed: (_) => _toggleExerciseSkipped(e.id, true, skipConfirmation: true),
+        child: tile,
+      );
+    }
+    return tile;
   }
 
   Widget _buildDrillTile(int index, TrainingDrill d, bool done) {
     final key = d.exerciseId ?? d.name;
+    final skipped = _skipped[key] ?? false;
     final sets = d.sets;
     final restSec = _parseRestSeconds(d.rest);
     final approaches = _approachDone[key] ?? List.filled(sets, false);
@@ -1532,15 +1804,23 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
     final canTapNext = nextIndex >= 0 && _restExerciseKey == null;
     final isRestingForThis = _restExerciseKey == key;
 
-    return Padding(
+    final tile = Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: done ? AppColors.successMuted.withOpacity(0.2) : AppColors.cardDark,
+          color: done
+              ? AppColors.successMuted.withOpacity(0.2)
+              : skipped
+                  ? AppColors.graphite.withOpacity(0.2)
+                  : AppColors.cardDark,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: done ? AppColors.successMuted : AppColors.graphite,
+            color: done
+                ? AppColors.successMuted
+                : skipped
+                    ? AppColors.graphite
+                    : AppColors.graphite,
           ),
         ),
         child: Column(
@@ -1549,7 +1829,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (sets <= 1)
+                if (skipped)
+                  InkWell(
+                    onTap: () => _toggleExerciseSkipped(key, false),
+                    borderRadius: BorderRadius.circular(8),
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: Icon(Icons.remove_circle_outline, color: Colors.white54, size: 28),
+                    ),
+                  )
+                else if (sets <= 1)
                   SizedBox(
                     width: 28,
                     height: 28,
@@ -1579,8 +1869,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                         style: GoogleFonts.unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
-                          color: done ? Colors.white70 : Colors.white,
-                          decoration: done ? TextDecoration.lineThrough : null,
+                          color: done || skipped ? Colors.white70 : Colors.white,
+                          decoration: done || skipped ? TextDecoration.lineThrough : null,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -1612,7 +1902,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                           ),
                         ),
                       ],
-                      if (sets > 1 && !done) ...[
+                      if (sets > 1 && !done && !skipped) ...[
                         const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
@@ -1656,14 +1946,14 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
                                             padding: const EdgeInsets.only(right: 4),
                                             child: Icon(Icons.check, color: AppColors.successMuted, size: 16),
                                           ),
-                                        Text(
-                                          '${i + 1} подход',
-                                          style: GoogleFonts.unbounded(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDone ? Colors.white70 : (enabled ? Colors.white : Colors.white54),
-                                          ),
-                                        ),
+                        Text(
+                          '${i + 1} подход',
+                          style: GoogleFonts.unbounded(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDone ? Colors.white70 : (enabled ? Colors.white : Colors.white54),
+                          ),
+                        ),
                                       ],
                                     ),
                                   ),
@@ -1681,6 +1971,50 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen> {
         ),
       ),
     );
+    if (!done && !skipped) {
+      return Dismissible(
+        key: ValueKey('drill_$key'),
+        direction: DismissDirection.endToStart,
+        background: Container(
+          alignment: Alignment.centerRight,
+          padding: const EdgeInsets.only(right: 20),
+          decoration: BoxDecoration(
+            color: AppColors.mutedGold.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Text(
+            'Пропустить',
+            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+        ),
+        confirmDismiss: (direction) async {
+          final ok = await showDialog<bool>(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.cardDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              content: Text(
+                'Смайпните влево для пропуска. Нажмите на иконку, чтобы отменить.',
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+                FilledButton(
+                  onPressed: () => Navigator.pop(ctx, true),
+                  style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+                  child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          );
+          return ok == true;
+        },
+        onDismissed: (_) => _toggleExerciseSkipped(key, true, skipConfirmation: true),
+        child: tile,
+      );
+    }
+    return tile;
   }
 
   void _onDrillApproachTap(TrainingDrill d, int approachIndex, int restSec) async {

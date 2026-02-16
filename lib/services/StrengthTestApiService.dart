@@ -8,11 +8,38 @@ import 'package:login_app/models/StrengthMeasurementSession.dart';
 import 'package:login_app/models/TrainingPlan.dart';
 import 'package:login_app/models/Workout.dart';
 
+/// Запись кэша с TTL.
+class _CacheEntry<T> {
+  final T value;
+  final DateTime cachedAt;
+  _CacheEntry(this.value, this.cachedAt);
+}
+
 /// API-сервис для тестирования силы. Интеграция с бэкендом.
 class StrengthTestApiService {
   StrengthTestApiService();
 
   Future<String?> _getToken() => getToken();
+
+  static const _cacheTtl = Duration(seconds: 60);
+  static final Map<String, _CacheEntry<List<ExerciseCompletion>>> _completionsCache = {};
+  static final Map<String, _CacheEntry<List<ExerciseSkip>>> _skipsCache = {};
+
+  static void _invalidateCompletionsCache([String? date]) {
+    if (date != null) {
+      _completionsCache.remove('date:$date');
+    } else {
+      _completionsCache.clear();
+    }
+  }
+
+  static void _invalidateSkipsCache([String? date]) {
+    if (date != null) {
+      _skipsCache.remove('date:$date');
+    } else {
+      _skipsCache.clear();
+    }
+  }
 
   Map<String, String> _headers(String? token) => {
         'Accept': 'application/json',
@@ -260,8 +287,13 @@ class StrengthTestApiService {
     return [];
   }
 
-  /// GET /api/climbing-logs/exercise-completions
+  /// GET /api/climbing-logs/exercise-completions. Кэш 60 сек по date/period.
   Future<List<ExerciseCompletion>> getExerciseCompletions({String? date, int? periodDays}) async {
+    final key = date != null ? 'date:$date' : 'period:${periodDays ?? 365}';
+    final cached = _completionsCache[key];
+    if (cached != null && DateTime.now().difference(cached.cachedAt) < _cacheTtl) {
+      return cached.value;
+    }
     final token = await _getToken();
     if (token == null) return [];
     try {
@@ -274,9 +306,11 @@ class StrengthTestApiService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final list = json?['completions'] as List<dynamic>? ?? [];
-        return list
+        final result = list
             .map((e) => ExerciseCompletion.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
+        _completionsCache[key] = _CacheEntry(result, DateTime.now());
+        return result;
       }
     } catch (_) {}
     return [];
@@ -306,6 +340,7 @@ class StrengthTestApiService {
         body: jsonEncode(body),
       );
       if (response.statusCode == 201 || response.statusCode == 200) {
+        _invalidateCompletionsCache(date);
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final id = json?['id'];
         return id is int ? id : (id is num ? id.toInt() : null);
@@ -325,6 +360,7 @@ class StrengthTestApiService {
           .replace(queryParameters: {'date': date});
       final response = await http.delete(uri, headers: _headers(token));
       if (response.statusCode == 200 || response.statusCode == 204) {
+        _invalidateCompletionsCache(date);
         final body = response.body.trim();
         if (body.isEmpty) return 0;
         final json = jsonDecode(body) as Map<String, dynamic>?;
@@ -346,6 +382,7 @@ class StrengthTestApiService {
         headers: _headers(token),
       );
       if (response.statusCode == 200 || response.statusCode == 204) {
+        _invalidateCompletionsCache();
         final body = response.body.trim();
         if (body.isEmpty) return 0;
         final json = jsonDecode(body) as Map<String, dynamic>?;
@@ -365,7 +402,85 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions/$id'),
         headers: _headers(token),
       );
-      return response.statusCode == 200 || response.statusCode == 204;
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _invalidateCompletionsCache();
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// GET /api/climbing-logs/exercise-skips. Кэш 60 сек по date/period.
+  Future<List<ExerciseSkip>> getExerciseSkips({String? date, int? periodDays}) async {
+    final key = date != null ? 'date:$date' : 'period:${periodDays ?? 365}';
+    final cached = _skipsCache[key];
+    if (cached != null && DateTime.now().difference(cached.cachedAt) < _cacheTtl) {
+      return cached.value;
+    }
+    final token = await _getToken();
+    if (token == null) return [];
+    try {
+      final params = <String, String>{};
+      if (date != null) params['date'] = date;
+      if (periodDays != null) params['period_days'] = periodDays.toString();
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercise-skips')
+          .replace(queryParameters: params.isNotEmpty ? params : null);
+      final response = await http.get(uri, headers: _headers(token));
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        final list = json?['skips'] as List<dynamic>? ?? [];
+        final result = list
+            .map((e) => ExerciseSkip.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+        _skipsCache[key] = _CacheEntry(result, DateTime.now());
+        return result;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  /// POST /api/climbing-logs/exercise-skips
+  Future<int?> saveExerciseSkip({
+    required String date,
+    required String exerciseId,
+    String? reason,
+  }) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final body = <String, dynamic>{
+        'date': date,
+        'exercise_id': exerciseId,
+      };
+      if (reason != null && reason.isNotEmpty) body['reason'] = reason;
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/climbing-logs/exercise-skips'),
+        headers: _headers(token),
+        body: jsonEncode(body),
+      );
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        _invalidateSkipsCache(date);
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        final id = json?['id'];
+        return id is int ? id : (id is num ? id.toInt() : null);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// DELETE /api/climbing-logs/exercise-skips/:id
+  Future<bool> deleteExerciseSkip(int id) async {
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final response = await http.delete(
+        Uri.parse('$DOMAIN/api/climbing-logs/exercise-skips/$id'),
+        headers: _headers(token),
+      );
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        _invalidateSkipsCache();
+        return true;
+      }
     } catch (_) {}
     return false;
   }
@@ -685,6 +800,31 @@ class ExerciseCompletion {
         exerciseName: json['exercise_name'] as String?,
         setsDone: json['sets_done'] as int? ?? 1,
         weightKg: (json['weight_kg'] as num?)?.toDouble(),
+      );
+}
+
+/// Пропуск упражнения (не могу выполнить). Не идёт в exercise-completions.
+class ExerciseSkip {
+  final int id;
+  final String date;
+  final String exerciseId;
+  final String? exerciseName;
+  final String? reason;
+
+  ExerciseSkip({
+    required this.id,
+    required this.date,
+    required this.exerciseId,
+    this.exerciseName,
+    this.reason,
+  });
+
+  factory ExerciseSkip.fromJson(Map<String, dynamic> json) => ExerciseSkip(
+        id: json['id'] as int? ?? 0,
+        date: json['date'] as String? ?? '',
+        exerciseId: json['exercise_id'] as String? ?? '',
+        exerciseName: json['exercise_name'] as String?,
+        reason: json['reason'] as String?,
       );
 }
 

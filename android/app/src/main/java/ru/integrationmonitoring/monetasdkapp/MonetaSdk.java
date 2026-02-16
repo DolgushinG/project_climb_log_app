@@ -1,8 +1,14 @@
 package ru.integrationmonitoring.monetasdkapp;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
+import android.webkit.URLUtil;
+import android.os.Build;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -26,7 +32,7 @@ public class MonetaSdk {
      * @param mntOrderId Unique order identifier
      * @param mntAmount Amount (e.g. 199.00)
      * @param mntCurrency Currency code (e.g. RUB)
-     * @param mntPaymentSystem Payment system (e.g. "plastic" for cards)
+     * @param mntPaymentSystem Payment system: "plastic" = cards only, "all" = all methods (cards, SBP, SberPay, etc.)
      * @param webView WebView to load the form
      * @param context Context
      */
@@ -38,8 +44,9 @@ public class MonetaSdk {
             return;
         }
 
-        String mntPaymentSystemAccountId = sdkConfig.get(mntPaymentSystem + "_accountId");
-        String mntPaymentSystemUnitId = sdkConfig.get(mntPaymentSystem + "_unitId");
+        boolean showAllMethods = "all".equalsIgnoreCase(mntPaymentSystem) || mntPaymentSystem == null || mntPaymentSystem.isEmpty();
+        String mntPaymentSystemAccountId = showAllMethods ? "" : sdkConfig.get(mntPaymentSystem + "_accountId");
+        String mntPaymentSystemUnitId = showAllMethods ? "" : sdkConfig.get(mntPaymentSystem + "_unitId");
         String mntAccountId = sdkConfig.get("monetasdk_account_id");
         String mntAccountCode = sdkConfig.get("monetasdk_account_code");
         String mntDemoMode = sdkConfig.get("monetasdk_demo_mode");
@@ -58,11 +65,14 @@ public class MonetaSdk {
                 + "&MNT_TRANSACTION_ID=" + mntOrderId
                 + "&MNT_CURRENCY_CODE=" + mntCurrency
                 + "&MNT_AMOUNT=" + mntAmountString
-                + "&followup=true&javascriptEnabled=true&payment_method=" + mntPaymentSystem
-                + "&paymentSystem.unitId=" + mntPaymentSystemUnitId
-                + "&paymentSystem.limitIds=" + mntPaymentSystemUnitId
-                + "&paymentSystem.accountId=" + mntPaymentSystemAccountId
+                + "&followup=true&javascriptEnabled=true"
                 + "&MNT_TEST_MODE=" + mntTestMode;
+        if (!showAllMethods && mntPaymentSystemUnitId != null && !mntPaymentSystemUnitId.isEmpty()) {
+            queryString = queryString + "&payment_method=" + mntPaymentSystem
+                    + "&paymentSystem.unitId=" + mntPaymentSystemUnitId
+                    + "&paymentSystem.limitIds=" + mntPaymentSystemUnitId
+                    + "&paymentSystem.accountId=" + mntPaymentSystemAccountId;
+        }
         try {
             if (!mntSuccessUrl.isEmpty()) {
                 queryString = queryString + "&MNT_SUCCESS_URL=" + URLEncoder.encode(mntSuccessUrl, "UTF-8");
@@ -142,13 +152,40 @@ public class MonetaSdk {
         }
 
         @Override
+        public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N && request.isForMainFrame()) {
+                String url = request.getUrl() != null ? request.getUrl().toString() : null;
+                return handleUrl(url);
+            }
+            return false;
+        }
+
+        @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            return handleUrl(url);
+        }
+
+        private boolean handleUrl(String url) {
+            if (url == null || url.isEmpty()) return false;
             if (isOurDeepLink(url)) {
                 if (context instanceof Activity) {
                     Activity activity = (Activity) context;
                     boolean isSuccess = url.contains("success") || url.equals(successUrl);
                     activity.setResult(isSuccess ? Activity.RESULT_OK : Activity.RESULT_CANCELED);
                     activity.finish();
+                }
+                return true;
+            }
+            // СБП и банковские приложения: bank110000000005://, sbp:// и др.
+            if (!URLUtil.isNetworkUrl(url)) {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                    if (!(context instanceof Activity)) {
+                        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                    }
+                    context.startActivity(intent);
+                } catch (ActivityNotFoundException e) {
+                    Log.w(TAG, "No app to handle: " + url);
                 }
                 return true;
             }

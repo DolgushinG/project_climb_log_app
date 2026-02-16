@@ -123,7 +123,13 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
         slivers: [
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: _buildTodayInfoCard(),
+            ),
+          ),
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 8, 20, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -179,6 +185,117 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildTodayInfoCard() {
+    final today = DateTime.now();
+    final todayStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+    final dayData = _dayFor(todayStr);
+    final sessionType = _sessionTypeFor(today, dayData);
+    final inRange = _isInPlanRange(today);
+
+    if (!inRange || sessionType == null) {
+      return const SizedBox.shrink();
+    }
+
+    String title;
+    String subtitle;
+    IconData icon;
+    Color accentColor;
+
+    if (sessionType == 'rest') {
+      title = 'Сегодня день отдыха';
+      subtitle = 'Восстановление и лёгкая активность. Не перегружайте организм.';
+      icon = Icons.spa;
+      accentColor = AppColors.successMuted;
+    } else if (sessionType == 'climbing') {
+      title = 'Сегодня только лазание';
+      subtitle = '1–2 часа на стене. Лазание без ОФП/СФП.';
+      icon = Icons.route;
+      accentColor = AppColors.mutedGold;
+    } else if (sessionType == 'ofp') {
+      title = 'Сегодня ОФП';
+      final dayPart = dayData?.ofpDayIndex != null ? ' День ${dayData!.ofpDayIndex! + 1}.' : '';
+      final weekPart = dayData?.weekNumber != null ? ' Неделя ${dayData!.weekNumber}.' : '';
+      final climbPart = widget.plan.includeClimbingInDays ? ' Лазаем 1–2 ч, потом сила и выносливость.' : ' Сила, выносливость и стабилизация.';
+      subtitle = '$climbPart$dayPart$weekPart ~45–60 мин.';
+      icon = Icons.fitness_center;
+      accentColor = AppColors.mutedGold;
+    } else {
+      title = 'Сегодня СФП';
+      final dayPart = dayData?.sfpDayIndex != null ? ' День ${dayData!.sfpDayIndex! + 1}.' : '';
+      final weekPart = dayData?.weekNumber != null ? ' Неделя ${dayData!.weekNumber}.' : '';
+      final climbPart = widget.plan.includeClimbingInDays ? ' Лазаем, потом пальцы.' : ' Лазание и пальцы.';
+      subtitle = '$climbPart$dayPart$weekPart ~45 мин.';
+      icon = Icons.back_hand;
+      accentColor = AppColors.mutedGold;
+    }
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PlanDayScreen(
+                plan: widget.plan,
+                date: today,
+                expectedSessionType: sessionType,
+                onCompletedChanged: () {
+                  _load();
+                  widget.onRefresh?.call();
+                },
+              ),
+            ),
+          );
+          if (mounted) {
+            _load();
+            widget.onRefresh?.call();
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: accentColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor.withOpacity(0.5)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.25),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: accentColor, size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.chevron_right, color: Colors.white54, size: 22),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -295,13 +412,15 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
                                         ? Icons.fitness_center
                                         : sessionType == 'sfp'
                                             ? Icons.back_hand
-                                            : Icons.spa,
+                                            : sessionType == 'climbing'
+                                                ? Icons.route
+                                                : Icons.spa,
                                     size: 12,
                                     color: sessionType == 'rest'
                                         ? AppColors.successMuted.withOpacity(0.8)
                                         : (completed ? AppColors.successMuted : AppColors.mutedGold.withOpacity(0.7)),
                                   ),
-                                  if (sessionType != 'rest' && widget.plan.includeClimbingInDays) ...[
+                                  if (sessionType != 'rest' && sessionType != 'climbing' && widget.plan.includeClimbingInDays) ...[
                                     const SizedBox(width: 2),
                                     Icon(
                                       Icons.route,

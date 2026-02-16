@@ -13,6 +13,15 @@ class ClimbingLogService {
 
   Future<String?> _getToken() => getToken();
 
+  static const _historyCacheTtl = Duration(seconds: 60);
+  static List<HistorySession>? _historyCache;
+  static DateTime? _historyCacheTime;
+
+  static void _invalidateHistoryCache() {
+    _historyCache = null;
+    _historyCacheTime = null;
+  }
+
   Future<List<String>> getGrades() async {
     try {
       final response = await http.get(
@@ -52,6 +61,7 @@ class ClimbingLogService {
   }
 
   Future<bool> saveSession(ClimbingSessionRequest request) async {
+    _invalidateHistoryCache();
     final token = await _getToken();
     if (token == null) return false;
     try {
@@ -72,6 +82,7 @@ class ClimbingLogService {
 
   /// Обновить сессию. Требует id в истории от бэкенда.
   Future<bool> updateSession(int id, ClimbingSessionRequest request) async {
+    _invalidateHistoryCache();
     final token = await _getToken();
     if (token == null) return false;
     try {
@@ -92,6 +103,7 @@ class ClimbingLogService {
 
   /// Удалить сессию.
   Future<bool> deleteSession(int id) async {
+    _invalidateHistoryCache();
     final token = await _getToken();
     if (token == null) return false;
     try {
@@ -247,7 +259,14 @@ class ClimbingLogService {
     return [];
   }
 
+  /// История сессий. Кэш 60 сек — снижает нагрузку при повторных запросах (план, день и т.д.).
   Future<List<HistorySession>> getHistory() async {
+    final now = DateTime.now();
+    if (_historyCache != null &&
+        _historyCacheTime != null &&
+        now.difference(_historyCacheTime!) < _historyCacheTtl) {
+      return _historyCache!;
+    }
     final token = await _getToken();
     if (token == null) return [];
     try {
@@ -261,10 +280,13 @@ class ClimbingLogService {
       if (response.statusCode == 200) {
         final raw = jsonDecode(response.body);
         if (raw is List) {
-          return raw
+          final list = raw
               .map((e) =>
                   HistorySession.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList();
+          _historyCache = list;
+          _historyCacheTime = now;
+          return list;
         }
       }
     } catch (_) {}

@@ -283,6 +283,9 @@ class WorkoutGenerateResponse {
   final String? progressionHint;
   final Map<String, int>? loadDistribution;
   final String? coachComment;
+  /// true — AI (GigaChat) использован, false — rule-based.
+  final bool aiCoachAvailable;
+
   final SessionStimulus? sessionStimulus;
   final WeeklyLoadDistribution? weeklyLoadDistribution;
   final AthleteState? athleteState;
@@ -296,6 +299,7 @@ class WorkoutGenerateResponse {
     this.progressionHint,
     this.loadDistribution,
     this.coachComment,
+    this.aiCoachAvailable = false,
     this.sessionStimulus,
     this.weeklyLoadDistribution,
     this.athleteState,
@@ -336,6 +340,7 @@ class WorkoutGenerateResponse {
       progressionHint: json['progression_hint'] as String?,
       loadDistribution: loadDist,
       coachComment: json['coach_comment'] as String?,
+      aiCoachAvailable: json['ai_coach_available'] as bool? ?? false,
       sessionStimulus: sessionStimulus,
       weeklyLoadDistribution: weeklyLoadDist,
       athleteState: athleteState,

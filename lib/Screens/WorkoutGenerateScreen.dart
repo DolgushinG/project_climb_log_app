@@ -7,6 +7,7 @@ import 'package:login_app/models/Workout.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/StrengthDashboardService.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
+import 'package:login_app/services/TrainingDisclaimerService.dart';
 import 'package:login_app/Screens/WorkoutResultScreen.dart';
 
 /// Экран генерации тренировки через API workout/generate.
@@ -29,6 +30,9 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
   bool _loading = false;
   WeeklyFatigueResponse? _weeklyFatigue;
   String? _error;
+  final TrainingDisclaimerService _disclaimerService = TrainingDisclaimerService();
+  bool _disclaimerAcknowledged = false;
+  bool _disclaimerChecked = false;
   final ScrollController _scrollController = ScrollController();
   AnimationController? _loaderController;
 
@@ -53,7 +57,15 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
   void initState() {
     super.initState();
     _loadWeeklyFatigue();
+    _loadDisclaimerStatus();
   }
+
+  Future<void> _loadDisclaimerStatus() async {
+    final ack = await _disclaimerService.isAcknowledged();
+    if (mounted) setState(() => _disclaimerAcknowledged = ack);
+  }
+
+  bool get _canGenerate => _disclaimerAcknowledged || _disclaimerChecked;
 
   @override
   void dispose() {
@@ -68,6 +80,10 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
   }
 
   Future<void> _generate() async {
+    if (!_disclaimerAcknowledged) {
+      await _disclaimerService.acknowledge();
+      if (mounted) setState(() => _disclaimerAcknowledged = true);
+    }
     setState(() {
       _loading = true;
       _error = null;
@@ -375,6 +391,52 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
     );
   }
 
+  Widget _buildDisclaimerBlock() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange.shade300, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'Важная информация',
+                style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Рекомендации и тренировки носят исключительно информационный характер и не являются медицинской или профессиональной консультацией. '
+            'При травмах, болях или сомнениях проконсультируйтесь с врачом или тренером. '
+            'Вы самостоятельно несёте ответственность за нагрузку и технику выполнения. Силовые тренировки несут риск травм.',
+            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.5),
+          ),
+          const SizedBox(height: 12),
+          CheckboxListTile(
+            value: _disclaimerChecked,
+            onChanged: (v) => setState(() => _disclaimerChecked = v ?? false),
+            controlAffinity: ListTileControlAffinity.leading,
+            activeColor: AppColors.mutedGold,
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            title: Text(
+              'Ознакомлен(а), принимаю',
+              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildMismatchWarning() {
     return Container(
       padding: const EdgeInsets.all(12),
@@ -529,11 +591,15 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             const SizedBox(height: 12),
             _buildMismatchWarning(),
           ],
+          if (!_disclaimerAcknowledged) ...[
+            const SizedBox(height: 24),
+            _buildDisclaimerBlock(),
+          ],
           const SizedBox(height: 24),
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _loading ? null : _generate,
+              onPressed: (_loading || !_canGenerate) ? null : _generate,
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.mutedGold,
                 foregroundColor: Colors.white,

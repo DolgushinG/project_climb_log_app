@@ -7,6 +7,7 @@ import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/Workout.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
+import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 
@@ -17,6 +18,8 @@ class PlanDayScreen extends StatefulWidget {
   final VoidCallback? onCompletedChanged;
   /// Тип сессии из календаря (ofp/sfp), если известен — для понятного сообщения при ошибке.
   final String? expectedSessionType;
+  /// Уже загруженные данные дня (от PlanOverviewScreen) — пропускаем getPlanDay.
+  final PlanDayResponse? initialDay;
 
   const PlanDayScreen({
     super.key,
@@ -24,6 +27,7 @@ class PlanDayScreen extends StatefulWidget {
     required this.date,
     this.onCompletedChanged,
     this.expectedSessionType,
+    this.initialDay,
   });
 
   @override
@@ -33,11 +37,17 @@ class PlanDayScreen extends StatefulWidget {
 class _PlanDayScreenState extends State<PlanDayScreen> {
   final TrainingPlanApiService _api = TrainingPlanApiService();
   final ClimbingLogService _climbingService = ClimbingLogService();
+  final StrengthTestApiService _strengthApi = StrengthTestApiService();
 
   PlanDayResponse? _day;
   HistorySession? _climbingSessionForDate;
   bool _loading = true;
   String? _error;
+  /// exerciseId → completed для растяжки на эту дату
+  Set<String> _stretchingCompletedIds = {};
+  /// exerciseId для ОФП/СФП: выполнено / пропущено (для отображения на карточках)
+  Set<String> _exerciseCompletedIds = {};
+  Set<String> _exerciseSkippedIds = {};
 
   int? _feeling;
   String? _focus;
@@ -65,21 +75,56 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       _loading = true;
       _error = null;
     });
-    final day = await _api.getPlanDay(
-      widget.plan.id,
-      _dateStr,
-      feeling: _feeling,
-      focus: _focus,
-      availableMinutes: _availableMinutes,
-    );
+    PlanDayResponse? day;
+    final canUseInitial = widget.initialDay != null &&
+        _feeling == null &&
+        _focus == null &&
+        _availableMinutes == null;
+    if (canUseInitial) {
+      day = widget.initialDay;
+    } else {
+      day = await _api.getPlanDay(
+        widget.plan.id,
+        _dateStr,
+        feeling: _feeling,
+        focus: _focus,
+        availableMinutes: _availableMinutes,
+      );
+    }
     HistorySession? climbing = null;
-    if (day != null && !day.isRest && (day.expectsClimbing || widget.plan.includeClimbingInDays)) {
+    if (day != null && !day.isRest && (day.isClimbing || day.expectsClimbing || widget.plan.includeClimbingInDays)) {
       climbing = await _climbingService.getSessionForDate(_dateStr);
+    }
+    // Один запрос exercise-completions вместо двух (растяжка + ОФП/СФП)
+    final needsCompletions = day != null &&
+        (day!.stretching.isNotEmpty || day!.exercises.isNotEmpty);
+    final completions = needsCompletions
+        ? await _strengthApi.getExerciseCompletions(date: _dateStr)
+        : <ExerciseCompletion>[];
+    final completionIds = completions.map((c) => c.exerciseId).toSet();
+    Set<String> stretchingCompleted = {};
+    if (day != null && day!.stretching.isNotEmpty) {
+      final ids = day!.stretching.expand((z) => z.exercises.where((e) => e.exerciseId != null).map((e) => e.exerciseId!));
+      stretchingCompleted = completionIds.where((id) => ids.contains(id)).toSet();
+    }
+    Set<String> exerciseCompleted = {};
+    Set<String> exerciseSkipped = {};
+    if (day != null && day!.exercises.isNotEmpty) {
+      final planIds = day!.exercises.asMap().entries.map((e) {
+        final ex = e.value;
+        return ex.exerciseId ?? 'plan_${e.key}_${ex.name.hashCode.abs()}';
+      }).toSet();
+      final skips = await _strengthApi.getExerciseSkips(date: _dateStr);
+      exerciseCompleted = completionIds.where((id) => planIds.contains(id)).toSet();
+      exerciseSkipped = skips.map((s) => s.exerciseId).where((id) => planIds.contains(id)).toSet();
     }
     if (mounted) {
       setState(() {
         _day = day;
         _climbingSessionForDate = climbing;
+        _stretchingCompletedIds = stretchingCompleted;
+        _exerciseCompletedIds = exerciseCompleted;
+        _exerciseSkippedIds = exerciseSkipped;
         _loading = false;
       });
     }
@@ -88,7 +133,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
   bool get _expectsClimbing =>
       _day != null &&
       !_day!.isRest &&
-      (_day!.expectsClimbing || widget.plan.includeClimbingInDays);
+      (_day!.isClimbing || _day!.expectsClimbing || widget.plan.includeClimbingInDays);
 
   bool get _hasCoachContent =>
       (_day?.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty) ||
@@ -97,7 +142,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
   Future<void> _toggleComplete() async {
     if (_day == null) return;
     final sessionType = _day!.sessionType;
-    if (sessionType == 'rest') return;
+    if (sessionType == 'rest') return; // ofp, sfp, climbing — можно отмечать
 
     if (_day!.completed) {
       final ok = await _api.uncompleteSession(
@@ -220,11 +265,25 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     const SizedBox(height: 20),
                     if (_hasCoachContent) ...[
-                      _buildCoachContentSection(),
+                      _buildAnimatedCoachSection(),
                       const SizedBox(height: 20),
                     ],
-                    if (_day!.isRest)
-                      _buildRestDay()
+                    if (_day!.isRest) ...[
+                      _buildRestDay(),
+                      if ((_day!.weakLinks ?? []).isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        _buildWeakLinksPreview(),
+                      ],
+                    ]
+                    else if (_day!.isClimbing) ...[
+                      _buildClimbingBlock(isClimbingOnly: true),
+                      if ((_day!.weakLinks ?? []).isNotEmpty) ...[
+                        const SizedBox(height: 20),
+                        _buildWeakLinksPreview(),
+                      ],
+                      const SizedBox(height: 20),
+                      _buildStretching(),
+                    ]
                     else ...[
                       if (_expectsClimbing) ...[
                         _buildClimbingBlock(),
@@ -232,6 +291,12 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                       ],
                       if (_isToday) _buildClarifyButton(),
                       if (_isToday) const SizedBox(height: 16),
+                      if ((_day!.weakLinks ?? []).isNotEmpty) ...[
+                        _day!.exercises.isEmpty
+                            ? _buildWeakLinksPreview()
+                            : _buildWeakLinksBlock(),
+                        const SizedBox(height: 16),
+                      ],
                       _buildExercises(),
                       const SizedBox(height: 24),
                       _buildStretching(),
@@ -295,15 +360,33 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       ),
       child: Row(
         children: [
-          Icon(Icons.schedule, color: AppColors.mutedGold, size: 20),
+          Icon(Icons.tune, color: AppColors.mutedGold, size: 20),
           const SizedBox(width: 10),
           Expanded(
             child: Text(
-              'Объём снижен до ~$pct% из‑за нехватки времени или самочувствия',
+              'Компактный вариант (~$pct%): план подстроен под ваши настройки на сегодня (время, самочувствие)',
               style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  static const _athleteNames = ['Ondra', 'Honnold', 'Garnbret', 'Sharma', 'Mawem', 'Nonaka', 'Narasaki'];
+
+  Widget _buildAnimatedCoachSection() {
+    return TweenAnimationBuilder<double>(
+      key: ValueKey('coach_$_dateStr'),
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      builder: (context, value, _) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 10 * (1 - value)),
+          child: _buildCoachContentSection(),
+        ),
       ),
     );
   }
@@ -313,19 +396,16 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (_day!.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty)
-          _buildCoachCommentCard(_day!.coachRecommendation!),
-        if (_day!.coachRecommendation != null &&
-            _day!.coachRecommendation!.isNotEmpty &&
-            _day!.whyThisSession != null &&
-            _day!.whyThisSession!.isNotEmpty)
-          const SizedBox(height: 12),
-        if (_day!.whyThisSession != null && _day!.whyThisSession!.isNotEmpty)
-          _buildWhyThisSessionCard(_day!.whyThisSession!),
+          _buildCoachCommentCard(_day!.coachRecommendation!, aiCoachAvailable: _day!.aiCoachAvailable ?? false),
+        if (_day!.whyThisSession != null && _day!.whyThisSession!.isNotEmpty) ...[
+          if (_day!.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty) const SizedBox(height: 10),
+          _buildWhyThisSessionTap(_day!.whyThisSession!),
+        ],
       ],
     );
   }
 
-  Widget _buildCoachCommentCard(String text) {
+  Widget _buildCoachCommentCard(String text, {bool aiCoachAvailable = false}) {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -348,49 +428,135 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                   color: AppColors.mutedGold,
                 ),
               ),
+              if (aiCoachAvailable) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.mutedGold.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, color: AppColors.mutedGold, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'AI',
+                        style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-          ),
+          _buildCoachCommentText(text),
         ],
       ),
     );
   }
 
-  Widget _buildWhyThisSessionCard(String text) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.linkMuted.withOpacity(0.08),
+  /// Текст с подсветкой имён топ-атлетов (Ondra, Honnold, Garnbret и др.)
+  Widget _buildCoachCommentText(String text) {
+    final baseStyle = GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5);
+    final highlightStyle = GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold, height: 1.5, fontWeight: FontWeight.w600);
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+    final pattern = RegExp(_athleteNames.join(r'|'), caseSensitive: false);
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle));
+      }
+      spans.add(TextSpan(text: match.group(0), style: highlightStyle));
+      lastEnd = match.end;
+    }
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+    }
+    if (spans.isEmpty) {
+      return Text(text, style: baseStyle);
+    }
+    return RichText(text: TextSpan(children: spans));
+  }
+
+  Widget _buildWhyThisSessionTap(String text) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showWhyThisSessionModal(text),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.linkMuted.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.linkMuted.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.linkMuted.withOpacity(0.3)),
+          ),
+          child: Row(
             children: [
               Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Почему эта тренировка',
-                style: GoogleFonts.unbounded(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.linkMuted,
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Почему так?',
+                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
                 ),
               ),
+              Icon(Icons.chevron_right, color: AppColors.linkMuted, size: 20),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-          ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  void _showWhyThisSessionModal(String text) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.5),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Почему эта тренировка',
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  text,
+                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -411,12 +577,18 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         icon = Icons.back_hand;
         color = AppColors.linkMuted;
         break;
+      case 'climbing':
+        label = 'Лазание';
+        icon = Icons.route;
+        color = AppColors.mutedGold;
+        break;
       default:
         label = 'Отдых';
         icon = Icons.spa;
         color = AppColors.successMuted;
     }
     if (_day!.weekNumber != null) label += ' • Неделя ${_day!.weekNumber}';
+    if (_day!.estimatedMinutes != null && _day!.estimatedMinutes! > 0) label += ' • ~${_day!.estimatedMinutes} мин';
 
     return Container(
       padding: const EdgeInsets.all(14),
@@ -462,7 +634,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
     );
   }
 
-  Widget _buildClimbingBlock() {
+  Widget _buildClimbingBlock({bool isClimbingOnly = false}) {
     final hasSession = _climbingSessionForDate != null;
     final session = _climbingSessionForDate;
     final routesCount = session?.routes.fold<int>(0, (s, r) => s + r.count) ?? 0;
@@ -492,13 +664,15 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '1. Лазание',
+                      isClimbingOnly ? 'Лазание' : '1. Лазание',
                       style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     Text(
                       hasSession
                           ? '${session!.gymName} • $routesCount трасс'
-                          : '1–2 часа, затем ОФП',
+                          : isClimbingOnly
+                              ? 'Только лазание (без ОФП/СФП)'
+                              : '1–2 часа, затем ОФП',
                       style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
                     ),
                   ],
@@ -527,6 +701,147 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Блок «Твои слабые места» — кнопка, открывает bottom sheet со списком.
+  Widget _buildWeakLinksBlock() {
+    if ((_day!.weakLinks ?? []).isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _showWeakLinksBottomSheet(),
+        icon: Icon(Icons.track_changes, size: 20, color: AppColors.mutedGold),
+        label: Text(
+          'Твои слабые места',
+          style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: AppColors.mutedGold.withOpacity(0.5)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+        ),
+      ),
+    );
+  }
+
+  void _showWeakLinksBottomSheet() {
+    final links = (_day!.weakLinks ?? []);
+    if (links.isEmpty) return;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.track_changes, color: AppColors.mutedGold, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Твои слабые места',
+                    style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Почему они слабые и что делать',
+              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: links.map((wl) => _buildWeakLinkSheetItem(ctx, wl)).toList(),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWeakLinkSheetItem(BuildContext ctx, WeakLink wl) {
+    final whyText = (wl.reason != null && wl.reason!.isNotEmpty) ? wl.reason! : wl.hint;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.mutedGold.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: AppColors.mutedGold, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  wl.labelRu,
+                  style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                ),
+              ),
+            ],
+          ),
+          if (whyText.isNotEmpty) ...[
+            const SizedBox(height: 10),
+            Text(
+              whyText,
+              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+            ),
+          ],
+          if (wl.reason != null && wl.reason!.isNotEmpty && wl.hint.isNotEmpty && wl.hint != wl.reason) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Что делать: ${wl.hint}',
+              style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// Для дней rest/climbing без упражнений: кнопка открывает bottom sheet.
+  Widget _buildWeakLinksPreview() {
+    if ((_day!.weakLinks ?? []).isEmpty) return const SizedBox.shrink();
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => _showWeakLinksBottomSheet(),
+        icon: Icon(Icons.lightbulb_outline, size: 20, color: AppColors.mutedGold),
+        label: Text(
+          'На что обратить внимание в следующих тренировках',
+          style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: BorderSide(color: AppColors.mutedGold.withOpacity(0.5)),
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          alignment: Alignment.center,
+        ),
       ),
     );
   }
@@ -570,20 +885,47 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         const SizedBox(height: 12),
         ..._day!.exercises.asMap().entries.map((e) {
           final ex = e.value;
-          return _buildExerciseCard(ex, e.key + 1);
+          final id = ex.exerciseId ?? 'plan_${e.key}_${ex.name.hashCode.abs()}';
+          final completed = _exerciseCompletedIds.contains(id);
+          final skipped = _exerciseSkippedIds.contains(id);
+          final weakLink = ex.targetsWeakLink != null
+              ? (_day!.weakLinks ?? []).where((w) => w.key == ex.targetsWeakLink).firstOrNull
+              : null;
+          final weakLinkLabel = weakLink?.labelRu;
+          return _buildExerciseCard(
+            ex,
+            e.key + 1,
+            completed: completed,
+            skipped: skipped,
+            weakLinkLabel: weakLinkLabel,
+          );
         }),
       ],
     );
   }
 
-  Widget _buildExerciseCard(PlanDayExercise ex, int index) {
+  Widget _buildExerciseCard(
+    PlanDayExercise ex,
+    int index, {
+    bool completed = false,
+    bool skipped = false,
+    String? weakLinkLabel,
+  }) {
+    final hasWeakLink = weakLinkLabel != null && weakLinkLabel.isNotEmpty;
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: AppColors.cardDark,
+        color: completed || skipped ? AppColors.cardDark.withOpacity(0.8) : AppColors.cardDark,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.graphite),
+        border: Border.all(
+          color: completed
+              ? AppColors.successMuted.withOpacity(0.4)
+              : (skipped ? Colors.white24 : (hasWeakLink ? AppColors.mutedGold.withOpacity(0.4) : AppColors.graphite)),
+        ),
+        boxShadow: hasWeakLink && !completed && !skipped
+            ? [BoxShadow(color: AppColors.mutedGold.withOpacity(0.08), blurRadius: 8, spreadRadius: 0)]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -595,29 +937,107 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 width: 28,
                 height: 28,
                 decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.2),
+                  color: completed
+                      ? AppColors.successMuted.withOpacity(0.3)
+                      : (skipped ? Colors.white12 : AppColors.mutedGold.withOpacity(0.2)),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  '$index',
-                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
-                ),
+                child: completed
+                    ? Icon(Icons.check, size: 16, color: AppColors.successMuted)
+                    : (skipped
+                        ? Icon(Icons.remove_circle_outline, size: 16, color: Colors.white54)
+                        : Text(
+                            '$index',
+                            style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                          )),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      ex.name,
-                      style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            ex.name,
+                            style: GoogleFonts.unbounded(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: completed ? Colors.white54 : (skipped ? Colors.white60 : Colors.white),
+                              decoration: completed ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                        ),
+                        if (weakLinkLabel != null && weakLinkLabel.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: AppColors.mutedGold.withOpacity(0.2),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.track_changes, color: AppColors.mutedGold, size: 12),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    weakLinkLabel,
+                                    style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        if (skipped)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: Colors.white12,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              'Пропущено',
+                              style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+                            ),
+                          ),
+                      ],
                     ),
                     const SizedBox(height: 4),
                     Text(
                       ex.dosageDisplay,
-                      style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold),
+                      style: GoogleFonts.unbounded(
+                        fontSize: 13,
+                        color: completed || skipped ? Colors.white38 : AppColors.mutedGold,
+                        decoration: completed ? TextDecoration.lineThrough : null,
+                      ),
                     ),
+                    if (ex.estimatedMinutes != null && ex.estimatedMinutes! > 0) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: AppColors.graphite.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.schedule, size: 14, color: Colors.white54),
+                            const SizedBox(width: 6),
+                            Text(
+                              '~${ex.estimatedMinutes} мин',
+                              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                     if (ex.comment != null && ex.comment!.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Row(
@@ -635,24 +1055,23 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                       ),
                     ],
                     if (ex.hint != null && ex.hint!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      _buildHintBlock(ex.name, ex.hint!, isCompact: false),
+                    ],
+                    if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      InkWell(
-                        onTap: () => _showHintModal(ex.name, ex.hint!),
-                        borderRadius: BorderRadius.circular(8),
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.help_outline, size: 16, color: AppColors.linkMuted),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Как выполнять',
-                                style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
-                              ),
-                            ],
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.route, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              ex.climbingBenefit!,
+                              style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ],
@@ -661,6 +1080,48 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             ],
           ),
         ],
+      ),
+    );
+  }
+
+  /// Короткий hint (≤80 символов) показываем inline. Длинный — по нажатию «Как выполнять» в модалке.
+  static const int _hintInlineThreshold = 80;
+
+  Widget _buildHintBlock(String exerciseName, String hint, {bool isCompact = false}) {
+    final short = hint.length <= _hintInlineThreshold;
+    final iconSize = isCompact ? 12.0 : 14.0;
+    final fontSize = isCompact ? 11.0 : 12.0;
+    if (short) {
+      return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, size: iconSize, color: AppColors.linkMuted.withOpacity(0.9)),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              hint,
+              style: GoogleFonts.unbounded(fontSize: fontSize, color: Colors.white70, height: 1.4),
+            ),
+          ),
+        ],
+      );
+    }
+    return InkWell(
+      onTap: () => _showHintModal(exerciseName, hint),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.help_outline, size: iconSize, color: AppColors.linkMuted),
+            const SizedBox(width: 6),
+            Text(
+              'Как выполнять',
+              style: GoogleFonts.unbounded(fontSize: fontSize, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -715,12 +1176,39 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
 
   Widget _buildStretching() {
     if (_day!.stretching.isEmpty) return const SizedBox.shrink();
+    final totalMins = _day!.stretchingEstimatedMinutes;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Растяжка',
-          style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white54),
+        Row(
+          children: [
+            Text(
+              'Растяжка',
+              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white54),
+            ),
+            if (totalMins != null && totalMins > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.graphite.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.schedule, size: 12, color: Colors.white54),
+                    const SizedBox(width: 4),
+                    Text(
+                      '~$totalMins мин',
+                      style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
         ),
         const SizedBox(height: 12),
         ..._day!.stretching.map((z) => Container(
@@ -738,11 +1226,8 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     z.zone,
                     style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white70),
                   ),
-                  const SizedBox(height: 6),
-                  ...z.exercises.map((ex) => Padding(
-                        padding: const EdgeInsets.only(bottom: 2),
-                        child: Text('• $ex', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
-                      )),
+                  const SizedBox(height: 8),
+                  ...z.exercises.map((ex) => _buildStretchingExerciseTile(ex)),
                 ],
               ),
             )),
@@ -750,11 +1235,128 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
     );
   }
 
+  Widget _buildStretchingExerciseTile(PlanStretchingExercise ex) {
+    final completed = ex.exerciseId != null && _stretchingCompletedIds.contains(ex.exerciseId);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (ex.exerciseId != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 10, top: 2),
+                  child: SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: Checkbox(
+                      value: completed,
+                      onChanged: (v) => _toggleStretchingCompletion(ex.exerciseId!, v ?? false),
+                      activeColor: AppColors.mutedGold,
+                      fillColor: WidgetStateProperty.resolveWith((_) =>
+                          completed ? AppColors.mutedGold : AppColors.graphite),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                    ),
+                  ),
+                )
+              else
+                Padding(
+                  padding: const EdgeInsets.only(right: 10),
+                  child: Text('•', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+                ),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ex.name,
+                      style: GoogleFonts.unbounded(
+                        fontSize: 13,
+                        color: completed ? Colors.white54 : Colors.white70,
+                        decoration: completed ? TextDecoration.lineThrough : null,
+                      ),
+                    ),
+                    if (ex.estimatedMinutes != null && ex.estimatedMinutes! > 0) ...[
+                      const SizedBox(height: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.graphite.withOpacity(0.5),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.white24),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.schedule, size: 12, color: Colors.white54),
+                            const SizedBox(width: 4),
+                            Text(
+                              '~${ex.estimatedMinutes} мин',
+                              style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (ex.hint != null && ex.hint!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      _buildHintBlock(ex.name, ex.hint!, isCompact: true),
+                    ],
+                    if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.route, size: 12, color: AppColors.mutedGold.withOpacity(0.8)),
+                          const SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              ex.climbingBenefit!,
+                              style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _toggleStretchingCompletion(String exerciseId, bool completed) async {
+    if (completed) {
+      final id = await _strengthApi.saveExerciseCompletion(
+        date: _dateStr,
+        exerciseId: exerciseId,
+        setsDone: 1,
+      );
+      if (mounted && id != null) {
+        setState(() => _stretchingCompletedIds = {..._stretchingCompletedIds, exerciseId});
+      }
+    } else {
+      final completions = await _strengthApi.getExerciseCompletions(date: _dateStr);
+      final list = completions.where((x) => x.exerciseId == exerciseId).toList();
+      if (list.isNotEmpty) {
+        await _strengthApi.deleteExerciseCompletion(list.first.id);
+        if (mounted) {
+          setState(() => _stretchingCompletedIds = {..._stretchingCompletedIds}..remove(exerciseId));
+        }
+      }
+    }
+  }
+
   List<MapEntry<String, WorkoutBlockExercise>> _planDayToWorkoutEntries() {
     if (_day == null || _day!.exercises.isEmpty) return [];
     final sessionType = _day!.sessionType;
     final category = sessionType == 'sfp' ? 'sfp' : 'ofp';
-    final blockKey = 'plan';
+    final blockKey = sessionType == 'sfp' ? 'sfp' : (sessionType == 'ofp' ? 'ofp' : 'plan');
     return _day!.exercises.asMap().entries.map((e) {
       final ex = e.value;
       int? holdSeconds;
@@ -889,7 +1491,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
     ('strength', 'Сила'),
     ('recovery', 'Восстановление'),
   ];
-  static const _timeOptions = [30, 45, 60, 90];
+  static const _timeOptions = [15, 30, 45, 60, 90];
 
   @override
   Widget build(BuildContext context) {

@@ -52,7 +52,7 @@ class WorkoutResultScreen extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 12, 20, 90),
               children: [
                 if (_hasCoachContent) ...[
-                  _buildCoachSection(),
+                  _buildAnimatedCoachSection(context),
                   const SizedBox(height: 20),
                 ],
                 if (workout.weeklyFatigueWarning != null) ...[
@@ -77,13 +77,31 @@ class WorkoutResultScreen extends StatelessWidget {
   bool get _hasCoachContent =>
       workout.coachComment != null ||
       workout.whyThisSession != null ||
+      workout.intensityExplanation != null ||
       (workout.loadDistribution != null && workout.loadDistribution!.isNotEmpty) ||
       (workout.weeklyLoadDistribution != null && workout.weeklyLoadDistribution!.hasAny) ||
       workout.progressionHint != null ||
       workout.sessionStimulus != null ||
       workout.athleteState != null;
 
-  Widget _buildCoachSection() {
+  static const _athleteNames = ['Ondra', 'Honnold', 'Garnbret', 'Sharma', 'Mawem', 'Nonaka', 'Narasaki'];
+
+  Widget _buildAnimatedCoachSection(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: const Duration(milliseconds: 400),
+      curve: Curves.easeOut,
+      builder: (context, value, _) => Opacity(
+        opacity: value,
+        child: Transform.translate(
+          offset: Offset(0, 10 * (1 - value)),
+          child: _buildCoachSection(context),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCoachSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -91,8 +109,12 @@ class WorkoutResultScreen extends StatelessWidget {
           _buildCoachCommentCard(),
           const SizedBox(height: 12),
         ],
+        if (workout.intensityExplanation != null) ...[
+          _buildIntensityExplanationCard(),
+          const SizedBox(height: 12),
+        ],
         if (workout.whyThisSession != null) ...[
-          _buildWhyThisSessionCard(),
+          _buildWhyThisSessionTap(context),
           const SizedBox(height: 12),
         ],
         if (workout.loadDistribution != null && workout.loadDistribution!.isNotEmpty) ...[
@@ -113,6 +135,38 @@ class WorkoutResultScreen extends StatelessWidget {
         ],
         if (workout.progressionHint != null) _buildProgressionHintCard(),
       ],
+    );
+  }
+
+  Widget _buildIntensityExplanationCard() {
+    final text = workout.intensityExplanation!;
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.speed, color: AppColors.mutedGold, size: 18),
+              const SizedBox(width: 8),
+              Text(
+                'Почему такая интенсивность',
+                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            text,
+            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+          ),
+        ],
+      ),
     );
   }
 
@@ -140,14 +194,135 @@ class WorkoutResultScreen extends StatelessWidget {
                   color: AppColors.mutedGold,
                 ),
               ),
+              if (workout.aiCoachAvailable) ...[
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.mutedGold.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.auto_awesome, color: AppColors.mutedGold, size: 12),
+                      const SizedBox(width: 4),
+                      Text(
+                        'AI',
+                        style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-          ),
+          _buildCoachCommentText(text),
         ],
+      ),
+    );
+  }
+
+  Widget _buildCoachCommentText(String text) {
+    final baseStyle = GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5);
+    final highlightStyle = GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold, height: 1.5, fontWeight: FontWeight.w600);
+    final spans = <TextSpan>[];
+    int lastEnd = 0;
+    final pattern = RegExp(_athleteNames.join(r'|'), caseSensitive: false);
+    for (final match in pattern.allMatches(text)) {
+      if (match.start > lastEnd) {
+        spans.add(TextSpan(text: text.substring(lastEnd, match.start), style: baseStyle));
+      }
+      spans.add(TextSpan(text: match.group(0), style: highlightStyle));
+      lastEnd = match.end;
+    }
+    if (lastEnd < text.length) {
+      spans.add(TextSpan(text: text.substring(lastEnd), style: baseStyle));
+    }
+    if (spans.isEmpty) {
+      return Text(text, style: baseStyle);
+    }
+    return RichText(text: TextSpan(children: spans));
+  }
+
+  Widget _buildWhyThisSessionTap(BuildContext context) {
+    final text = workout.whyThisSession!;
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _showWhyThisSessionModal(context, text),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.linkMuted.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.linkMuted.withOpacity(0.3)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 18),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Почему так?',
+                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
+                ),
+              ),
+              Icon(Icons.chevron_right, color: AppColors.linkMuted, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showWhyThisSessionModal(BuildContext context, String text) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.5),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Почему эта тренировка',
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  text,
+                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -230,38 +405,6 @@ class WorkoutResultScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Прогрессия',
-                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWhyThisSessionCard() {
-    final text = workout.whyThisSession!;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.linkMuted.withOpacity(0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.linkMuted.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.lightbulb_outline, color: AppColors.linkMuted, size: 18),
-              const SizedBox(width: 8),
-              Text(
-                'Почему эта тренировка',
                 style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
               ),
             ],

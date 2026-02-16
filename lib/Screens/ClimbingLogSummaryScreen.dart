@@ -13,8 +13,7 @@ import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
 import 'package:login_app/models/PlanModels.dart';
-import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
-import 'package:login_app/Screens/PlanDayScreen.dart';
+import 'package:login_app/Screens/PlanCalendarScreen.dart';
 
 /// Стартовый экран «Обзор» — summary, графики, рекомендации, strength dashboard.
 class ClimbingLogSummaryScreen extends StatefulWidget {
@@ -43,7 +42,8 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
 
   ClimbingLogSummary? _summary;
   ActivePlan? _plan;
-  PlanDayResponse? _todayPlanDay;
+  int? _planCompletedCount;
+  int? _planTotalCount;
   List<ClimbingLogRecommendation> _recommendations = [];
   bool _loading = true;
   String? _error;
@@ -105,7 +105,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
       final results = await Future.wait([summaryFuture, dashboardFuture, planFuture]);
       final summaryResults = results[0] as List;
       final dash = results[1] as (StrengthMetrics?, double?, int, int, String);
-      final planData = results[2] as (ActivePlan?, PlanDayResponse?);
+      final planData = results[2] as (ActivePlan?, int?, int?);
       if (!mounted) return;
       setState(() {
         _summary = summaryResults[0] as ClimbingLogSummary?;
@@ -116,7 +116,8 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
         _streak = dash.$4;
         _recoveryStatus = dash.$5;
         _plan = planData.$1;
-        _todayPlanDay = planData.$2;
+        _planCompletedCount = planData.$2;
+        _planTotalCount = planData.$3;
         _loading = false;
       });
     } catch (_) {
@@ -129,21 +130,15 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
     }
   }
 
-  Future<(ActivePlan?, PlanDayResponse?)> _loadPlanForToday() async {
+  Future<(ActivePlan?, int?, int?)> _loadPlanForToday() async {
     try {
-      final plan = await _planApi.getActivePlan();
-      if (plan == null) return (null, null);
-      final today = DateTime.now();
-      final weekdays = plan.scheduledWeekdays;
-      if (weekdays != null && weekdays.isNotEmpty && !weekdays.contains(today.weekday)) {
-        return (plan, null);
-      }
-      final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-      final day = await _planApi.getPlanDay(plan.id, dateStr);
-      if (day == null || day.isRest) return (plan, null);
-      return (plan, day);
+      final result = await _planApi.getActivePlan();
+      final plan = result.plan;
+      if (plan == null) return (null, null, null);
+      final progress = await _planApi.getPlanProgress(plan.id);
+      return (plan, progress?.completed, progress?.total);
     } catch (_) {
-      return (null, null);
+      return (null, null, null);
     }
   }
 
@@ -151,11 +146,13 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
     await _loadAll();
   }
 
-  Widget _buildPlanTodayBanner(BuildContext context) {
-    final plan = _plan!;
-    final day = _todayPlanDay!;
-    final typeLabel = day.isOfp ? 'ОФП' : 'СФП';
-    final exCount = day.exercises.length;
+  Widget _buildPlanProgressChart(BuildContext context) {
+    final plan = _plan;
+    final total = _planTotalCount;
+    if (plan == null || total == null || total == 0) return const SizedBox.shrink();
+    final completed = (_planCompletedCount ?? 0).clamp(0, total);
+    final segmentCount = total.clamp(1, 60);
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -163,55 +160,72 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => PlanDayScreen(
-                plan: plan,
-                date: DateTime.now(),
-                onCompletedChanged: () => _loadAll(),
-              ),
+              builder: (_) => PlanCalendarScreen(plan: plan, onRefresh: _loadAll),
             ),
           ).then((_) => _loadAll());
         },
         borderRadius: BorderRadius.circular(12),
         child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppColors.mutedGold.withOpacity(0.12),
+            color: AppColors.cardDark,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.mutedGold.withOpacity(0.4)),
+            border: Border.all(color: AppColors.graphite),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(Icons.fitness_center, color: AppColors.mutedGold, size: 22),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'План на сегодня: $typeLabel',
-                      style: GoogleFonts.unbounded(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Прогресс плана',
+                    style: GoogleFonts.unbounded(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.mutedGold,
                     ),
-                    Text(
-                      '$exCount ${exCount == 1 ? 'упражнение' : exCount >= 2 && exCount <= 4 ? 'упражнения' : 'упражнений'}',
-                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                  ),
+                  Text(
+                    '$completed из $total • ${total > 0 ? ((completed / total) * 100).round() : 0}%',
+                    style: GoogleFonts.unbounded(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white70,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-              Icon(Icons.arrow_forward_ios, color: AppColors.mutedGold, size: 14),
+              const SizedBox(height: 12),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  final segW = (w / segmentCount).clamp(2.0, 24.0);
+                  final spacing = 2.0;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: 4,
+                    children: List.generate(segmentCount, (i) {
+                      final isDone = i < completed;
+                      return Container(
+                        width: segW - spacing,
+                        height: 20,
+                        decoration: BoxDecoration(
+                          color: isDone
+                              ? AppColors.successMuted.withOpacity(0.8)
+                              : AppColors.graphite,
+                          borderRadius: BorderRadius.circular(3),
+                        ),
+                      );
+                    }),
+                  );
+                },
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Нажмите для календаря',
+                style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
+              ),
             ],
           ),
         ),
@@ -353,39 +367,9 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                         _buildSummaryCards(context, _summary!),
                         const SizedBox(height: 16),
                       ],
-                      if (_plan != null && _todayPlanDay != null) ...[
+                      if (_plan != null) ...[
                         const SizedBox(height: 12),
-                        _buildPlanTodayBanner(context),
-                      ],
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: FilledButton.icon(
-                          onPressed: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (ctx) => const ClimbingLogAddScreen(),
-                              ),
-                            );
-                            if (mounted) _loadAll();
-                          },
-                          icon: const Icon(Icons.add, size: 20),
-                          label: Text(
-                            'Добавить тренировку',
-                            style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600),
-                          ),
-                          style: FilledButton.styleFrom(
-                            backgroundColor: AppColors.mutedGold,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        ),
-                      ),
-                      if (widget.onPremiumTap != null) ...[
-                        const SizedBox(height: 12),
-                        _buildPremiumSection(context),
+                        _buildPlanProgressChart(context),
                       ],
                     ],
                   ),
@@ -429,8 +413,16 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                     ),
                   ),
                 )
-              else
+              else ...[
                 ..._buildContent(context),
+                if (widget.onPremiumTap != null)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
+                      child: _buildPremiumSection(context),
+                    ),
+                  ),
+              ],
             ],
           ),
         ),
@@ -658,7 +650,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
           ),
           const SizedBox(height: 8),
           Text(
-            'Нажмите «Добавить тренировку» выше — здесь появится сводка, графики и рекомендации.',
+            'Выполните план на сегодня или добавьте тренировку во вкладке «История» — здесь появится сводка и рекомендации.',
             style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),
