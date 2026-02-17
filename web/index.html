@@ -62,14 +62,14 @@
     }
 
     #loading .logo {
-      font-size: 26px;
+      font-size: 16px;
       font-weight: 700;
       letter-spacing: 1.2px;
       margin-bottom: 8px;
     }
 
     #loading .tagline {
-      font-size: 12px;
+      font-size: 16px;
       font-weight: 400;
       letter-spacing: 0.3px;
       color: rgba(255, 255, 255, 0.6);
@@ -133,13 +133,6 @@
       100% { transform: translateX(350%); }
     }
 
-    @media (max-width: 640px), (max-height: 500px) {
-      #loading .logo { font-size: 36px; margin-bottom: 12px; letter-spacing: 1.5px; }
-      #loading .tagline { font-size: 16px; max-width: 300px; margin-bottom: 28px; }
-      #loading .loader { width: 80px; height: 80px; }
-      #loading .loader::before { width: 46px; height: 46px; }
-      #loading .progress-bar { width: 260px; height: 6px; margin-top: 32px; }
-    }
   </style>
 </head>
 <body>
@@ -155,39 +148,14 @@
   <!-- ?v= берётся из pubspec (version: X.Y.Z+BUILD). Перед билдом: ./scripts/web_version_bump.sh -->
   <script src="flutter_bootstrap.js?v=3" async></script>
   <script>
-    var flutterLoaded = false;
-    var CHECK_INTERVAL_MS = 8000;  /* проверять через 8 сек — CanvasKit грузится 3–5+ сек, 2.5 сек вызывало лишние reload и мелькание */
-    var MAX_RELOAD_ATTEMPTS = 2;   /* максимум 2 попытки (1 начальная + 1 reload) */
-    var RELOAD_KEY = 'flutter_load_attempts';
-
     function hideLoading() {
-      flutterLoaded = true;
-      try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
       var loading = document.getElementById('loading');
       if (loading) {
         loading.classList.add('hidden');
         setTimeout(function() { loading.remove(); }, 400);
       }
     }
-
     window.addEventListener('flutter-first-frame', hideLoading);
-
-    /* Если через 8 сек Flutter не загрузился — одна попытка reload (на медленных сетях) */
-    setTimeout(function checkAndRetry() {
-      if (flutterLoaded) return;
-      var attempts = 0;
-      try {
-        var v = sessionStorage.getItem(RELOAD_KEY);
-        attempts = v ? parseInt(v, 10) : 0;
-      } catch (e) { attempts = 0; }
-      if (attempts >= MAX_RELOAD_ATTEMPTS) {
-        hideLoading(); /* показываем приложение или ошибку, не зацикливаем */
-        return;
-      }
-      try { sessionStorage.setItem(RELOAD_KEY, String(attempts + 1)); } catch (e) {}
-      location.reload();
-    }, CHECK_INTERVAL_MS);
-
     setTimeout(hideLoading, 15000); /* fallback на случай ошибки */
   </script>
 </body>
