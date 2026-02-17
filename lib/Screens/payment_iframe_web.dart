@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:web/web.dart' as web;
 
+import 'dart:js_interop';
 import 'dart:ui_web' as ui_web;
 
 int _iframeCounter = 0;
@@ -16,12 +17,13 @@ void _handleMessage(web.Event event, void Function(bool success) onResult) {
 }
 
 void setupPaymentMessageListener(void Function(bool success) onResult) {
-  final handler = (web.Event e) => _handleMessage(e, onResult);
-  web.window.addEventListener('message', handler);
-  _messageHandler = handler;
+  void handler(web.Event e) => _handleMessage(e, onResult);
+  final jsHandler = handler.toJS;
+  web.window.addEventListener('message', jsHandler);
+  _messageHandler = jsHandler;
 }
 
-web.EventListener? _messageHandler;
+JSFunction? _messageHandler;
 
 void disposePaymentMessageListener() {
   final h = _messageHandler;
