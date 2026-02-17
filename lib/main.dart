@@ -197,6 +197,7 @@ class _TokenCheckerState extends State<TokenChecker> {
     final isGuest = storedToken == null || (storedToken.trim().isEmpty);
     if (isGuest) {
       await PremiumSubscriptionService().invalidateStatusCache();
+      await CacheService.clearAllUserData();
     }
     setState(() {
       token = storedToken;

@@ -63,6 +63,15 @@ class CacheService {
         (history != null && history.isNotEmpty);
   }
 
+  /// Очистить весь пользовательский кэш (профиль, соревнования, история, аналитика).
+  /// Вызывать при загрузке без токена, чтобы не показывать данные от предыдущей сессии.
+  static Future<void> clearAllUserData() async {
+    await remove(keyProfile);
+    await remove(keyCompetitions);
+    await remove(keyHistory);
+    await remove(keyAnalytics);
+  }
+
   /// TTL по умолчанию.
   static const ttlCompetitions = Duration(minutes: 15);
   static const ttlProfile = Duration(minutes: 5);
