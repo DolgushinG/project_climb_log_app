@@ -16,6 +16,8 @@ class PremiumStatus {
   final bool subscriptionCancelled;
   /// true — не удалось получить статус (нет интернета). Показать «Проверьте подключение», не «Оформите подписку».
   final bool networkUnavailable;
+  /// true — API вернул 401 (токен недействителен). Показать «Доступно после авторизации», не модалку пробного периода.
+  final bool isUnauthorized;
   /// Стоимость подписки в рублях (из бэкенда). Fallback 199.
   final int subscriptionPriceRub;
 
@@ -27,6 +29,7 @@ class PremiumStatus {
     this.subscriptionEndsAt,
     this.subscriptionCancelled = false,
     this.networkUnavailable = false,
+    this.isUnauthorized = false,
     this.subscriptionPriceRub = 199,
   });
 
@@ -112,6 +115,11 @@ class PremiumSubscriptionService {
       if (token != null) {
         final status = await _fetchFromBackend(token);
         if (status != null) {
+          if (status.isUnauthorized) {
+            await clearToken();
+            await invalidateStatusCache();
+            return status;
+          }
           _saveStatusCache(status);
           return status;
         }
@@ -166,6 +174,7 @@ class PremiumSubscriptionService {
         trialStarted: json['trial_started'] != false,
         subscriptionEndsAt: json['subscription_ends_at'] != null ? DateTime.tryParse(json['subscription_ends_at'].toString()) : null,
         subscriptionCancelled: json['subscription_cancelled'] == true,
+        isUnauthorized: json['is_unauthorized'] == true,
         subscriptionPriceRub: (json['subscription_price_rub'] as num?)?.toInt() ?? 199,
       );
     } catch (_) {}
@@ -193,6 +202,15 @@ class PremiumSubscriptionService {
               : null,
           subscriptionCancelled: data['subscription_cancelled'] == true,
           subscriptionPriceRub: (data['subscription_price_rub'] as num?)?.toInt() ?? 199,
+        );
+      }
+      if (resp.statusCode == 401) {
+        return PremiumStatus(
+          hasActiveSubscription: false,
+          trialDaysLeft: 0,
+          trialStarted: true,
+          isUnauthorized: true,
+          subscriptionPriceRub: 199,
         );
       }
     } catch (_) {}

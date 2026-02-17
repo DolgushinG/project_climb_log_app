@@ -125,13 +125,16 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     if (widget.isGuest) return;
     final status = await _premiumService.getStatus();
     if (mounted) {
-      setState(() => _premiumStatus = status);
+      setState(() {
+        _premiumStatus = status;
+        if (status.isUnauthorized) _effectivelyGuest = true;
+      });
       if (widget.isTabVisible) _maybeShowTrialModal();
     }
   }
 
   void _maybeShowTrialModal() {
-    if (widget.isGuest || _effectivelyGuest) return;
+    if (widget.isGuest || _effectivelyGuest || _premiumStatus?.isUnauthorized == true) return;
     if (_firstTimeTrialShown) return;
     if (_premiumStatus == null || _premiumStatus!.trialStarted || _premiumStatus!.hasActiveSubscription) return;
     _firstTimeTrialShown = true;
