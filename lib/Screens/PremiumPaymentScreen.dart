@@ -27,9 +27,13 @@ class PremiumPaymentScreen extends StatefulWidget {
   State<PremiumPaymentScreen> createState() => _PremiumPaymentScreenState();
 }
 
-/// Deep-link URL для результата оплаты (PayAnyWay редирект).
-const String _successUrl = 'climbing-events://premium/success';
-const String _failUrl = 'climbing-events://premium/fail';
+/// URL для результата оплаты (PayAnyWay редирект).
+/// Web: явно app subdomain (Uri.base.origin), чтобы пользователь вернулся в приложение, а не на основной сайт.
+/// Mobile: deep link в нативное приложение.
+String get _successUrl =>
+    kIsWeb ? '${Uri.base.origin}/premium/success' : 'climbing-events://premium/success';
+String get _failUrl =>
+    kIsWeb ? '${Uri.base.origin}/premium/fail' : 'climbing-events://premium/fail';
 
 /// Регулярка для валидации email (чек для чека самозанятого).
 bool _isValidEmail(String s) {

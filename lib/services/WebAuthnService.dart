@@ -187,7 +187,6 @@ class WebAuthnService {
       final id = data?['id']?.toString() ?? credential.id;
       return WebAuthnRegisterResult(credentialId: id);
     }
-
     if (registerResponse.statusCode == 401) {
       throw WebAuthnLoginException('Сессия истекла. Войдите снова.');
     }
@@ -264,6 +263,8 @@ class WebAuthnService {
           e.message,
         );
       }
+      rethrow;
+    } catch (e, st) {
       rethrow;
     }
   }
