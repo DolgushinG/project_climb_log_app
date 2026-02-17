@@ -1,14 +1,16 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/theme/app_theme.dart';
+import 'package:login_app/services/PremiumSubscriptionService.dart';
 
 import 'payment_iframe_stub.dart'
     if (dart.library.html) 'payment_iframe_web.dart' as impl;
 
 /// Экран с формой оплаты PayAnyWay внутри приложения (web/PWA).
 /// Использует iframe — если Moneta блокирует встраивание (X-Frame-Options), будет пустой экран.
-/// При редиректе на /premium/success или /premium/fail — лёгкие HTML-страницы шлют postMessage и закрывают экран.
+/// Два способа узнать об успехе: postMessage от /premium/success + polling GET /api/premium/status.
 class PaymentIframeScreen extends StatefulWidget {
   final String paymentUrl;
 
@@ -19,16 +21,46 @@ class PaymentIframeScreen extends StatefulWidget {
 }
 
 class _PaymentIframeScreenState extends State<PaymentIframeScreen> {
+  Timer? _pollTimer;
+  DateTime? _pollStartedAt;
+  static const _pollInterval = Duration(milliseconds: 2500);
+  static const _pollTimeout = Duration(minutes: 10);
+  final PremiumSubscriptionService _premiumService = PremiumSubscriptionService();
+
   @override
   void initState() {
     super.initState();
     if (kIsWeb) {
       impl.setupPaymentMessageListener(_onPaymentResult);
+      _startPolling();
     }
+  }
+
+  /// Fallback: postMessage из iframe может не сработать (редирект в новом окне и т.п.).
+  /// Опрашиваем API раз в 2.5 сек — webhook обновляет подписку при успешной оплате.
+  /// Таймаут 10 мин — затем просто перестаём опрашивать, пользователь может закрыть вручную.
+  void _startPolling() {
+    _pollTimer?.cancel();
+    _pollStartedAt = DateTime.now();
+    _pollTimer = Timer.periodic(_pollInterval, (_) async {
+      if (!mounted) return;
+      if (DateTime.now().difference(_pollStartedAt!) > _pollTimeout) {
+        _pollTimer?.cancel();
+        return;
+      }
+      final status = await _premiumService.getStatus();
+      if (!mounted) return;
+      if (status.hasActiveSubscription) {
+        _pollTimer?.cancel();
+        await _premiumService.invalidateStatusCache();
+        _onPaymentResult(true);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _pollTimer?.cancel();
     if (kIsWeb) {
       impl.disposePaymentMessageListener();
     }
@@ -37,6 +69,7 @@ class _PaymentIframeScreenState extends State<PaymentIframeScreen> {
 
   void _onPaymentResult(bool success) {
     if (!mounted) return;
+    _pollTimer?.cancel();
     Navigator.pop(context, success);
   }
 

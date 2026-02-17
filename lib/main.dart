@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -13,8 +15,22 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await RustorePushService.init();
-  runApp(MyApp());
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    if (kDebugMode) {
+      debugPrint('[FlutterError] ${details.exceptionAsString()}');
+      debugPrintStack(stackTrace: details.stack);
+    }
+  };
+  runZonedGuarded(() async {
+    await RustorePushService.init();
+    runApp(MyApp());
+  }, (error, stack) {
+    if (kDebugMode) {
+      debugPrint('[Uncaught] $error');
+      debugPrint('$stack');
+    }
+  });
 }
 
 /// Базовые домены для окружений
@@ -235,7 +251,7 @@ class _TokenCheckerState extends State<TokenChecker> {
       );
     }
     // После загрузки токена: без токена — гостевой режим (сразу в приложение), с токеном — полный MainScreen
-    return MainScreen(isGuest: token == null);
+    return MainScreen(isGuest: token == null || (token?.trim().isEmpty ?? true));
   }
 }
 

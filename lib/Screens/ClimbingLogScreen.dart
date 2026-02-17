@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:login_app/theme/app_theme.dart';
+import 'package:login_app/main.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/Screens/PremiumPaymentScreen.dart';
 
@@ -36,13 +37,15 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   final PremiumSubscriptionService _premiumService = PremiumSubscriptionService();
   PremiumStatus? _premiumStatus;
   late TabController _tabController;
+  /// Если true — родитель передал isGuest=false, но токена нет (устаревшая сессия/рассинхрон). Показываем landing.
+  bool _effectivelyGuest = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
-    _loadPremiumStatus();
+    _verifyTokenAndLoadPremium();
   }
 
   void _onTabChanged() {
@@ -106,6 +109,16 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
         return;
       }
     }
+  }
+
+  Future<void> _verifyTokenAndLoadPremium() async {
+    if (widget.isGuest) return;
+    final token = await getToken();
+    if ((token == null || token.trim().isEmpty) && mounted) {
+      setState(() => _effectivelyGuest = true);
+      return;
+    }
+    await _loadPremiumStatus();
   }
 
   Future<void> _loadPremiumStatus() async {
@@ -189,7 +202,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    if (widget.isGuest) {
+    if (widget.isGuest || _effectivelyGuest) {
       return const ClimbingLogLandingScreen();
     }
     final networkUnavailable = _premiumStatus?.networkUnavailable == true;
