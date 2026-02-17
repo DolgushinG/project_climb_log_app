@@ -81,7 +81,13 @@ class _PaymentIframeScreenState extends State<PaymentIframeScreen> {
         backgroundColor: AppColors.anthracite,
         leading: IconButton(
           icon: const Icon(Icons.close, color: Colors.white),
-          onPressed: () => Navigator.pop(context, true),
+          onPressed: () async {
+            // При ручном закрытии проверяем: оплатил ли пользователь (webhook мог успеть).
+            // Если подписка активна — success, иначе — отмена.
+            final status = await _premiumService.getStatus();
+            if (!mounted) return;
+            Navigator.pop(context, status.hasActiveSubscription);
+          },
         ),
         title: Text(
           'Оплата подписки',
