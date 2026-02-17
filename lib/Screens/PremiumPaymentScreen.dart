@@ -625,7 +625,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Подписка на 1 месяц',
+                  'Подписка на 1 месяц (30 дней)',
                   style: GoogleFonts.unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
