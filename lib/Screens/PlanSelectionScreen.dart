@@ -44,6 +44,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   bool _includeClimbingInDays = true;
   /// Фокус ОФП/СФП: balanced | sfp | ofp. По умолчанию balanced.
   String _ofpSfpFocus = 'balanced';
+  /// auto = бэк сам распределяет; manual = пользователь назначает ОФП/СФП по дням.
+  String _ofpSfpScheduleMode = 'auto';
+  /// Дни с ОФП (только при manual).
+  List<int> _ofpWeekdays = [];
+  /// Дни с СФП (только при manual).
+  List<int> _sfpWeekdays = [];
   bool _disclaimerAcknowledged = false;
   bool _disclaimerChecked = false;
 
@@ -171,6 +177,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     }
     final startStr = '${_startDate.year}-${_startDate.month.toString().padLeft(2, '0')}-${_startDate.day.toString().padLeft(2, '0')}';
     final sw = _scheduledWeekdays.isEmpty ? null : List<int>.from(_scheduledWeekdays);
+    final ofpSw = _ofpSfpScheduleMode == 'manual' ? List<int>.from(_ofpWeekdays) : null;
+    final sfpSw = _ofpSfpScheduleMode == 'manual' ? List<int>.from(_sfpWeekdays) : null;
 
     ActivePlan? plan;
     if (existing != null) {
@@ -181,13 +189,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         startDate: startStr,
         daysPerWeek: _daysPerWeek,
         scheduledWeekdays: sw,
+        ofpWeekdays: ofpSw,
+        sfpWeekdays: sfpSw,
         hasFingerboard: _hasFingerboard,
         injuries: _injuries.isEmpty ? null : List.from(_injuries),
         preferredStyle: _preferredStyle,
         experienceMonths: _experienceMonths,
         includeClimbingInDays: _includeClimbingInDays,
         availableMinutes: _availableMinutes,
-        ofpSfpFocus: _ofpSfpFocus,
+        ofpSfpFocus: _ofpSfpScheduleMode == 'auto' ? _ofpSfpFocus : null,
       );
     } else {
       plan = await _api.createPlan(
@@ -196,13 +206,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         startDate: startStr,
         daysPerWeek: _daysPerWeek,
         scheduledWeekdays: sw,
+        ofpWeekdays: ofpSw,
+        sfpWeekdays: sfpSw,
         hasFingerboard: _hasFingerboard,
         injuries: _injuries.isEmpty ? null : List.from(_injuries),
         preferredStyle: _preferredStyle,
         experienceMonths: _experienceMonths,
         includeClimbingInDays: _includeClimbingInDays,
         availableMinutes: _availableMinutes,
-        ofpSfpFocus: _ofpSfpFocus,
+        ofpSfpFocus: _ofpSfpScheduleMode == 'auto' ? _ofpSfpFocus : null,
       );
     }
 
@@ -501,9 +513,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               children: [
                 Icon(Icons.calendar_today, color: AppColors.mutedGold, size: 22),
                 const SizedBox(width: 12),
-                Text(
-                  '${_startDate.day.toString().padLeft(2, '0')}.${_startDate.month.toString().padLeft(2, '0')}.${_startDate.year}',
-                  style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+                Expanded(
+                  child: Text(
+                    '${_startDate.day.toString().padLeft(2, '0')}.${_startDate.month.toString().padLeft(2, '0')}.${_startDate.year}',
+                    style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+                  ),
                 ),
               ],
             ),
@@ -528,9 +542,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: [
               Icon(Icons.tune, color: AppColors.mutedGold, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'Персонализация',
-                style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'Персонализация',
+                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -562,8 +578,12 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
             ),
           const SizedBox(height: 16),
+          _buildOfpSfpDaysSection(),
+          const SizedBox(height: 16),
           _buildPersonalizationLabel('День = лазание + ОФП/СФП', 'Типичный порядок: 1–2 часа лазания, затем силовая'),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               ChoiceChip(
                 label: Text('Да', style: GoogleFonts.unbounded(fontSize: 12)),
@@ -573,7 +593,6 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 backgroundColor: AppColors.rowAlt,
                 labelStyle: TextStyle(color: _includeClimbingInDays ? AppColors.mutedGold : Colors.white70),
               ),
-              const SizedBox(width: 8),
               ChoiceChip(
                 label: Text('Нет, только ОФП/СФП', style: GoogleFonts.unbounded(fontSize: 12)),
                 selected: !_includeClimbingInDays,
@@ -584,38 +603,40 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 16),
-          _buildPersonalizationLabel('Фокус ОФП / СФП', 'Соотношение общей силы и специфической (хват, пальцы, тяга)'),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: _ofpSfpFocusOptions.map((e) {
-              final selected = _ofpSfpFocus == e.$1;
-              return GestureDetector(
-                onTap: () => setState(() => _ofpSfpFocus = e.$1),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: selected ? AppColors.mutedGold.withOpacity(0.4) : AppColors.rowAlt,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: selected ? AppColors.mutedGold : AppColors.graphite),
+          if (_ofpSfpScheduleMode == 'auto') ...[
+            const SizedBox(height: 16),
+            _buildPersonalizationLabel('Фокус ОФП / СФП', 'Соотношение общей силы и специфической (хват, пальцы, тяга)'),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: _ofpSfpFocusOptions.map((e) {
+                final selected = _ofpSfpFocus == e.$1;
+                return GestureDetector(
+                  onTap: () => setState(() => _ofpSfpFocus = e.$1),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: selected ? AppColors.mutedGold.withOpacity(0.4) : AppColors.rowAlt,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(color: selected ? AppColors.mutedGold : AppColors.graphite),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70)),
+                        const SizedBox(height: 2),
+                        SizedBox(
+                          width: 220,
+                          child: Text(e.$3, style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54, height: 1.3)),
+                        ),
+                      ],
+                    ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70)),
-                      const SizedBox(height: 2),
-                      SizedBox(
-                        width: 220,
-                        child: Text(e.$3, style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54, height: 1.3)),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
+                );
+              }).toList(),
+            ),
+          ],
           const SizedBox(height: 16),
           _buildPersonalizationLabel('Сколько времени на ОФП/СФП + растяжку?', 'Объём упражнений подстроится под выбранное время'),
           const SizedBox(height: 8),
@@ -636,7 +657,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ),
           const SizedBox(height: 16),
           _buildPersonalizationLabel('Фингерборд', 'Есть доступ к фингерборду?'),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
             children: [
               ChoiceChip(
                 label: Text('Да', style: GoogleFonts.unbounded(fontSize: 12)),
@@ -646,7 +669,6 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 backgroundColor: AppColors.rowAlt,
                 labelStyle: TextStyle(color: _hasFingerboard ? AppColors.mutedGold : Colors.white70),
               ),
-              const SizedBox(width: 8),
               ChoiceChip(
                 label: Text('Нет', style: GoogleFonts.unbounded(fontSize: 12)),
                 selected: !_hasFingerboard,
@@ -716,6 +738,130 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     );
   }
 
+  /// Возвращает 'ofp' | 'sfp' | 'climbing' для дня (только при manual).
+  String _sessionTypeForWeekday(int weekday) {
+    if (_ofpWeekdays.contains(weekday)) return 'ofp';
+    if (_sfpWeekdays.contains(weekday)) return 'sfp';
+    return 'climbing';
+  }
+
+  Widget _buildOfpSfpDaysSection() {
+    if (_scheduledWeekdays.isEmpty) return const SizedBox.shrink();
+    final neededOfp = _selectedTemplate?.ofpPerWeek ?? 2;
+    final neededSfp = _selectedTemplate?.sfpPerWeek ?? 1;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildPersonalizationLabel(
+          'Назначение дней: ОФП / СФП',
+          'Авто — бэк распределяет сам. Вручную — вы назначаете, в какой день ОФП, в какой СФП, в какой только лазание',
+        ),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text('Автоматически', style: GoogleFonts.unbounded(fontSize: 12)),
+              selected: _ofpSfpScheduleMode == 'auto',
+              onSelected: (_) => setState(() => _ofpSfpScheduleMode = 'auto'),
+              selectedColor: AppColors.mutedGold.withOpacity(0.4),
+              backgroundColor: AppColors.rowAlt,
+              labelStyle: TextStyle(color: _ofpSfpScheduleMode == 'auto' ? AppColors.mutedGold : Colors.white70),
+            ),
+            ChoiceChip(
+              label: Text('Указать вручную', style: GoogleFonts.unbounded(fontSize: 12)),
+              selected: _ofpSfpScheduleMode == 'manual',
+              onSelected: (_) => setState(() {
+                _ofpSfpScheduleMode = 'manual';
+                _ofpWeekdays = [];
+                _sfpWeekdays = [];
+                final days = List<int>.from(_scheduledWeekdays);
+                for (var i = 0; i < days.length; i++) {
+                  if (i < neededOfp) {
+                    _ofpWeekdays.add(days[i]);
+                  } else if (i < neededOfp + neededSfp) {
+                    _sfpWeekdays.add(days[i]);
+                  }
+                }
+                _ofpWeekdays.sort();
+                _sfpWeekdays.sort();
+              }),
+              selectedColor: AppColors.mutedGold.withOpacity(0.4),
+              backgroundColor: AppColors.rowAlt,
+              labelStyle: TextStyle(color: _ofpSfpScheduleMode == 'manual' ? AppColors.mutedGold : Colors.white70),
+            ),
+          ],
+        ),
+        if (_ofpSfpScheduleMode == 'manual') ...[
+          const SizedBox(height: 12),
+          ..._scheduledWeekdays.map((w) => _buildDayAssignmentRow(w)),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'ОФП: ${_ofpWeekdays.length}×, СФП: ${_sfpWeekdays.length}×, только лазание: ${_scheduledWeekdays.length - _ofpWeekdays.length - _sfpWeekdays.length}×',
+              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildDayAssignmentRow(int weekday) {
+    final current = _sessionTypeForWeekday(weekday);
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 36,
+            child: Text(
+              _weekdayNames[weekday],
+              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+            ),
+          ),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: [
+              _buildSessionTypeChip(weekday, 'ofp', 'ОФП', current),
+              _buildSessionTypeChip(weekday, 'sfp', 'СФП', current),
+              _buildSessionTypeChip(weekday, 'climbing', 'Лазание', current),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSessionTypeChip(int weekday, String type, String label, String current) {
+    final selected = current == type;
+    return ChoiceChip(
+      label: Text(label, style: GoogleFonts.unbounded(fontSize: 11)),
+      selected: selected,
+      onSelected: (_) => setState(() {
+        _ofpWeekdays.remove(weekday);
+        _sfpWeekdays.remove(weekday);
+        if (type == 'ofp') {
+          _ofpWeekdays.add(weekday);
+          _ofpWeekdays.sort();
+        } else if (type == 'sfp') {
+          _sfpWeekdays.add(weekday);
+          _sfpWeekdays.sort();
+        }
+      }),
+      selectedColor: type == 'ofp'
+          ? AppColors.mutedGold.withOpacity(0.4)
+          : type == 'sfp'
+              ? Colors.orange.shade700.withOpacity(0.3)
+              : AppColors.graphite,
+      backgroundColor: AppColors.rowAlt,
+      labelStyle: TextStyle(
+        color: selected ? (type == 'ofp' ? AppColors.mutedGold : type == 'sfp' ? Colors.orange : Colors.white70) : Colors.white54,
+      ),
+    );
+  }
+
   Widget _buildPersonalizationLabel(String label, String hint) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
@@ -747,8 +893,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           if (v) {
             _scheduledWeekdays.add(weekday);
             _scheduledWeekdays.sort();
+            if (_ofpSfpScheduleMode == 'manual') {
+              _ofpWeekdays.add(weekday);
+              _ofpWeekdays.sort();
+            }
           } else {
             _scheduledWeekdays.remove(weekday);
+            if (_ofpSfpScheduleMode == 'manual') {
+              _ofpWeekdays.remove(weekday);
+              _sfpWeekdays.remove(weekday);
+            }
           }
           _daysPerWeek = _scheduledWeekdays.length;
         });
@@ -775,9 +929,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: [
               Icon(Icons.info_outline, color: Colors.orange.shade300, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'Важная информация',
-                style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'Важная информация',
+                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -824,9 +980,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: [
               Icon(Icons.info_outline, color: AppColors.mutedGold, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'О плане',
-                style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'О плане',
+                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -855,9 +1013,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: [
               Icon(Icons.lightbulb_outline, color: AppColors.mutedGold, size: 20),
               const SizedBox(width: 8),
-              Text(
-                'Рекомендации',
-                style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'Рекомендации',
+                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ],
           ),

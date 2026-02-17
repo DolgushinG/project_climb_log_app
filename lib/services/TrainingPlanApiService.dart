@@ -77,6 +77,8 @@ class TrainingPlanApiService {
     String? startDate,
     int? daysPerWeek,
     List<int>? scheduledWeekdays,
+    List<int>? ofpWeekdays,
+    List<int>? sfpWeekdays,
     bool? hasFingerboard,
     List<String>? injuries,
     String? preferredStyle,
@@ -95,6 +97,8 @@ class TrainingPlanApiService {
       if (startDate != null) body['start_date'] = startDate;
       if (daysPerWeek != null) body['days_per_week'] = daysPerWeek;
       if (scheduledWeekdays != null && scheduledWeekdays.isNotEmpty) body['scheduled_weekdays'] = scheduledWeekdays;
+      if (ofpWeekdays != null) body['ofp_weekdays'] = ofpWeekdays;
+      if (sfpWeekdays != null) body['sfp_weekdays'] = sfpWeekdays;
       if (hasFingerboard != null) body['has_fingerboard'] = hasFingerboard;
       if (injuries != null && injuries.isNotEmpty) body['injuries'] = injuries;
       if (preferredStyle != null) body['preferred_style'] = preferredStyle;
@@ -126,6 +130,8 @@ class TrainingPlanApiService {
     String? startDate,
     int? daysPerWeek,
     List<int>? scheduledWeekdays,
+    List<int>? ofpWeekdays,
+    List<int>? sfpWeekdays,
     bool? hasFingerboard,
     List<String>? injuries,
     String? preferredStyle,
@@ -145,6 +151,8 @@ class TrainingPlanApiService {
       if (startDate != null) body['start_date'] = startDate;
       if (daysPerWeek != null) body['days_per_week'] = daysPerWeek;
       if (scheduledWeekdays != null && scheduledWeekdays.isNotEmpty) body['scheduled_weekdays'] = scheduledWeekdays;
+      if (ofpWeekdays != null) body['ofp_weekdays'] = ofpWeekdays;
+      if (sfpWeekdays != null) body['sfp_weekdays'] = sfpWeekdays;
       if (hasFingerboard != null) body['has_fingerboard'] = hasFingerboard;
       if (injuries != null && injuries.isNotEmpty) body['injuries'] = injuries;
       if (preferredStyle != null) body['preferred_style'] = preferredStyle;

@@ -106,6 +106,7 @@ class MyApp extends StatelessWidget {
           indicatorSize: TabBarIndicatorSize.tab,
         ),
         snackBarTheme: baseTheme.snackBarTheme.copyWith(
+          backgroundColor: AppColors.cardDark,
           contentTextStyle: const TextStyle(
             color: Colors.white,
             fontSize: 14,
