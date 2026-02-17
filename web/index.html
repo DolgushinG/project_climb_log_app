@@ -129,6 +129,14 @@
       0% { transform: translateX(-100%); }
       100% { transform: translateX(350%); }
     }
+
+    @media (max-width: 640px), (max-height: 500px) {
+      #loading .logo { font-size: 36px; margin-bottom: 12px; letter-spacing: 1.5px; }
+      #loading .tagline { font-size: 16px; max-width: 300px; margin-bottom: 28px; }
+      #loading .loader { width: 80px; height: 80px; }
+      #loading .loader::before { width: 46px; height: 46px; }
+      #loading .progress-bar { width: 260px; height: 6px; margin-top: 32px; }
+    }
   </style>
 </head>
 <body>

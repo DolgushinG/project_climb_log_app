@@ -79,11 +79,18 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
     return 'дней';
   }
 
-  Future<void> _openUrl(String url) async {
+  Future<bool> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      // PWA на iOS: вкладок нет. Открываем в той же вкладке (_self) —
+      // форма PayAnyWay заменит экран, после оплаты redirect на success URL вернёт в приложение.
+      return await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+        webOnlyWindowName: kIsWeb ? '_self' : null,
+      );
     }
+    return false;
   }
 
   Future<void> _onPayPressed() async {
@@ -153,7 +160,38 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
       );
       if (!mounted) return;
       if (paymentUrl != null && paymentUrl.isNotEmpty) {
-        await _openUrl(paymentUrl);
+        final opened = await _openUrl(paymentUrl);
+        if (!mounted) return;
+        if (opened) {
+          if (kIsWeb) {
+            // PWA: _self — страница оплаты заменит экран, redirect на success вернёт в приложение.
+            // Диалог не нужен, pop не успеем — мы уже ушли.
+            return;
+          }
+          // Мобильное: новая вкладка/окно — показываем подсказку.
+          await showDialog<void>(
+            context: context,
+            barrierDismissible: false,
+            builder: (ctx) => AlertDialog(
+              backgroundColor: AppColors.cardDark,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              title: Text(
+                'Страница оплаты открыта',
+                style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+              content: Text(
+                'Перейдите в открывшееся окно, завершите оплату и вернитесь в приложение.',
+                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text('Вернуться', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+                ),
+              ],
+            ),
+          );
+        }
         if (mounted) Navigator.pop(context, true);
       } else {
         setState(() {
