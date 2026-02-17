@@ -131,6 +131,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   }
 
   void _maybeShowTrialModal() {
+    if (widget.isGuest || _effectivelyGuest) return;
     if (_firstTimeTrialShown) return;
     if (_premiumStatus == null || _premiumStatus!.trialStarted || _premiumStatus!.hasActiveSubscription) return;
     _firstTimeTrialShown = true;
