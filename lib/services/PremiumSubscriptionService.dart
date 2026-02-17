@@ -98,6 +98,14 @@ class PremiumSubscriptionService {
   /// Кэш статуса: использовать при отсутствии сети. TTL 24 часа.
   static const Duration _cacheTtl = Duration(hours: 24);
 
+  /// Инвалидирует кэш статуса (например, после оплаты — чтобы следующий getStatus получил свежие данные).
+  Future<void> invalidateStatusCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyStatusCache);
+    } catch (_) {}
+  }
+
   Future<PremiumStatus> getStatus() async {
     try {
       final token = await getToken();

@@ -70,29 +70,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             context,
             MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
           );
-          if (mounted) {
-            final hadSubscription = _premiumStatus?.hasActiveSubscription ?? false;
-            final st = await PremiumSubscriptionService().getStatus();
-            setState(() => _premiumStatus = st);
-            if (paymentSuccess == true && st.hasActiveSubscription && !hadSubscription) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    'Подписка оформлена! Спасибо за поддержку.',
-                    style: GoogleFonts.unbounded(color: Colors.white),
-                  ),
-                  behavior: SnackBarBehavior.floating,
-                  backgroundColor: AppColors.successMuted,
-                ),
-              );
-            }
-            if (paymentSuccess == true) {
-              Future.delayed(const Duration(seconds: 2), () async {
-                if (!mounted) return;
-                final st2 = await PremiumSubscriptionService().getStatus();
-                if (mounted) setState(() => _premiumStatus = st2);
-              });
-            }
+          if (mounted && paymentSuccess == true) {
+            await _onPaymentSuccessReturn();
           }
         },
         borderRadius: BorderRadius.circular(12),
@@ -141,6 +120,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (n == 1) return 'день';
     if (n >= 2 && n <= 4) return 'дня';
     return 'дней';
+  }
+
+  /// Вызывается после возврата из PremiumPaymentScreen с paymentSuccess=true.
+  /// Сразу обновляет статус, при ожидании webhook — опрашивает и показывает сообщение об активации.
+  Future<void> _onPaymentSuccessReturn() async {
+    final service = PremiumSubscriptionService();
+    await service.invalidateStatusCache();
+    final hadSubscription = _premiumStatus?.hasActiveSubscription ?? false;
+    var st = await service.getStatus();
+    if (!mounted) return;
+    setState(() => _premiumStatus = st);
+    if (st.hasActiveSubscription && !hadSubscription) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.successMuted,
+        ),
+      );
+      return;
+    }
+    // Webhook ещё не обработан — показываем ожидание и опрашиваем
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: GoogleFonts.unbounded(color: Colors.white)),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.mutedGold.withOpacity(0.9),
+      ),
+    );
+    for (var i = 0; i < 8 && mounted; i++) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      st = await service.getStatus();
+      if (!mounted) return;
+      setState(() => _premiumStatus = st);
+      if (st.hasActiveSubscription) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.successMuted,
+          ),
+        );
+        return;
+      }
+    }
   }
 
   void _showNetworkUnavailableDialog() {

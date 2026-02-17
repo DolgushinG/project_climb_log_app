@@ -67,24 +67,44 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   }
 
   Future<void> _onReturnFromPremiumPayment(bool paymentSuccess) async {
+    if (!paymentSuccess || !mounted) return;
     final hadAccess = _premiumStatus?.hasAccess ?? false;
+    await _premiumService.invalidateStatusCache();
     await _loadPremiumStatus();
-    if (paymentSuccess && mounted) {
-      if (_premiumStatus?.hasActiveSubscription == true && !hadAccess) {
+    if (!mounted) return;
+    if (_premiumStatus?.hasActiveSubscription == true && !hadAccess) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: AppColors.successMuted,
+        ),
+      );
+      return;
+    }
+    // Webhook ещё не обработан — показываем ожидание и опрашиваем
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: GoogleFonts.unbounded(color: Colors.white)),
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: AppColors.mutedGold.withOpacity(0.9),
+      ),
+    );
+    for (var i = 0; i < 8 && mounted; i++) {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted) return;
+      await _loadPremiumStatus();
+      if (!mounted) return;
+      if (_premiumStatus?.hasActiveSubscription == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              'Подписка оформлена! Спасибо за поддержку.',
-              style: GoogleFonts.unbounded(color: Colors.white),
-            ),
+            content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.successMuted,
           ),
         );
+        return;
       }
-      Future.delayed(const Duration(seconds: 2), () {
-        if (mounted) _loadPremiumStatus();
-      });
     }
   }
 
