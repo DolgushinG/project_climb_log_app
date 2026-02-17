@@ -28,6 +28,14 @@ jobs:
       - name: Build web
         run: flutter build web --release
 
+      # Flutter build web не копирует web/premium/ — страницы success/fail для postMessage из iframe.
+      # Без них PayAnyWay редирект на /premium/success не загружает нужный HTML, postMessage не срабатывает.
+      - name: Copy premium success/fail pages
+        run: |
+          mkdir -p build/web/premium/success build/web/premium/fail
+          cp web/premium/success/index.html build/web/premium/success/
+          cp web/premium/fail/index.html build/web/premium/fail/
+
       - name: Deploy to server
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}

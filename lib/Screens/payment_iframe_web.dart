@@ -8,10 +8,15 @@ int _iframeCounter = 0;
 
 void _handleMessage(web.Event event, void Function(bool success) onResult) {
   final e = event as web.MessageEvent;
+  // Только от своих страниц success/fail (same-origin)
+  final origin = e.origin;
+  final selfOrigin = web.window.location.origin;
+  if (origin != selfOrigin) return;
   final data = e.data;
-  if (data == 'payment_success') {
+  final s = data is String ? data : data?.toString();
+  if (s == 'payment_success') {
     onResult(true);
-  } else if (data == 'payment_fail') {
+  } else if (s == 'payment_fail') {
     onResult(false);
   }
 }

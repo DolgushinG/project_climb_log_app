@@ -39,7 +39,7 @@
     (function() {
       try {
         if (window.parent !== window) {
-          window.parent.postMessage('payment_fail', '*');
+          window.parent.postMessage('payment_fail', window.location.origin);
         }
       } catch (e) {}
     })();

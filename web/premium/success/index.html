@@ -40,7 +40,7 @@
     (function() {
       try {
         if (window.parent !== window) {
-          window.parent.postMessage('payment_success', '*');
+          window.parent.postMessage('payment_success', window.location.origin);
         }
       } catch (e) {}
     })();
