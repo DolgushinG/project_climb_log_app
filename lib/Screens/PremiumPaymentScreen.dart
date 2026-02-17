@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -103,7 +104,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
     });
     try {
       // Android: нативный PayAnyWay SDK (WebView в приложении)
-      if (Platform.isAndroid) {
+      if (!kIsWeb && Platform.isAndroid) {
         final token = await getToken();
         if (token == null) {
           setState(() {
@@ -134,7 +135,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           return;
         }
       }
-      // Fallback: backend возвращает payment_url (или iOS / не сконфигурирован SDK)
+      // Fallback: backend возвращает payment_url (или iOS / web / не сконфигурирован SDK)
       final token = await getToken();
       if (token == null) {
         setState(() {
@@ -156,7 +157,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
         if (mounted) Navigator.pop(context, true);
       } else {
         setState(() {
-          _error = Platform.isAndroid
+          _error = (!kIsWeb && Platform.isAndroid)
               ? 'Настройте PayAnyWay в android/app/src/main/assets/android_basic_settings.ini (monetasdk_account_id)'
               : 'Платёжная система временно недоступна. Попробуйте позже.';
           _isLoading = false;

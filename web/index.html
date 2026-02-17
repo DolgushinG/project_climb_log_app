@@ -144,14 +144,39 @@
   <!-- ?v= берётся из pubspec (version: X.Y.Z+BUILD). Перед билдом: ./scripts/web_version_bump.sh -->
   <script src="flutter_bootstrap.js?v=3" async></script>
   <script>
+    var flutterLoaded = false;
+    var CHECK_INTERVAL_MS = 2500;  /* проверять каждые 2.5 сек */
+    var MAX_RELOAD_ATTEMPTS = 3;  /* всего 3 попытки: 1 начальная + 2 перезагрузки */
+    var RELOAD_KEY = 'flutter_load_attempts';
+
     function hideLoading() {
+      flutterLoaded = true;
+      try { sessionStorage.removeItem(RELOAD_KEY); } catch (e) {}
       var loading = document.getElementById('loading');
       if (loading) {
         loading.classList.add('hidden');
         setTimeout(function() { loading.remove(); }, 400);
       }
     }
+
     window.addEventListener('flutter-first-frame', hideLoading);
+
+    /* Периодическая проверка: если через 2.5 сек не загрузилось — перезагрузить, до 3 попыток */
+    setTimeout(function checkAndRetry() {
+      if (flutterLoaded) return;
+      var attempts = 0;
+      try {
+        var v = sessionStorage.getItem(RELOAD_KEY);
+        attempts = v ? parseInt(v, 10) : 0;
+      } catch (e) { attempts = 0; }
+      if (attempts >= MAX_RELOAD_ATTEMPTS) {
+        hideLoading(); /* показываем приложение или ошибку, не зацикливаем */
+        return;
+      }
+      try { sessionStorage.setItem(RELOAD_KEY, String(attempts + 1)); } catch (e) {}
+      location.reload();
+    }, CHECK_INTERVAL_MS);
+
     setTimeout(hideLoading, 15000); /* fallback на случай ошибки */
   </script>
 </body>

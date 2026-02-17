@@ -394,16 +394,17 @@ class PremiumSubscriptionService {
     String? successUrl,
     String? failUrl,
   }) async {
+    final url = '$DOMAIN/api/premium/create-payment';
+    final body = <String, dynamic>{
+      'amount': amount,
+      'currency': currency,
+      'email': email,
+    };
+    if (successUrl != null && successUrl.isNotEmpty) body['success_url'] = successUrl;
+    if (failUrl != null && failUrl.isNotEmpty) body['fail_url'] = failUrl;
     try {
-      final body = <String, dynamic>{
-        'amount': amount,
-        'currency': currency,
-        'email': email,
-      };
-      if (successUrl != null && successUrl.isNotEmpty) body['success_url'] = successUrl;
-      if (failUrl != null && failUrl.isNotEmpty) body['fail_url'] = failUrl;
       final resp = await http.post(
-        Uri.parse('$DOMAIN/api/premium/create-payment'),
+        Uri.parse(url),
         headers: {
           'Authorization': 'Bearer $token',
           'Content-Type': 'application/json',
@@ -414,6 +415,7 @@ class PremiumSubscriptionService {
         final data = jsonDecode(resp.body) as Map<String, dynamic>?;
         return data?['payment_url']?.toString();
       }
+      return null;
     } catch (_) {}
     return null;
   }
