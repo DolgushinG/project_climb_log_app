@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -11,13 +13,10 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/services/PayAnyWayNativeService.dart';
 import 'package:login_app/Screens/PremiumPaymentHistoryScreen.dart';
+import 'package:login_app/Screens/PaymentIframeScreen.dart';
 
 /// URL оферты — публичный договор на премиум-подписку
 const String offertaUrl = 'https://climbing-events.ru/offerta-premium';
-
-/// Стоимость подписки (из оферты)
-/// В debug-сборке — 10 ₽ для теста платежей; в release — 199 ₽
-int get subscriptionPriceRub => kDebugMode ? 10 : 199;
 
 /// Экран оплаты премиум-подписки.
 /// Пояснение, подтверждение, ссылка на оферту, сумма, переход на платёж PayAnyWay.
@@ -49,13 +48,20 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
   final FocusNode _emailFocusNode = FocusNode();
   bool _isLoading = false;
   String? _error;
+  String? _paymentUrlForCopy;
   PremiumStatus? _premiumStatus;
   bool _statusLoading = true;
+  String _buildInfo = '';
 
   @override
   void initState() {
     super.initState();
     _loadStatus();
+    if (kIsWeb) {
+      PackageInfo.fromPlatform().then((info) {
+        if (mounted) setState(() => _buildInfo = '${info.version}+${info.buildNumber}');
+      });
+    }
   }
 
   @override
@@ -73,6 +79,9 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
     });
   }
 
+  /// Стоимость подписки — из бэкенда (GET /api/premium/status), fallback 199.
+  int get _price => _premiumStatus?.subscriptionPriceRub ?? 199;
+
   String _dayWord(int n) {
     if (n % 10 == 1 && n % 100 != 11) return 'день';
     if (n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20)) return 'дня';
@@ -82,12 +91,12 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
   Future<bool> _openUrl(String url) async {
     final uri = Uri.parse(url);
     if (await canLaunchUrl(uri)) {
-      // PWA на iOS: вкладок нет. Открываем в той же вкладке (_self) —
-      // форма PayAnyWay заменит экран, после оплаты redirect на success URL вернёт в приложение.
+      // PWA: вкладок нет. _blank → откроется в системном браузере (Safari).
+      // _self → замена экрана (могут блокировать). Пробуем _blank.
       return await launchUrl(
         uri,
         mode: LaunchMode.externalApplication,
-        webOnlyWindowName: kIsWeb ? '_self' : null,
+        webOnlyWindowName: kIsWeb ? '_blank' : null,
       );
     }
     return false;
@@ -120,7 +129,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           });
           return;
         }
-        final amount = subscriptionPriceRub.toDouble();
+        final amount = _price.toDouble();
         final orderId = await _service.registerOrder(
           token,
           amount: amount,
@@ -141,6 +150,9 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           Navigator.pop(context, true);
           return;
         }
+        // Пользователь нажал «Назад» — остаёмся на экране, не открываем браузер
+        setState(() => _isLoading = false);
+        return;
       }
       // Fallback: backend возвращает payment_url (или iOS / web / не сконфигурирован SDK)
       final token = await getToken();
@@ -154,44 +166,37 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
       final paymentUrl = await _service.createPayment(
         token,
         email: email,
-        amount: subscriptionPriceRub.toDouble(),
+        amount: _price.toDouble(),
         successUrl: _successUrl,
         failUrl: _failUrl,
       );
       if (!mounted) return;
       if (paymentUrl != null && paymentUrl.isNotEmpty) {
-        final opened = await _openUrl(paymentUrl);
-        if (!mounted) return;
-        if (opened) {
-          if (kIsWeb) {
-            // PWA: _self — страница оплаты заменит экран, redirect на success вернёт в приложение.
-            // Диалог не нужен, pop не успеем — мы уже ушли.
-            return;
-          }
-          // Мобильное: новая вкладка/окно — показываем подсказку.
-          await showDialog<void>(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              backgroundColor: AppColors.cardDark,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text(
-                'Страница оплаты открыта',
-                style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-              ),
-              content: Text(
-                'Перейдите в открывшееся окно, завершите оплату и вернитесь в приложение.',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  child: Text('Вернуться', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
-                ),
-              ],
+        if (kIsWeb) {
+          // Web/PWA: открываем форму оплаты ВНУТРИ приложения через iframe.
+          setState(() => _isLoading = false);
+          if (!mounted) return;
+          final result = await Navigator.push<bool>(
+            context,
+            MaterialPageRoute(
+              builder: (_) => PaymentIframeScreen(paymentUrl: paymentUrl),
+              fullscreenDialog: true,
             ),
           );
+          if (mounted && result == true) Navigator.pop(context, true);
+          return;
         }
+        final opened = await _openUrl(paymentUrl);
+        if (!mounted) return;
+        if (!opened) {
+          setState(() {
+            _error = 'Не удалось открыть страницу оплаты.';
+            _paymentUrlForCopy = paymentUrl;
+            _isLoading = false;
+          });
+          return;
+        }
+        setState(() => _isLoading = false);
         if (mounted) Navigator.pop(context, true);
       } else {
         setState(() {
@@ -230,6 +235,11 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          if (_buildInfo.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(right: 8, top: 16),
+              child: Text(_buildInfo, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38)),
+            ),
           TextButton(
             onPressed: () => Navigator.push(
               context,
@@ -269,16 +279,36 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                               color: Colors.red.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            child: Row(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(Icons.error_outline, color: Colors.redAccent),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    _error!,
-                                    style: GoogleFonts.unbounded(color: Colors.redAccent, fontSize: 13),
-                                  ),
+                                Row(
+                                  children: [
+                                    const Icon(Icons.error_outline, color: Colors.redAccent),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        _error!,
+                                        style: GoogleFonts.unbounded(color: Colors.redAccent, fontSize: 13),
+                                      ),
+                                    ),
+                                  ],
                                 ),
+                                if (_paymentUrlForCopy != null) ...[
+                                  const SizedBox(height: 12),
+                                  TextButton.icon(
+                                    onPressed: () async {
+                                      await Clipboard.setData(ClipboardData(text: _paymentUrlForCopy!));
+                                      if (mounted) {
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(content: Text('Ссылка скопирована', style: GoogleFonts.unbounded(color: Colors.white))),
+                                        );
+                                      }
+                                    },
+                                    icon: const Icon(Icons.copy, size: 18, color: AppColors.mutedGold),
+                                    label: Text('Скопировать ссылку и открыть в Safari', style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold)),
+                                  ),
+                                ],
                               ],
                             ),
                           ),
@@ -617,7 +647,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           ),
           const SizedBox(width: 12),
           Text(
-            '$subscriptionPriceRub ₽',
+            '$_price ₽',
             style: GoogleFonts.unbounded(
               fontSize: 22,
               fontWeight: FontWeight.w700,
@@ -715,7 +745,12 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             prefixIcon: Icon(Icons.email_outlined, color: AppColors.mutedGold, size: 22),
           ),
           onChanged: (_) {
-            if (_error != null) setState(() => _error = null);
+            if (_error != null || _paymentUrlForCopy != null) {
+              setState(() {
+                _error = null;
+                _paymentUrlForCopy = null;
+              });
+            }
           },
         ),
         const SizedBox(height: 6),
@@ -746,7 +781,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
               ),
             )
           : Text(
-              'Оплатить $subscriptionPriceRub ₽',
+              'Оплатить $_price ₽',
               style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
     );

@@ -10,6 +10,7 @@ import '../main.dart';
 import '../theme/app_theme.dart';
 import '../services/cache_service.dart';
 import '../utils/network_error_helper.dart';
+import '../utils/session_error_helper.dart';
 
 int? _toInt(dynamic v) {
   if (v == null) return null;
@@ -152,10 +153,10 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
           _error = null;
         });
       } else if (r.statusCode == 401 || r.statusCode == 419) {
-        setState(() {
-          _isLoading = false;
-          _error = 'Сессия истекла';
-        });
+        if (mounted) {
+          setState(() => _isLoading = false);
+          redirectToLoginOnSessionError(context);
+        }
       } else {
         setState(() {
           _isLoading = false;

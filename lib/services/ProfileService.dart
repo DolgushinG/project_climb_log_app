@@ -2,11 +2,11 @@ import 'dart:convert';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import '../login.dart';
 import '../main.dart';
 import '../models/UserProfile.dart';
 import 'cache_service.dart';
 import '../utils/network_error_helper.dart';
+import '../utils/session_error_helper.dart';
 
 class ProfileService {
   final String baseUrl;
@@ -34,17 +34,7 @@ class ProfileService {
         return UserProfile.fromJson(jsonDecode(response.body));
       }
       if (response.statusCode == 401 || response.statusCode == 419) {
-        if (context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(),
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка сессии')),
-          );
-        }
+        if (context.mounted) redirectToLoginOnSessionError(context);
         return null;
       }
       throw Exception('Ошибка загрузки профиля (${response.statusCode})');
@@ -91,17 +81,7 @@ class ProfileService {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
       if (response.statusCode == 401 || response.statusCode == 419) {
-        if (context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(),
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка сессии')),
-          );
-        }
+        if (context.mounted) redirectToLoginOnSessionError(context);
         return null;
       }
       throw Exception('Ошибка загрузки аналитики');

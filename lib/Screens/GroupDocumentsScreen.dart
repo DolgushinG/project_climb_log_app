@@ -12,6 +12,7 @@ import '../main.dart';
 import '../theme/app_theme.dart';
 import '../models/GroupDocumentsModels.dart';
 import '../utils/network_error_helper.dart';
+import '../utils/session_error_helper.dart';
 
 class GroupDocumentsScreen extends StatefulWidget {
   final int eventId;
@@ -74,12 +75,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
           setState(() => _error = 'Неверный формат ответа');
         }
       } else if (r.statusCode == 401 || r.statusCode == 419) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-        }
+        if (mounted) redirectToLoginOnSessionError(context);
       } else if (r.statusCode == 404) {
         if (!silent) setState(() => _error = 'Данные не найдены');
       } else {

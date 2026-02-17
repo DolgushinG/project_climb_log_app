@@ -8,6 +8,7 @@ import android.net.Uri;
 import android.util.Log;
 import android.webkit.URLUtil;
 import android.os.Build;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -96,6 +97,16 @@ public class MonetaSdk {
         webView.getSettings().setLoadWithOverviewMode(true);
         webView.getSettings().setUseWideViewPort(true);
         webView.getSettings().setDomStorageEnabled(true);
+        // Блокировать window.open() — страница Moneta при закрытии может открывать браузер.
+        webView.getSettings().setSupportMultipleWindows(true);
+        webView.getSettings().setJavaScriptCanOpenWindowsAutomatically(true);
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public boolean onCreateWindow(WebView view, boolean isDialog, boolean isUserGesture, android.os.Message resultMsg) {
+                // Возвращаем false — не открывать новое окно/браузер.
+                return false;
+            }
+        });
         webView.setInitialScale(1);
         webView.setWebViewClient(new PaymentWebViewClient(context, mntSuccessUrl, mntFailUrl));
         webView.loadUrl(queryString);
@@ -177,7 +188,11 @@ public class MonetaSdk {
                 return true;
             }
             // СБП и банковские приложения: bank110000000005://, sbp:// и др.
+            // Не открывать внешние приложения, если Activity закрывается (пользователь нажал «Назад»).
             if (!URLUtil.isNetworkUrl(url)) {
+                if (context instanceof Activity && ((Activity) context).isFinishing()) {
+                    return true;
+                }
                 try {
                     Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
                     if (!(context instanceof Activity)) {

@@ -11,6 +11,7 @@ import '../login.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
+import '../utils/session_error_helper.dart';
 import 'GroupCheckoutScreen.dart';
 import 'GroupDocumentsScreen.dart';
 import 'ProfileEditScreen.dart';
@@ -87,12 +88,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           });
         }
       } else if (r.statusCode == 401 || r.statusCode == 419) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-        }
+        if (mounted) redirectToLoginOnSessionError(context);
       } else if (r.statusCode == 404) {
         setState(() {
           _error = 'Групповая регистрация недоступна для этого события';

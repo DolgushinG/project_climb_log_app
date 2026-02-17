@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:google_fonts/google_fonts.dart';
 import '../login.dart';
 import '../models/Category.dart';
+import '../utils/session_error_helper.dart';
 import '../models/SportCategory.dart';
 import '../theme/app_theme.dart';
 
@@ -102,15 +103,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           });
         }
       } else if (response.statusCode == 401 || response.statusCode == 419) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LoginScreen(),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сессии')),
-        );
+        redirectToLoginOnSessionError(context);
       } else {
         _showNotification('Ошибка при получении статуса', Colors.red);
       }
@@ -184,15 +177,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           widget.onNeedCheckout!(widget.event_id);
         }
       } else if (response.statusCode == 401 || response.statusCode == 419) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LoginScreen(),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сессии')),
-        );
+        redirectToLoginOnSessionError(context);
       } else {
         _handleError(message.isNotEmpty ? message : 'Ошибка регистрации');
       }
@@ -281,15 +266,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         }
         widget.onParticipationStatusChanged();
       } else if (response.statusCode == 401 || response.statusCode == 419) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => LoginScreen(),
-          ),
-        );
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Ошибка сессии')),
-        );
+        redirectToLoginOnSessionError(context);
       } else {
         _handleWaitlistError(message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания');
       }

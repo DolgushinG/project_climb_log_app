@@ -26,6 +26,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:login_app/services/cache_service.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/utils/network_error_helper.dart';
+import 'package:login_app/utils/session_error_helper.dart';
 import 'package:login_app/widgets/top_notification_banner.dart';
 String _normalizePosterPath(String path) {
   if (path.isEmpty) return path;
@@ -325,18 +326,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       if ((response.statusCode == 401 || response.statusCode == 419) && !widget.isGuest) {
         if (mounted) {
           setState(() => _isLoading = false);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(),
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Ошибка сессии', style: TextStyle(color: Colors.white)),
-              backgroundColor: Colors.red,
-            ),
-          );
+          redirectToLoginOnSessionError(context);
         }
         return;
       }
@@ -3117,20 +3107,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           }
         }
       } else if ((response.statusCode == 401 || response.statusCode == 419) && !widget.isGuest) {
-        if (mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(),
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Ошибка сессии', style: TextStyle(color: Colors.white)),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        if (mounted) redirectToLoginOnSessionError(context);
       }
     } catch (_) {
       // Офлайн или ошибка сети — оставляем данные из кэша, ничего не перезаписываем
@@ -3300,18 +3277,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       ),
       );
     } else if (response.statusCode == 401 || response.statusCode == 419) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => LoginScreen(),
-        ),
-      );
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Ошибка сессии', style: TextStyle(color: Colors.white)),
-              backgroundColor: Colors.red,
-            ),
-          );
+      redirectToLoginOnSessionError(context);
     } else {
       // Ошибка при отмене регистрации
       ScaffoldMessenger.of(context).showSnackBar(

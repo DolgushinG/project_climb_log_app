@@ -13,6 +13,7 @@ import '../login.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
+import '../utils/session_error_helper.dart';
 import 'GroupDocumentsScreen.dart';
 
 class GroupCheckoutScreen extends StatefulWidget {
@@ -75,12 +76,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           setState(() => _error = 'Неверный формат ответа');
         }
       } else if (r.statusCode == 401 || r.statusCode == 419) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-        }
+        if (mounted) redirectToLoginOnSessionError(context);
       } else if (r.statusCode == 404) {
         if (!silent) setState(() => _error = 'Данные группы не найдены');
       } else {
@@ -177,12 +173,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
         }
         await _loadData(silent: true);
       } else if (r.statusCode == 401) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-        }
+        if (mounted) redirectToLoginOnSessionError(context);
       } else {
         final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
         _showSnack(_formatSavePackageError(msg), isError: true);

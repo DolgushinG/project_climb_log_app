@@ -3,10 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
-import '../login.dart';
 import '../main.dart';
+import '../utils/session_error_helper.dart';
 import '../models/RelatedUser.dart';
-import '../login.dart';
 import '../utils/network_error_helper.dart';
 
 class RelatedUsersService {
@@ -41,13 +40,7 @@ class RelatedUsersService {
         return RelatedUsersResponse(users: users, sportCategories: sportCategories);
       }
       if (response.statusCode == 401 || response.statusCode == 419) {
-        if (context.mounted) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ошибка сессии')));
-        }
+        if (context.mounted) redirectToLoginOnSessionError(context);
         throw Exception('Ошибка авторизации');
       }
       throw Exception('Ошибка загрузки (${response.statusCode})');
@@ -68,10 +61,7 @@ class RelatedUsersService {
     );
 
     if (response.statusCode == 401 || response.statusCode == 419) {
-      if (context.mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ошибка сессии')));
-      }
+      if (context.mounted) redirectToLoginOnSessionError(context);
       return false;
     }
     if (response.statusCode == 200) return true;
@@ -117,10 +107,7 @@ class RelatedUsersService {
     );
 
     if (response.statusCode == 401 || response.statusCode == 419) {
-      if (context.mounted) {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => LoginScreen()));
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Ошибка сессии')));
-      }
+      if (context.mounted) redirectToLoginOnSessionError(context);
       return false;
     }
     if (response.statusCode == 200) return true;

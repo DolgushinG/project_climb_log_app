@@ -16,6 +16,8 @@ class PremiumStatus {
   final bool subscriptionCancelled;
   /// true — не удалось получить статус (нет интернета). Показать «Проверьте подключение», не «Оформите подписку».
   final bool networkUnavailable;
+  /// Стоимость подписки в рублях (из бэкенда). Fallback 199.
+  final int subscriptionPriceRub;
 
   PremiumStatus({
     required this.hasActiveSubscription,
@@ -25,6 +27,7 @@ class PremiumStatus {
     this.subscriptionEndsAt,
     this.subscriptionCancelled = false,
     this.networkUnavailable = false,
+    this.subscriptionPriceRub = 199,
   });
 
   bool get isInTrial => trialDaysLeft > 0 && !hasActiveSubscription;
@@ -116,6 +119,7 @@ class PremiumSubscriptionService {
       trialDaysLeft: 0,
       trialStarted: true,
       networkUnavailable: true,
+      subscriptionPriceRub: 199,
     );
   }
 
@@ -128,6 +132,7 @@ class PremiumSubscriptionService {
         'trial_started': s.trialStarted,
         'subscription_ends_at': s.subscriptionEndsAt?.toIso8601String(),
         'subscription_cancelled': s.subscriptionCancelled,
+        'subscription_price_rub': s.subscriptionPriceRub,
         'cached_at': DateTime.now().toUtc().toIso8601String(),
       };
       prefs.setString(_keyStatusCache, jsonEncode(json));
@@ -153,6 +158,7 @@ class PremiumSubscriptionService {
         trialStarted: json['trial_started'] != false,
         subscriptionEndsAt: json['subscription_ends_at'] != null ? DateTime.tryParse(json['subscription_ends_at'].toString()) : null,
         subscriptionCancelled: json['subscription_cancelled'] == true,
+        subscriptionPriceRub: (json['subscription_price_rub'] as num?)?.toInt() ?? 199,
       );
     } catch (_) {}
     return null;
@@ -178,6 +184,7 @@ class PremiumSubscriptionService {
               ? DateTime.tryParse(data['subscription_ends_at'].toString())
               : null,
           subscriptionCancelled: data['subscription_cancelled'] == true,
+          subscriptionPriceRub: (data['subscription_price_rub'] as num?)?.toInt() ?? 199,
         );
       }
     } catch (_) {}

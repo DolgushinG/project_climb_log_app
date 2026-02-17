@@ -18,6 +18,7 @@ import 'services/PremiumSubscriptionService.dart';
 import 'login.dart';
 import 'main.dart';
 import 'utils/display_helper.dart';
+import 'utils/session_error_helper.dart';
 import 'services/cache_service.dart';
 import 'utils/network_error_helper.dart';
 import 'widgets/top_notification_banner.dart';
@@ -226,15 +227,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (response.statusCode == 401 || response.statusCode == 419) {
         if (mounted) {
           setState(() => isLoading = false);
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LoginScreen(),
-            ),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка сессии')),
-          );
+          redirectToLoginOnSessionError(context);
         }
         return;
       }

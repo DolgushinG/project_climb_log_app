@@ -14,6 +14,7 @@ import '../login.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
+import '../utils/session_error_helper.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final int eventId;
@@ -120,10 +121,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         },
       );
       if (r.statusCode == 401 && mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => LoginScreen()),
-        );
+        redirectToLoginOnSessionError(context);
         return;
       }
       if (r.statusCode != 200 || !mounted) return;
@@ -325,15 +323,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           });
         }
       } else if (r.statusCode == 401) {
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => LoginScreen()),
-          );
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Ошибка сессии. Войдите снова.')),
-          );
-        }
+        if (mounted) redirectToLoginOnSessionError(context, 'Ошибка сессии. Войдите снова.');
       } else {
         final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
         _showSnack(_formatSavePackageError(msg), isError: true);

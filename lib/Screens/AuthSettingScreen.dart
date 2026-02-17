@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import '../login.dart';
 import '../theme/app_theme.dart';
 import '../main.dart';
+import '../utils/session_error_helper.dart';
 import '../services/WebAuthnService.dart';
 
 class AuthSettingScreen extends StatefulWidget {
@@ -104,12 +105,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
   }
 
   void _navigateToLoginScreen(String message) {
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => LoginScreen()),
-          (route) => false,
-    );
-    _showSnackBar(message);
+    redirectToLoginOnSessionError(context, message);
   }
 
   void _showSnackBar(String message, [Color? backgroundColor]) {
