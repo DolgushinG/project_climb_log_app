@@ -10,6 +10,7 @@ import 'package:login_app/services/cache_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'login.dart';
+import 'package:login_app/services/PremiumSubscriptionService.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -193,6 +194,10 @@ class _TokenCheckerState extends State<TokenChecker> {
 
   Future<void> checkToken() async {
     final storedToken = await getToken();
+    final isGuest = storedToken == null || (storedToken.trim().isEmpty);
+    if (isGuest) {
+      await PremiumSubscriptionService().invalidateStatusCache();
+    }
     setState(() {
       token = storedToken;
       isLoading = false; // Отключаем индикатор загрузки

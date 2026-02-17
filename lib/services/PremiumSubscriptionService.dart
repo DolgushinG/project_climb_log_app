@@ -112,7 +112,7 @@ class PremiumSubscriptionService {
   Future<PremiumStatus> getStatus() async {
     try {
       final token = await getToken();
-      if (token != null) {
+      if (token != null && token.trim().isNotEmpty) {
         final status = await _fetchFromBackend(token);
         if (status != null) {
           if (status.isUnauthorized) {
@@ -123,6 +123,16 @@ class PremiumSubscriptionService {
           _saveStatusCache(status);
           return status;
         }
+      } else {
+        /// Нет токена — не используем кэш (мог остаться от прошлой сессии), не показываем модалку пробного периода.
+        await invalidateStatusCache();
+        return PremiumStatus(
+          hasActiveSubscription: false,
+          trialDaysLeft: 0,
+          trialStarted: true,
+          isUnauthorized: true,
+          subscriptionPriceRub: 199,
+        );
       }
     } catch (_) {
       // Сеть недоступна — не показывать «оформите подписку», использовать кэш или оптимистичный статус
