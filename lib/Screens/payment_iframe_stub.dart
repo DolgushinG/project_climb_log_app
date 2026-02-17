@@ -8,3 +8,9 @@ Widget buildPaymentIframe(String paymentUrl) {
     ),
   );
 }
+
+/// Подписка на postMessage от iframe (success/fail). Только web, на других платформах no-op.
+void setupPaymentMessageListener(void Function(bool success) onResult) {}
+
+/// Отписаться от postMessage. Только web.
+void disposePaymentMessageListener() {}

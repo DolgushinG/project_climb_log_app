@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex">
+  <title>Оплата не завершена</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Unbounded:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --anthracite: #0A0A0C;
+      --surface-dark: #121214;
+      --muted-gold: #B59D7E;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      min-height: 100%;
+      background: linear-gradient(135deg, var(--anthracite) 0%, var(--surface-dark) 50%, rgba(181, 157, 126, 0.1) 100%);
+      color: white;
+      font-family: 'Unbounded', system-ui, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+    }
+    .icon { font-size: 48px; margin-bottom: 16px; }
+    h1 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    p { font-size: 14px; color: rgba(255,255,255,0.7); }
+  </style>
+</head>
+<body>
+  <div class="icon">✕</div>
+  <h1>Оплата не завершена</h1>
+  <p>Закройте окно и попробуйте снова.</p>
+  <script>
+    (function() {
+      try {
+        if (window.parent !== window) {
+          window.parent.postMessage('payment_fail', '*');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>
