@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:login_app/main.dart';
 import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/utils/session_error_helper.dart';
 import 'package:login_app/models/Gym.dart';
 
 /// Сервис API трекера трасс Climbing Log.
@@ -14,15 +15,36 @@ class ClimbingLogService {
   Future<String?> _getToken() => getToken();
 
   static const _historyCacheTtl = Duration(seconds: 60);
+  static const _gradesCacheTtl = Duration(hours: 1);
   static List<HistorySession>? _historyCache;
   static DateTime? _historyCacheTime;
+  static List<String>? _gradesCache;
+  static DateTime? _gradesCacheTime;
+  static GradesResponse? _gradesWithGroupsCache;
+  static DateTime? _gradesWithGroupsCacheTime;
 
   static void _invalidateHistoryCache() {
     _historyCache = null;
     _historyCacheTime = null;
   }
 
+  static const _gradesFallback = ['5', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A+'];
+  static final GradesResponse _gradesWithGroupsFallback = GradesResponse(
+    grades: _gradesFallback,
+    gradeGroups: {
+      '6A-6C+': ['6A', '6A+', '6B', '6B+', '6C', '6C+'],
+      '7A-7C+': ['7A', '7A+', '7B', '7B+', '7C', '7C+'],
+      '8A-8C+': ['8A', '8A+', '8B', '8B+', '8C', '8C+'],
+    },
+  );
+
   Future<List<String>> getGrades() async {
+    final now = DateTime.now();
+    if (_gradesCache != null &&
+        _gradesCacheTime != null &&
+        now.difference(_gradesCacheTime!) < _gradesCacheTtl) {
+      return _gradesCache!;
+    }
     try {
       final response = await http.get(
         Uri.parse('$DOMAIN/api/climbing-logs/grades'),
@@ -32,14 +54,22 @@ class ClimbingLogService {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json != null) {
           final resp = GradesResponse.fromJson(json);
+          _gradesCache = resp.grades;
+          _gradesCacheTime = now;
           return resp.grades;
         }
       }
     } catch (_) {}
-    return ['5', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A+'];
+    return _gradesFallback;
   }
 
   Future<GradesResponse> getGradesWithGroups() async {
+    final now = DateTime.now();
+    if (_gradesWithGroupsCache != null &&
+        _gradesWithGroupsCacheTime != null &&
+        now.difference(_gradesWithGroupsCacheTime!) < _gradesCacheTtl) {
+      return _gradesWithGroupsCache!;
+    }
     try {
       final response = await http.get(
         Uri.parse('$DOMAIN/api/climbing-logs/grades'),
@@ -47,17 +77,17 @@ class ClimbingLogService {
       );
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
-        if (json != null) return GradesResponse.fromJson(json);
+        if (json != null) {
+          final resp = GradesResponse.fromJson(json);
+          _gradesWithGroupsCache = resp;
+          _gradesWithGroupsCacheTime = now;
+          _gradesCache = resp.grades;
+          _gradesCacheTime = now;
+          return resp;
+        }
       }
     } catch (_) {}
-    return GradesResponse(
-      grades: ['5', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A+'],
-      gradeGroups: {
-        '6A-6C+': ['6A', '6A+', '6B', '6B+', '6C', '6C+'],
-        '7A-7C+': ['7A', '7A+', '7B', '7B+', '7C', '7C+'],
-        '8A-8C+': ['8A', '8A+', '8B', '8B+', '8C', '8C+'],
-      },
-    );
+    return _gradesWithGroupsFallback;
   }
 
   Future<bool> saveSession(ClimbingSessionRequest request) async {
@@ -74,6 +104,7 @@ class ClimbingLogService {
         },
         body: jsonEncode(request.toJson()),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -95,6 +126,7 @@ class ClimbingLogService {
         },
         body: jsonEncode(request.toJson()),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -114,6 +146,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -132,6 +165,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final raw = jsonDecode(response.body);
         if (raw is List && raw.isNotEmpty) {
@@ -173,6 +207,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json != null) return ClimbingProgress.fromJson(json);
@@ -196,6 +231,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json != null) return ClimbingLogSummary.fromJson(json);
@@ -225,6 +261,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json != null) return ClimbingLogStatistics.fromJson(json);
@@ -245,6 +282,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json != null) {
@@ -277,6 +315,7 @@ class ClimbingLogService {
           'Authorization': 'Bearer $token',
         },
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final raw = jsonDecode(response.body);
         if (raw is List) {

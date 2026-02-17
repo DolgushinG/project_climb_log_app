@@ -102,7 +102,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
             success = isParticipant;
           });
         }
-      } else if (response.statusCode == 401 || response.statusCode == 419) {
+      } else if (response.statusCode == 401) {
         redirectToLoginOnSessionError(context);
       } else {
         _showNotification('Ошибка при получении статуса', Colors.red);
@@ -176,7 +176,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         if (widget.is_need_pay_for_reg && widget.onNeedCheckout != null) {
           widget.onNeedCheckout!(widget.event_id);
         }
-      } else if (response.statusCode == 401 || response.statusCode == 419) {
+      } else if (response.statusCode == 401) {
         redirectToLoginOnSessionError(context);
       } else {
         _handleError(message.isNotEmpty ? message : 'Ошибка регистрации');
@@ -265,7 +265,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           });
         }
         widget.onParticipationStatusChanged();
-      } else if (response.statusCode == 401 || response.statusCode == 419) {
+      } else if (response.statusCode == 401) {
         redirectToLoginOnSessionError(context);
       } else {
         _handleWaitlistError(message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания');

@@ -33,7 +33,7 @@ class ProfileService {
         );
         return UserProfile.fromJson(jsonDecode(response.body));
       }
-      if (response.statusCode == 401 || response.statusCode == 419) {
+      if (response.statusCode == 401) {
         if (context.mounted) redirectToLoginOnSessionError(context);
         return null;
       }
@@ -80,7 +80,7 @@ class ProfileService {
       if (response.statusCode == 200) {
         return jsonDecode(response.body) as Map<String, dynamic>;
       }
-      if (response.statusCode == 401 || response.statusCode == 419) {
+      if (response.statusCode == 401) {
         if (context.mounted) redirectToLoginOnSessionError(context);
         return null;
       }

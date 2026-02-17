@@ -87,7 +87,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             _isLoading = false;
           });
         }
-      } else if (r.statusCode == 401 || r.statusCode == 419) {
+      } else if (r.statusCode == 401) {
         if (mounted) redirectToLoginOnSessionError(context);
       } else if (r.statusCode == 404) {
         setState(() {

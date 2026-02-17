@@ -95,8 +95,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           }
         });
         if (plan != null) {
-          _loadPlanDayProgress();
-          _loadPlanProgress();
+          await Future.wait([_loadPlanDayProgress(), _loadPlanProgress()]);
         }
       }
     } catch (e) {

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/RegisterScreen.dart';
+import 'package:login_app/services/AuthConfigService.dart';
 import 'package:login_app/services/WebAuthnService.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'MainScreen.dart';
 import 'Screens/LoginByCodeScreen.dart';
@@ -23,6 +26,18 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isLoading = false;
   bool _isPasskeyLoading = false;
+  SocialLoginFlags? _socialFlags;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSocialFlags();
+  }
+
+  Future<void> _loadSocialFlags() async {
+    final flags = await AuthConfigService().getSocialLoginFlags();
+    if (mounted) setState(() => _socialFlags = flags);
+  }
 
   Future<void> _login() async {
     final email = _emailController.text;
@@ -130,6 +145,7 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.cardDark,
+        automaticallyImplyLeading: true,
         title: Text('Вход', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
       ),
       body: SafeArea(
@@ -306,31 +322,38 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
-                      const SizedBox(height: 28),
-                      Text(
-                        'Или войти с помощью',
-                        style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          SocialLoginButton(
-                            imageUrl: "assets/icon-vk.png",
-                            loginUrl: "$DOMAIN/auth/vkontakte/redirect", // VK
-                          ),
-                          const SizedBox(width: 16),
-                          SocialLoginButton(
-                            imageUrl: "assets/icon-telegram.png",
-                            loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=${Uri.parse(DOMAIN).host}&embed=1&request_access=write&return_to=$DOMAIN/auth/telegram/redirect",
-                          ),
-                          const SizedBox(width: 16),
-                          SocialLoginButton(
-                            imageUrl: "assets/yandex-icon.png",
-                            loginUrl: "$DOMAIN/auth/yandex/redirect", // Yandex
-                          ),
-                        ],
-                      )
+                      if (_socialFlags?.hasAny == true) ...[
+                        const SizedBox(height: 28),
+                        Text(
+                          'Или войти с помощью',
+                          style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (_socialFlags!.vkontakte)
+                              SocialLoginButton(
+                                imageUrl: "assets/icon-vk.png",
+                                loginUrl: "$DOMAIN/auth/vkontakte/redirect?client=${kIsWeb ? 'webapp' : 'mobile'}",
+                              ),
+                            if (_socialFlags!.vkontakte && (_socialFlags!.telegram || _socialFlags!.yandex))
+                              const SizedBox(width: 16),
+                            if (_socialFlags!.telegram)
+                              SocialLoginButton(
+                                imageUrl: "assets/icon-telegram.png",
+                                loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=${Uri.parse(DOMAIN).host}&embed=1&request_access=write&return_to=${Uri.encodeComponent('$DOMAIN/auth/telegram/redirect?client=${kIsWeb ? 'webapp' : 'mobile'}')}",
+                              ),
+                            if (_socialFlags!.telegram && _socialFlags!.yandex)
+                              const SizedBox(width: 16),
+                            if (_socialFlags!.yandex)
+                              SocialLoginButton(
+                                imageUrl: "assets/yandex-icon.png",
+                                loginUrl: "$DOMAIN/auth/yandex/redirect?client=${kIsWeb ? 'webapp' : 'mobile'}",
+                              ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -353,19 +376,28 @@ class SocialLoginButton extends StatelessWidget {
     required this.loginUrl,
   }) : super(key: key);
 
-  void _openWebView(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => WebViewScreen(url: loginUrl),
-      ),
-    );
+  void _openLoginUrl(BuildContext context) async {
+    if (kIsWeb) {
+      // webview_flutter не поддерживает web — открываем OAuth в той же вкладке.
+      // Бэкенд должен редиректить на app.climbing-events.ru с ?token=...
+      final uri = Uri.parse(loginUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.platformDefault);
+      }
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WebViewScreen(url: loginUrl),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => _openWebView(context),
+      onTap: () => _openLoginUrl(context),
       child: Container(
         width: 52,
         height: 52,

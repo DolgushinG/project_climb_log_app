@@ -74,7 +74,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
         } else if (!silent) {
           setState(() => _error = 'Неверный формат ответа');
         }
-      } else if (r.statusCode == 401 || r.statusCode == 419) {
+      } else if (r.statusCode == 401) {
         if (mounted) redirectToLoginOnSessionError(context);
       } else if (r.statusCode == 404) {
         if (!silent) setState(() => _error = 'Данные не найдены');

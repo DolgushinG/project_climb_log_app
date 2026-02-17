@@ -52,15 +52,18 @@ class CacheService {
   static String keyRoutes(int eventId) => 'routes_$eventId';
   static String keyEventStatistics(int eventId) => 'event_stats_$eventId';
   static String keyEventDetails(int eventId) => 'event_details_$eventId';
+  static const String keyRating = 'rating';
 
   /// Есть ли хоть какие-то данные в кэше (соревнования, профиль, история), чтобы работать офлайн.
   static Future<bool> hasAnyData() async {
     final comps = await getStale(keyCompetitions);
     final profile = await getStale(keyProfile);
     final history = await getStale(keyHistory);
+    final rating = await getStale(keyRating);
     return (comps != null && comps.isNotEmpty) ||
         (profile != null && profile.isNotEmpty) ||
-        (history != null && history.isNotEmpty);
+        (history != null && history.isNotEmpty) ||
+        (rating != null && rating.isNotEmpty);
   }
 
   /// Очистить весь пользовательский кэш (профиль, соревнования, история, аналитика).
@@ -80,4 +83,6 @@ class CacheService {
   static const ttlHistory = Duration(minutes: 15);
   static const ttlEventStatistics = Duration(minutes: 10);
   static const ttlEventDetails = Duration(minutes: 10);
+  static const ttlRating = Duration(minutes: 15);
 }
+

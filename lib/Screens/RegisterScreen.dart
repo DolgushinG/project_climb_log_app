@@ -211,6 +211,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         backgroundColor: AppColors.anthracite,
         appBar: AppBar(
           backgroundColor: AppColors.cardDark,
+          automaticallyImplyLeading: true,
           title: Text('Регистрация', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         ),
         body: SafeArea(

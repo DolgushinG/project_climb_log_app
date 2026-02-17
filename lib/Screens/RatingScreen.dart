@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../main.dart';
+import '../services/cache_service.dart';
 import '../theme/app_theme.dart';
 import 'PublicProfileScreen.dart';
 
@@ -87,34 +88,62 @@ class _RatingScreenState extends State<RatingScreen> {
   }
 
   Future<void> _load() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
+    final cached = await CacheService.getStale(CacheService.keyRating);
+    if (cached != null && cached.isNotEmpty) {
+      try {
+        final json = jsonDecode(cached) as Map<String, dynamic>?;
+        final data = json?['data'] as List<dynamic>?;
+        final list = (data ?? [])
+            .whereType<Map<String, dynamic>>()
+            .map((e) => RatingEntry.fromJson(e))
+            .toList();
+        if (mounted) {
+          setState(() {
+            _list = list;
+            _loading = false;
+            _error = null;
+          });
+        }
+      } catch (_) {}
+    } else if (mounted) {
+      setState(() {
+        _loading = true;
+        _error = null;
+      });
+    }
     try {
       final url = Uri.parse('$DOMAIN/api/rating');
       final response = await http.get(url, headers: {'Accept': 'application/json'});
       if (!mounted) return;
       if (response.statusCode != 200) {
-        setState(() {
-          _loading = false;
-          _error = 'Ошибка загрузки: ${response.statusCode}';
-        });
+        if (_list.isEmpty && mounted) {
+          setState(() {
+            _loading = false;
+            _error = 'Ошибка загрузки: ${response.statusCode}';
+          });
+        }
         return;
       }
+      await CacheService.set(
+        CacheService.keyRating,
+        response.body,
+        ttl: CacheService.ttlRating,
+      );
       final json = jsonDecode(response.body) as Map<String, dynamic>?;
       final data = json?['data'] as List<dynamic>?;
       final list = (data ?? [])
           .whereType<Map<String, dynamic>>()
           .map((e) => RatingEntry.fromJson(e))
           .toList();
-      setState(() {
-        _list = list;
-        _loading = false;
-        _error = null;
-      });
-    } catch (e) {
       if (mounted) {
+        setState(() {
+          _list = list;
+          _loading = false;
+          _error = null;
+        });
+      }
+    } catch (e) {
+      if (mounted && _list.isEmpty) {
         setState(() {
           _loading = false;
           _error = e.toString().replaceFirst('Exception: ', '');

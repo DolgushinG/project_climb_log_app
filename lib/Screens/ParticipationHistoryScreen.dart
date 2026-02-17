@@ -152,7 +152,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
           _isLoading = false;
           _error = null;
         });
-      } else if (r.statusCode == 401 || r.statusCode == 419) {
+      } else if (r.statusCode == 401) {
         if (mounted) {
           setState(() => _isLoading = false);
           redirectToLoginOnSessionError(context);

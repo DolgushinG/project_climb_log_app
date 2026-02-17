@@ -13,6 +13,7 @@ import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
 import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
 import 'package:login_app/Screens/PlanOverviewScreen.dart';
+import 'package:login_app/utils/session_error_helper.dart';
 
 /// Объединяющий экран трекера трасс.
 /// Для гостей — лендинг с «Доступно после авторизации».
@@ -124,13 +125,13 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   Future<void> _loadPremiumStatus() async {
     if (widget.isGuest) return;
     final status = await _premiumService.getStatus();
-    if (mounted) {
-      setState(() {
-        _premiumStatus = status;
-        if (status.isUnauthorized) _effectivelyGuest = true;
-      });
-      if (widget.isTabVisible) _maybeShowTrialModal();
+    if (!mounted) return;
+    if (status.isUnauthorized) {
+      await redirectToLoginOnSessionError(context, 'Сессия истекла. Войдите снова.');
+      return;
     }
+    setState(() => _premiumStatus = status);
+    if (widget.isTabVisible) _maybeShowTrialModal();
   }
 
   void _maybeShowTrialModal() {

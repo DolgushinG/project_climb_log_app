@@ -4,6 +4,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import '../MainScreen.dart';
 import '../main.dart';
+import '../theme/app_theme.dart';
 
 class WebViewScreen extends StatefulWidget {
   final String url;
@@ -100,6 +101,8 @@ class _WebViewScreenState extends State<WebViewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: true,
+        backgroundColor: AppColors.cardDark,
         title: Text('Авторизация', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
       ),
       body: WebViewWidget(

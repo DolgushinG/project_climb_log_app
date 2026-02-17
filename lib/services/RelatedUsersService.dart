@@ -39,7 +39,7 @@ class RelatedUsersService {
             : <String>[];
         return RelatedUsersResponse(users: users, sportCategories: sportCategories);
       }
-      if (response.statusCode == 401 || response.statusCode == 419) {
+      if (response.statusCode == 401) {
         if (context.mounted) redirectToLoginOnSessionError(context);
         throw Exception('Ошибка авторизации');
       }
@@ -60,7 +60,7 @@ class RelatedUsersService {
       body: jsonEncode(user.toEditJson()),
     );
 
-    if (response.statusCode == 401 || response.statusCode == 419) {
+    if (response.statusCode == 401) {
       if (context.mounted) redirectToLoginOnSessionError(context);
       return false;
     }
@@ -106,7 +106,7 @@ class RelatedUsersService {
       body: jsonEncode({'user_id': userId}),
     );
 
-    if (response.statusCode == 401 || response.statusCode == 419) {
+    if (response.statusCode == 401) {
       if (context.mounted) redirectToLoginOnSessionError(context);
       return false;
     }

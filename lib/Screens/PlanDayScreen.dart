@@ -1084,28 +1084,10 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
     );
   }
 
-  /// Короткий hint (≤80 символов) показываем inline. Длинный — по нажатию «Как выполнять» в модалке.
-  static const int _hintInlineThreshold = 80;
-
+  /// Кнопка «Как выполнять» — по нажатию показывается hint в модалке.
   Widget _buildHintBlock(String exerciseName, String hint, {bool isCompact = false}) {
-    final short = hint.length <= _hintInlineThreshold;
     final iconSize = isCompact ? 12.0 : 14.0;
     final fontSize = isCompact ? 11.0 : 12.0;
-    if (short) {
-      return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(Icons.info_outline, size: iconSize, color: AppColors.linkMuted.withOpacity(0.9)),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              hint,
-              style: GoogleFonts.unbounded(fontSize: fontSize, color: Colors.white70, height: 1.4),
-            ),
-          ),
-        ],
-      );
-    }
     return InkWell(
       onTap: () => _showHintModal(exerciseName, hint),
       borderRadius: BorderRadius.circular(8),

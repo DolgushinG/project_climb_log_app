@@ -43,9 +43,23 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
   void initState() {
     super.initState();
     _selectedDate = widget.initialDate ?? DateTime.now();
-    _loadGrades();
-    _loadUsedGyms();
+    _loadGradesAndUsedGyms();
     if (widget.session != null) _applySession(widget.session!);
+  }
+
+  Future<void> _loadGradesAndUsedGyms() async {
+    setState(() => _loadingGrades = true);
+    final results = await Future.wait([
+      _service.getGrades(),
+      _service.getUsedGyms(),
+    ]);
+    if (mounted) {
+      setState(() {
+        _grades = results[0] as List<String>;
+        _usedGyms = results[1] as List<UsedGym>;
+        _loadingGrades = false;
+      });
+    }
   }
 
   void _applySession(HistorySession s) {
@@ -62,26 +76,10 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
     for (final r in s.routes) _routes[r.grade] = r.count;
   }
 
-  Future<void> _loadUsedGyms() async {
-    final list = await _service.getUsedGyms();
-    if (mounted) setState(() => _usedGyms = list);
-  }
-
   @override
   void dispose() {
     _gymQueryController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadGrades() async {
-    setState(() => _loadingGrades = true);
-    final grades = await _service.getGrades();
-    if (mounted) {
-      setState(() {
-        _grades = grades;
-        _loadingGrades = false;
-      });
-    }
   }
 
   void _increment(String grade) {
@@ -188,10 +186,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async {
-            await _loadGrades();
-            await _loadUsedGyms();
-          },
+          onRefresh: _loadGradesAndUsedGyms,
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [

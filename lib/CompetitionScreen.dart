@@ -323,7 +323,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
         }
         return;
       }
-      if ((response.statusCode == 401 || response.statusCode == 419) && !widget.isGuest) {
+      if ((response.statusCode == 401) && !widget.isGuest) {
         if (mounted) {
           setState(() => _isLoading = false);
           redirectToLoginOnSessionError(context);
@@ -3078,11 +3078,18 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     final String? token = await getToken();
     final headers = <String, String>{'Content-Type': 'application/json'};
     if (token != null) headers['Authorization'] = 'Bearer $token';
+    final needsBirthday = !widget.isGuest &&
+        (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
+            _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE);
     try {
-      final response = await http.get(
-        Uri.parse(DOMAIN + '/api/competitions?event_id=$eventId'),
-        headers: headers,
-      );
+      final results = await Future.wait([
+        http.get(
+          Uri.parse(DOMAIN + '/api/competitions?event_id=$eventId'),
+          headers: headers,
+        ),
+        if (needsBirthday) _loadUserBirthday(),
+      ]);
+      final response = results[0] as http.Response;
 
       if (response.statusCode == 200) {
         final raw = json.decode(response.body);
@@ -3100,13 +3107,13 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
           });
           if (!widget.isGuest) {
             _loadCheckoutDataIfNeeded(updatedCompetition);
-            final ac = updatedCompetition.auto_categories;
-            if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
+            final acNow = updatedCompetition.auto_categories;
+            if ((acNow == AUTO_CATEGORIES_YEAR || acNow == AUTO_CATEGORIES_AGE) && !needsBirthday) {
               _loadUserBirthday();
             }
           }
         }
-      } else if ((response.statusCode == 401 || response.statusCode == 419) && !widget.isGuest) {
+      } else if ((response.statusCode == 401) && !widget.isGuest) {
         if (mounted) redirectToLoginOnSessionError(context);
       }
     } catch (_) {
@@ -3276,7 +3283,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         backgroundColor: Colors.green,
       ),
       );
-    } else if (response.statusCode == 401 || response.statusCode == 419) {
+    } else if (response.statusCode == 401) {
       redirectToLoginOnSessionError(context);
     } else {
       // Ошибка при отмене регистрации

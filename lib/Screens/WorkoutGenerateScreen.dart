@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
+import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/models/StrengthAchievement.dart';
 import 'package:login_app/models/Workout.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/StrengthDashboardService.dart';
@@ -101,7 +103,12 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
         fatigueTrend: 'stable',
       );
     }
-    final metrics = await StrengthDashboardService().getLastMetrics();
+    final metricsSummary = await Future.wait([
+      StrengthDashboardService().getLastMetrics(),
+      ClimbingLogService().getSummary(period: 'all'),
+    ]);
+    final metrics = metricsSummary[0] as StrengthMetrics?;
+    final summary = metricsSummary[1] as ClimbingLogSummary?;
     if (metrics != null && metrics.bodyWeightKg != null && metrics.bodyWeightKg! > 0) {
       userProfile = UserProfile(bodyweight: metrics.bodyWeightKg!);
       perfMetrics = PerformanceMetrics(
@@ -109,7 +116,6 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
         maxPullups: _minPullups,
       );
     }
-    final summary = await ClimbingLogService().getSummary(period: 'all');
     if (summary != null) {
       climbingData = RecentClimbingData(
         sessionsLast7Days: summary.sessionsThisWeek,

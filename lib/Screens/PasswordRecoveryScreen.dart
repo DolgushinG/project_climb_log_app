@@ -35,6 +35,16 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back),
+          color: Colors.white,
+        ),
+      ),
+      extendBodyBehindAppBar: true,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -47,7 +57,9 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 20).copyWith(
+                top: 20 + kToolbarHeight,
+              ),
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.cardDark,
@@ -109,14 +121,6 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                             child: _isSubmitting
                                 ? const CircularProgressIndicator(color: Colors.white)
                                 : Text('Отправить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
-                          ),
-                        ),
-                        const SizedBox(height: 20),
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text(
-                            'Назад',
-                            style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
                           ),
                         ),
                       ],

@@ -249,7 +249,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         if (mounted) _applyProfileData(data);
         return;
       }
-      if (response.statusCode == 401 || response.statusCode == 419) {
+      if (response.statusCode == 401) {
         if (mounted) {
           setState(() => isLoading = false);
           redirectToLoginOnSessionError(context);
@@ -282,11 +282,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   void initState() {
     super.initState();
-    fetchProfileData();
-    PremiumSubscriptionService().getStatus().then((s) {
-      if (mounted) setState(() => _premiumStatus = s);
-    });
+    _loadProfileAndPremium();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcomeModal());
+  }
+
+  Future<void> _loadProfileAndPremium() async {
+    final results = await Future.wait([
+      fetchProfileData(),
+      PremiumSubscriptionService().getStatus(),
+    ]);
+    if (mounted) setState(() => _premiumStatus = results[1] as PremiumStatus?);
   }
 
   Future<void> _maybeShowWelcomeModal() async {

@@ -53,7 +53,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
           widget.rememberToken = data['rememberToken'] ?? null;
         });
       }
-    } else if (response.statusCode == 401 || response.statusCode == 419) {
+    } else if (response.statusCode == 401) {
       _navigateToLoginScreen('Ошибка сессии');
     } else {
       _showSnackBar('Не удалось загрузить данные профиля');

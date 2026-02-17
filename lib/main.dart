@@ -11,19 +11,20 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'login.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
+import 'package:login_app/utils/url_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  FlutterError.onError = (FlutterErrorDetails details) {
-    FlutterError.presentError(details);
-    if (kDebugMode) {
-      debugPrint('[FlutterError] ${details.exceptionAsString()}');
-      debugPrintStack(stackTrace: details.stack);
-    }
-  };
   runZonedGuarded(() async {
+    WidgetsFlutterBinding.ensureInitialized();
+    FlutterError.onError = (FlutterErrorDetails details) {
+      FlutterError.presentError(details);
+      if (kDebugMode) {
+        debugPrint('[FlutterError] ${details.exceptionAsString()}');
+        debugPrintStack(stackTrace: details.stack);
+      }
+    };
     await RustorePushService.init();
     runApp(MyApp());
   }, (error, stack) {
@@ -193,7 +194,27 @@ class _TokenCheckerState extends State<TokenChecker> {
   }
 
   Future<void> checkToken() async {
-    final storedToken = await getToken();
+    String? storedToken = await getToken();
+
+    // На web: проверяем токен в URL после OAuth-редиректа (вход по соцсетям)
+    if (kIsWeb && (storedToken == null || storedToken.trim().isEmpty)) {
+      final uri = currentPageUri;
+      if (uri != null) {
+        var urlToken = uri.queryParameters['token'] ??
+            uri.queryParameters['api_token'] ??
+            uri.queryParameters['access_token'];
+        if (urlToken == null && uri.fragment.isNotEmpty) {
+          final fp = Uri.splitQueryString(uri.fragment);
+          urlToken = fp['token'] ?? fp['api_token'] ?? fp['access_token'];
+        }
+        if (urlToken != null && urlToken.trim().isNotEmpty) {
+          await saveToken(urlToken.trim());
+          clearTokenFromUrl();
+          storedToken = urlToken.trim();
+        }
+      }
+    }
+
     final isGuest = storedToken == null || (storedToken.trim().isEmpty);
     if (isGuest) {
       await PremiumSubscriptionService().invalidateStatusCache();

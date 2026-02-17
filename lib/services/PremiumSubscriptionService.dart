@@ -98,8 +98,10 @@ class PremiumSubscriptionService {
   static const String _keyTrialStart = 'premium_trial_start_iso';
   static const String _keyStatusCache = 'premium_status_cache';
   static const int trialDaysTotal = 7;
-  /// Кэш статуса: использовать при отсутствии сети. TTL 24 часа.
+  /// Кэш статуса при отсутствии сети. TTL 24 часа.
   static const Duration _cacheTtl = Duration(hours: 24);
+  /// Короткий TTL для пропуска сетевого запроса при свежем кэше.
+  static const Duration _cacheShortTtl = Duration(minutes: 5);
 
   /// Инвалидирует кэш статуса (например, после оплаты — чтобы следующий getStatus получил свежие данные).
   Future<void> invalidateStatusCache() async {
@@ -113,6 +115,8 @@ class PremiumSubscriptionService {
     try {
       final token = await getToken();
       if (token != null && token.trim().isNotEmpty) {
+        final shortCached = await _getStatusCacheShortTtl();
+        if (shortCached != null) return shortCached;
         final status = await _fetchFromBackend(token);
         if (status != null) {
           if (status.isUnauthorized) {
@@ -163,6 +167,33 @@ class PremiumSubscriptionService {
       };
       prefs.setString(_keyStatusCache, jsonEncode(json));
     });
+  }
+
+  /// Кэш с коротким TTL — если свежий, возвращаем без запроса к бэкенду.
+  Future<PremiumStatus?> _getStatusCacheShortTtl() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyStatusCache);
+      if (raw == null || raw.isEmpty) return null;
+      final json = jsonDecode(raw) as Map<String, dynamic>?;
+      if (json == null) return null;
+      final cachedAt = json['cached_at']?.toString();
+      if (cachedAt != null) {
+        final at = DateTime.tryParse(cachedAt);
+        if (at != null && DateTime.now().toUtc().difference(at) < _cacheShortTtl) {
+          return PremiumStatus(
+            hasActiveSubscription: json['has_active_subscription'] == true,
+            trialDaysLeft: (json['trial_days_left'] as num?)?.toInt() ?? 0,
+            trialEndsAt: json['trial_ends_at'] != null ? DateTime.tryParse(json['trial_ends_at'].toString()) : null,
+            trialStarted: json['trial_started'] != false,
+            subscriptionEndsAt: json['subscription_ends_at'] != null ? DateTime.tryParse(json['subscription_ends_at'].toString()) : null,
+            subscriptionCancelled: json['subscription_cancelled'] == true,
+            subscriptionPriceRub: (json['subscription_price_rub'] as num?)?.toInt() ?? 199,
+          );
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<PremiumStatus?> _getStatusCache() async {

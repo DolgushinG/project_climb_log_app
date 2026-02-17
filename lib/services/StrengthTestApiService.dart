@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:login_app/main.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
+import 'package:login_app/utils/session_error_helper.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
 import 'package:login_app/models/TrainingPlan.dart';
 import 'package:login_app/models/Workout.dart';
@@ -56,6 +57,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/strength-test-settings'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final bw = json?['body_weight'] ?? json?['body_weight_kg'];
@@ -76,6 +78,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode({'body_weight': kg}),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -92,6 +95,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 201 || response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final id = json?['id'];
@@ -118,6 +122,7 @@ class StrengthTestApiService {
         });
       }
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final tests = json?['tests'] as List<dynamic>? ?? [];
@@ -160,6 +165,7 @@ class StrengthTestApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/strength-leaderboard')
           .replace(queryParameters: params);
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         return StrengthLeaderboard.fromJson(json ?? {});
@@ -177,6 +183,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/gamification'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         return GamificationData.fromJson(json ?? {});
@@ -196,6 +203,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         return SessionXpResult(
@@ -217,6 +225,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode(plan.toJson()),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 201 || response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final id = json?['id'];
@@ -236,6 +245,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/strength-level'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json != null && json['level'] != null) {
@@ -276,6 +286,7 @@ class StrengthTestApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercises')
           .replace(queryParameters: params.isNotEmpty ? params : null);
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final list = json?['exercises'] as List<dynamic>? ?? [];
@@ -303,6 +314,7 @@ class StrengthTestApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions')
           .replace(queryParameters: params.isNotEmpty ? params : null);
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final list = json?['completions'] as List<dynamic>? ?? [];
@@ -339,6 +351,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 201 || response.statusCode == 200) {
         _invalidateCompletionsCache(date);
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
@@ -359,6 +372,7 @@ class StrengthTestApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions')
           .replace(queryParameters: {'date': date});
       final response = await http.delete(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidateCompletionsCache(date);
         final body = response.body.trim();
@@ -381,6 +395,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidateCompletionsCache();
         final body = response.body.trim();
@@ -402,6 +417,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/exercise-completions/$id'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidateCompletionsCache();
         return true;
@@ -426,6 +442,7 @@ class StrengthTestApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercise-skips')
           .replace(queryParameters: params.isNotEmpty ? params : null);
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return [];
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final list = json?['skips'] as List<dynamic>? ?? [];
@@ -458,6 +475,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 201 || response.statusCode == 200) {
         _invalidateSkipsCache(date);
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
@@ -477,6 +495,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/exercise-skips/$id'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidateSkipsCache();
         return true;
@@ -540,6 +559,7 @@ class StrengthTestApiService {
         headers: _headers(token),
         body: jsonEncode(req.toJson()),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200 || response.statusCode == 201) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         return json != null ? WorkoutGenerateResponse.fromJson(json) : null;
@@ -557,6 +577,7 @@ class StrengthTestApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/weekly-fatigue'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         return json != null ? WeeklyFatigueResponse.fromJson(json) : null;

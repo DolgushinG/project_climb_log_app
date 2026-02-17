@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:login_app/main.dart';
 import 'package:login_app/models/PlanModels.dart';
+import 'package:login_app/utils/session_error_helper.dart';
 
 /// Исключение при 429 или другой ошибке API — чтобы UI показал «Повторить», а не «Создать план».
 class PlanApiException implements Exception {
@@ -58,6 +59,7 @@ class TrainingPlanApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/plan-templates')
           .replace(queryParameters: params);
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         if (json == null) return null;
@@ -111,6 +113,7 @@ class TrainingPlanApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200 || response.statusCode == 201) {
         _invalidatePlanCaches();
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
@@ -166,6 +169,7 @@ class TrainingPlanApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         _invalidatePlanCaches();
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
@@ -186,6 +190,7 @@ class TrainingPlanApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/plans/active'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidatePlanCaches();
         return true;
@@ -206,6 +211,9 @@ class TrainingPlanApiService {
       Uri.parse('$DOMAIN/api/climbing-logs/plans/active'),
       headers: _headers(token),
     );
+    if (await redirectIfUnauthorized(response.statusCode)) {
+      throw PlanApiException(statusCode: 401, message: 'Сессия истекла');
+    }
     if (response.statusCode == 200) {
       final json = jsonDecode(response.body) as Map<String, dynamic>?;
       final result = json != null ? ActivePlanResult.fromJson(json) : ActivePlanResult();
@@ -243,6 +251,7 @@ class TrainingPlanApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/plans/$planId/day')
           .replace(queryParameters: params);
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final result = json != null ? PlanDayResponse.fromJson(json) : null;
@@ -267,6 +276,7 @@ class TrainingPlanApiService {
         Uri.parse('$DOMAIN/api/climbing-logs/plans/$planId/progress'),
         headers: _headers(token),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final result = json != null ? PlanProgressResponse.fromJson(json) : null;
@@ -290,6 +300,7 @@ class TrainingPlanApiService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/plans/$planId/calendar')
           .replace(queryParameters: {'month': month});
       final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final result = json != null ? PlanCalendarResponse.fromJson(json) : null;
@@ -320,6 +331,7 @@ class TrainingPlanApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       if (response.statusCode == 200 || response.statusCode == 201) {
         _invalidatePlanDayCache(planId, date);
         return true;
@@ -346,6 +358,7 @@ class TrainingPlanApiService {
         headers: _headers(token),
         body: jsonEncode(body),
       );
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidatePlanDayCache(planId, date);
         return true;

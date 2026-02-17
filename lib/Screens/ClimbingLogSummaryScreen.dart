@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
+import 'package:login_app/models/StrengthMeasurementSession.dart';
 import 'package:login_app/models/StrengthTier.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
@@ -67,13 +68,18 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
 
   Future<(StrengthMetrics?, double?, int, int, String)> _loadStrengthDashboard() async {
     try {
-      final m = await _strengthSvc.getLastMetrics();
       final api = StrengthTestApiService();
-      final gamification = await api.getGamification();
+      final results = await Future.wait([
+        _strengthSvc.getLastMetrics(),
+        api.getGamification(),
+        api.getStrengthTestsHistory(periodDays: 365),
+      ]);
+      final m = results[0] as StrengthMetrics?;
+      final gamification = results[1] as GamificationData?;
+      final history = results[2] as List<StrengthMeasurementSession>;
       double? changePct;
-      final history = await api.getStrengthTestsHistory(periodDays: 365);
       if (history.length >= 2) {
-        final sorted = List.of(history)..sort((a, b) => b.date.compareTo(a.date));
+        final sorted = List<StrengthMeasurementSession>.from(history)..sort((a, b) => b.date.compareTo(a.date));
         final prevAvg = _getAvgFromMetrics(sorted[1].metrics);
         final currAvg = _getAvgFromMetrics(sorted[0].metrics);
         if (prevAvg != null && prevAvg > 0 && currAvg != null) {
@@ -83,10 +89,12 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
       if (gamification != null) {
         return (m, changePct, gamification.totalXp, gamification.streakDays, gamification.recoveryStatus);
       }
-      final xp = await _gamification.getTotalXp();
-      final streak = await _gamification.getStreakDays();
-      final recovery = await _gamification.getRecoveryStatus();
-      return (m, changePct, xp, streak, recovery);
+      final xpResults = await Future.wait([
+        _gamification.getTotalXp(),
+        _gamification.getStreakDays(),
+        _gamification.getRecoveryStatus(),
+      ]);
+      return (m, changePct, xpResults[0] as int, xpResults[1] as int, xpResults[2] as String);
     } catch (_) {
       return (null, null, 0, 0, 'ready');
     }
