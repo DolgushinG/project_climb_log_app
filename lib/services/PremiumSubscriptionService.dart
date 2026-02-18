@@ -92,6 +92,15 @@ class RefundPreview {
   });
 }
 
+/// Результат активации пробного периода.
+class TrialStartResult {
+  final bool success;
+  final String? errorCode; // 'trial_already_used', 'network', 'server', 'no_token', etc.
+
+  TrialStartResult.success() : success = true, errorCode = null;
+  TrialStartResult.failure(this.errorCode) : success = false;
+}
+
 /// Сервис премиум-подписки на раздел тренировок.
 /// Пробный период — 7 дней. Оплата через PayAnyWay (MONETA.RU).
 class PremiumSubscriptionService {
@@ -293,9 +302,10 @@ class PremiumSubscriptionService {
 
   /// POST /api/premium/start-trial — активация пробного периода по нажатию пользователя.
   /// Бэкенд запоминает: второй раз вернёт 400 (пробный уже использован).
-  Future<bool> startTrial() async {
+  /// Возвращает [TrialStartResult] с деталями результата.
+  Future<TrialStartResult> startTrial() async {
     final token = await getToken();
-    if (token == null) return false;
+    if (token == null) return TrialStartResult.failure('no_token');
     try {
       final resp = await http.post(
         Uri.parse('$DOMAIN/api/premium/start-trial'),
@@ -305,9 +315,23 @@ class PremiumSubscriptionService {
         },
         body: '{}',
       );
-      return resp.statusCode == 200 || resp.statusCode == 201;
-    } catch (_) {}
-    return false;
+      if (resp.statusCode == 200 || resp.statusCode == 201) {
+        return TrialStartResult.success();
+      }
+      // Обрабатываем конкретные ошибки
+      if (resp.statusCode == 400) {
+        try {
+          final data = jsonDecode(resp.body) as Map<String, dynamic>?;
+          final error = data?['error']?.toString();
+          if (error == 'trial_already_used') {
+            return TrialStartResult.failure('trial_already_used');
+          }
+        } catch (_) {}
+      }
+      return TrialStartResult.failure('server_error');
+    } catch (_) {
+      return TrialStartResult.failure('network_error');
+    }
   }
 
   /// Регистрирует заказ на бэкенде перед открытием PayAnyWay.

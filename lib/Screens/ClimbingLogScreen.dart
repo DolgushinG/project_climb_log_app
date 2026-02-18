@@ -174,10 +174,10 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
       ),
     );
     if (ok == true && mounted) {
-      final started = await _premiumService.startTrial();
+      final result = await _premiumService.startTrial();
       if (mounted) {
         await _loadPremiumStatus();
-        if (started) {
+        if (result.success) {
           final endsAt = _premiumStatus?.trialEndsAt;
           final dateStr = endsAt != null
               ? DateFormat('d MMMM yyyy', 'ru').format(endsAt)
@@ -193,9 +193,36 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
             ),
           );
         } else {
+          // Обрабатываем разные типы ошибок
+          String errorMessage;
+          switch (result.errorCode) {
+            case 'trial_already_used':
+              // Пробный период уже активирован, показываем информацию об оставшемся времени
+              final daysLeft = _premiumStatus?.trialDaysLeft ?? 0;
+              if (daysLeft > 0) {
+                final endsAt = _premiumStatus?.trialEndsAt;
+                final dateStr = endsAt != null
+                    ? DateFormat('d MMMM yyyy', 'ru').format(endsAt)
+                    : null;
+                errorMessage = dateStr != null
+                    ? 'Пробный период уже активирован. Доступ до $dateStr'
+                    : 'Пробный период уже активирован. Осталось $daysLeft дней';
+              } else {
+                errorMessage = 'Пробный период уже был активирован ранее';
+              }
+              break;
+            case 'network_error':
+              errorMessage = 'Нет подключения к интернету. Проверьте соединение.';
+              break;
+            case 'no_token':
+              errorMessage = 'Требуется авторизация';
+              break;
+            default:
+              errorMessage = 'Не удалось активировать. Попробуйте позже.';
+          }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Не удалось активировать. Попробуйте позже.', style: GoogleFonts.unbounded(color: Colors.white)),
+              content: Text(errorMessage, style: GoogleFonts.unbounded(color: Colors.white)),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.graphite,
             ),
