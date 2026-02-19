@@ -322,7 +322,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     }
   }
 
-  Future<void> _openPlanSelection({required bool planExists}) async {
+  Future<void> _openPlanSelection({required bool planExists, bool catalogOnly = false}) async {
     if (planExists) {
       final ok = await showDialog<bool>(
         context: context,
@@ -358,6 +358,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         builder: (_) => PlanSelectionScreen(
           onPlanCreated: _onPlanCreated,
           existingPlan: planExists ? _plan : null,
+          catalogOnly: catalogOnly && !planExists,
         ),
       ),
     );
@@ -485,10 +486,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           ),
           const SizedBox(height: 28),
           FilledButton.icon(
-            onPressed: () => _openPlanSelection(planExists: false),
-            icon: const Icon(Icons.add_rounded, size: 22),
+            onPressed: () => _openPlanSelection(planExists: false, catalogOnly: true),
+            icon: const Icon(Icons.grid_view_rounded, size: 22),
             label: Text(
-              'Создать план',
+              'Готовые планы тренировок',
               style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             style: FilledButton.styleFrom(
@@ -498,6 +499,21 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
               elevation: 2,
               shadowColor: AppColors.mutedGold.withOpacity(0.3),
+            ),
+          ),
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => _openPlanSelection(planExists: false, catalogOnly: false),
+            icon: const Icon(Icons.tune_rounded, size: 20),
+            label: Text(
+              'Создать план',
+              style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w500),
+            ),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.mutedGold,
+              side: const BorderSide(color: AppColors.mutedGold),
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
             ),
           ),
           const SizedBox(height: 32),

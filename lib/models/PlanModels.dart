@@ -96,6 +96,8 @@ class PlanSessionTypeInfo {
 class PlanTemplateResponse {
   final List<Audience> audiences;
   final List<PlanTemplate> templates;
+  /// Цели планов: базовая подготовка, усилить тягу и т.д. Используется для фильтрации и бейджей.
+  final List<PlanGoal> planGoals;
   final int minDurationWeeks;
   final int maxDurationWeeks;
   final int defaultDurationWeeks;
@@ -107,6 +109,7 @@ class PlanTemplateResponse {
   PlanTemplateResponse({
     required this.audiences,
     required this.templates,
+    this.planGoals = const [],
     required this.minDurationWeeks,
     required this.maxDurationWeeks,
     required this.defaultDurationWeeks,
@@ -118,6 +121,7 @@ class PlanTemplateResponse {
   factory PlanTemplateResponse.fromJson(Map<String, dynamic> json) {
     final audRaw = json['audiences'] as List<dynamic>? ?? [];
     final templRaw = json['templates'] as List<dynamic>? ?? [];
+    final goalsRaw = json['plan_goals'] as List<dynamic>? ?? [];
     final recRaw = json['general_recommendations'] as List<dynamic>? ?? [];
     final pgRaw = json['plan_guide'] as Map<String, dynamic>?;
     List<int> options = [15, 30, 45, 60, 90];
@@ -134,6 +138,7 @@ class PlanTemplateResponse {
     return PlanTemplateResponse(
       audiences: audRaw.map((e) => Audience.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
       templates: templRaw.map((e) => PlanTemplate.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+      planGoals: goalsRaw.map((e) => PlanGoal.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
       minDurationWeeks: json['min_duration_weeks'] as int? ?? 2,
       maxDurationWeeks: json['max_duration_weeks'] as int? ?? 12,
       defaultDurationWeeks: json['default_duration_weeks'] as int? ?? 2,
@@ -158,27 +163,50 @@ class Audience {
       );
 }
 
+/// Цель плана: базовая подготовка, усилить тягу и т.д.
+class PlanGoal {
+  final String key;
+  final String labelRu;
+  final String? description;
+
+  PlanGoal({required this.key, required this.labelRu, this.description});
+
+  factory PlanGoal.fromJson(Map<String, dynamic> json) => PlanGoal(
+        key: json['key'] as String? ?? '',
+        labelRu: json['label_ru'] as String? ?? json['label'] as String? ?? json['key'] as String? ?? '',
+        description: json['description'] as String?,
+      );
+}
+
 class PlanTemplate {
   final String key;
   final String nameRu;
   final String? description;
+  /// Цель плана (key из plan_goals). null — план без явной цели.
+  final String? planGoal;
   final int ofpPerWeek;
   final int sfpPerWeek;
+  /// Растяжка каждый день (даже в дни без силовой).
+  final bool stretchingDaily;
 
   PlanTemplate({
     required this.key,
     required this.nameRu,
     this.description,
+    this.planGoal,
     this.ofpPerWeek = 2,
     this.sfpPerWeek = 1,
+    this.stretchingDaily = false,
   });
 
   factory PlanTemplate.fromJson(Map<String, dynamic> json) => PlanTemplate(
         key: json['key'] as String? ?? '',
         nameRu: json['name_ru'] as String? ?? json['name'] as String? ?? json['key'] as String? ?? '',
         description: json['description'] as String? ?? json['description_ru'] as String?,
+        planGoal: json['plan_goal'] as String?,
         ofpPerWeek: json['ofp_per_week'] as int? ?? 2,
         sfpPerWeek: json['sfp_per_week'] as int? ?? 1,
+        stretchingDaily: json['stretching_daily'] as bool? ?? false,
       );
 }
 

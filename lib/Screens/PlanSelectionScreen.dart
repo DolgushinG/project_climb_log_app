@@ -8,11 +8,13 @@ import 'package:login_app/services/TrainingDisclaimerService.dart';
 
 /// Экран выбора плана: уровень, шаблон, длительность, дата старта.
 /// При [existingPlan] форма предзаполняется текущими настройками (обновление плана).
+/// [catalogOnly] = true — только готовые планы, минимальная кастомизация (ОФП/СФП уже заданы шаблоном).
 class PlanSelectionScreen extends StatefulWidget {
   final void Function(ActivePlan plan)? onPlanCreated;
   final ActivePlan? existingPlan;
+  final bool catalogOnly;
 
-  const PlanSelectionScreen({super.key, this.onPlanCreated, this.existingPlan});
+  const PlanSelectionScreen({super.key, this.onPlanCreated, this.existingPlan, this.catalogOnly = false});
 
   @override
   State<PlanSelectionScreen> createState() => _PlanSelectionScreenState();
@@ -27,6 +29,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   String? _error;
 
   String _selectedAudience = 'beginner';
+  /// Фильтр по цели: null = все, иначе только планы с plan_goal === selectedGoal.
+  String? _selectedGoal;
   PlanTemplate? _selectedTemplate;
   int _durationWeeks = 2;
   DateTime _startDate = DateTime.now();
@@ -103,6 +107,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   bool get _canCreatePlan {
     if (_selectedTemplate == null || _loading || _scheduledWeekdays.isEmpty) return false;
     if (widget.existingPlan != null) return true;
+    if (widget.catalogOnly) return true;
     return _disclaimerAcknowledged || _disclaimerChecked;
   }
 
@@ -127,6 +132,27 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (k.contains('amateur') || k.contains('любитель')) return 'amateur';
     if (k.contains('advanced') || k.contains('pro')) return 'advanced';
     return 'beginner';
+  }
+
+  /// Фильтр шаблонов по выбранной цели.
+  List<PlanTemplate> _getFilteredTemplates() {
+    if (_data == null) return [];
+    final templates = _data!.templates;
+    if (_selectedGoal == null || _selectedGoal!.isEmpty) return templates;
+    return templates.where((t) => t.planGoal == _selectedGoal).toList();
+  }
+
+  static List<PlanTemplate> _filterTemplates(PlanTemplateResponse data, String? goal) {
+    if (goal == null || goal.isEmpty) return data.templates;
+    return data.templates.where((t) => t.planGoal == goal).toList();
+  }
+
+  void _ensureSelectedTemplateInFilteredList(PlanTemplateResponse data) {
+    final filtered = _filterTemplates(data, _selectedGoal);
+    if (filtered.isEmpty) return;
+    if (_selectedTemplate == null || !filtered.any((t) => t.key == _selectedTemplate!.key)) {
+      _selectedTemplate = filtered.first;
+    }
   }
 
   Future<void> _load() async {
@@ -159,8 +185,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           if (data.audiences.isNotEmpty && !data.audiences.any((a) => a.key == _selectedAudience)) {
             _selectedAudience = data.audiences.first.key;
           }
+          _ensureSelectedTemplateInFilteredList(data);
           if (!isUpdate) {
             _durationWeeks = data.defaultDurationWeeks.clamp(data.minDurationWeeks, data.maxDurationWeeks);
+          }
+          if (widget.catalogOnly && _scheduledWeekdays.isEmpty && _selectedTemplate != null) {
+            final n = (_selectedTemplate!.ofpPerWeek + _selectedTemplate!.sfpPerWeek).clamp(1, 7);
+            _scheduledWeekdays = List.generate(n, (i) => [1, 3, 5, 6, 2, 4, 7][i]);
+            _daysPerWeek = _scheduledWeekdays.length;
           }
           if (!data.availableMinutesOptions.contains(_availableMinutes)) {
             _availableMinutes = data.availableMinutesOptions.contains(45) ? 45 : data.availableMinutesOptions.first;
@@ -203,22 +235,32 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         ofpSfpFocus: _ofpSfpScheduleMode == 'auto' ? _ofpSfpFocus : null,
       );
     } else {
-      plan = await _api.createPlan(
-        templateKey: _selectedTemplate!.key,
-        durationWeeks: _durationWeeks,
-        startDate: startStr,
-        daysPerWeek: _daysPerWeek,
-        scheduledWeekdays: sw,
-        ofpWeekdays: ofpSw,
-        sfpWeekdays: sfpSw,
-        hasFingerboard: _hasFingerboard,
-        injuries: _injuries.isEmpty ? null : List.from(_injuries),
-        preferredStyle: _preferredStyle,
-        experienceMonths: _experienceMonths,
-        includeClimbingInDays: _includeClimbingInDays,
-        availableMinutes: _availableMinutes,
-        ofpSfpFocus: _ofpSfpScheduleMode == 'auto' ? _ofpSfpFocus : null,
-      );
+      if (widget.catalogOnly) {
+        plan = await _api.createPlan(
+          templateKey: _selectedTemplate!.key,
+          durationWeeks: _durationWeeks,
+          startDate: startStr,
+          daysPerWeek: _daysPerWeek,
+          scheduledWeekdays: sw,
+        );
+      } else {
+        plan = await _api.createPlan(
+          templateKey: _selectedTemplate!.key,
+          durationWeeks: _durationWeeks,
+          startDate: startStr,
+          daysPerWeek: _daysPerWeek,
+          scheduledWeekdays: sw,
+          ofpWeekdays: ofpSw,
+          sfpWeekdays: sfpSw,
+          hasFingerboard: _hasFingerboard,
+          injuries: _injuries.isEmpty ? null : List.from(_injuries),
+          preferredStyle: _preferredStyle,
+          experienceMonths: _experienceMonths,
+          includeClimbingInDays: _includeClimbingInDays,
+          availableMinutes: _availableMinutes,
+          ofpSfpFocus: _ofpSfpScheduleMode == 'auto' ? _ofpSfpFocus : null,
+        );
+      }
     }
 
     if (!mounted) return;
@@ -249,7 +291,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.anthracite,
         title: Text(
-          widget.existingPlan != null ? 'Обновить план' : 'Создать план',
+          widget.existingPlan != null
+              ? 'Обновить план'
+              : (widget.catalogOnly ? 'Готовые планы' : 'Создать план'),
           style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         leading: IconButton(
@@ -299,6 +343,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     ),
                   ] else ...[
                     _buildAudienceSection(),
+                    if (_data!.planGoals.isNotEmpty) ...[
+                      const SizedBox(height: 20),
+                      _buildGoalSection(),
+                    ],
                     const SizedBox(height: 20),
                     _buildTemplateSection(),
                     const SizedBox(height: 20),
@@ -306,16 +354,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     const SizedBox(height: 20),
                     _buildStartDateSection(),
                     const SizedBox(height: 20),
-                    _buildPersonalizationSection(),
-                    if (_data!.generalRecommendations.isNotEmpty) ...[
+                    if (widget.catalogOnly) _buildCatalogWeekdaysSection() else _buildPersonalizationSection(),
+                    if (!widget.catalogOnly && _data!.generalRecommendations.isNotEmpty) ...[
                       const SizedBox(height: 20),
                       _buildRecommendations(),
                     ],
-                    if (_data!.planGuide != null) ...[
+                    if (!widget.catalogOnly && _data!.planGuide != null) ...[
                       const SizedBox(height: 20),
                       _buildPlanGuideBlock(),
                     ],
-                    if (widget.existingPlan == null && !_disclaimerAcknowledged) ...[
+                    if (widget.existingPlan == null && !_disclaimerAcknowledged && !widget.catalogOnly) ...[
                       const SizedBox(height: 20),
                       _buildDisclaimerBlock(),
                     ],
@@ -336,7 +384,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
                         child: Text(
-                          widget.existingPlan != null ? 'Сохранить изменения' : 'Создать план',
+                          widget.existingPlan != null
+                              ? 'Сохранить изменения'
+                              : (widget.catalogOnly ? 'Начать план' : 'Создать план'),
                           style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
@@ -345,6 +395,67 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 ],
               ),
             ),
+    );
+  }
+
+  Widget _buildGoalSection() {
+    if (_data == null || _data!.planGoals.isEmpty) return const SizedBox.shrink();
+    // Показываем только цели, для которых есть хотя бы один план.
+    final goals = _data!.planGoals
+        .where((g) => _data!.templates.any((t) => t.planGoal == g.key))
+        .toList();
+    if (goals.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Что хочешь улучшить?', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            ChoiceChip(
+              label: Text('Все цели', style: GoogleFonts.unbounded(fontSize: 13)),
+              selected: _selectedGoal == null,
+              onSelected: (_) {
+                setState(() {
+                  _selectedGoal = null;
+                  final filtered = _getFilteredTemplates();
+                  if (filtered.isNotEmpty && (_selectedTemplate == null || !filtered.any((t) => t.key == _selectedTemplate!.key))) {
+                    _selectedTemplate = filtered.first;
+                  }
+                });
+              },
+              selectedColor: AppColors.mutedGold.withOpacity(0.4),
+              backgroundColor: AppColors.rowAlt,
+              labelStyle: TextStyle(color: _selectedGoal == null ? AppColors.mutedGold : Colors.white70),
+            ),
+            ...goals.map((g) {
+              final selected = _selectedGoal == g.key;
+              return ChoiceChip(
+                label: Text(g.labelRu, style: GoogleFonts.unbounded(fontSize: 13)),
+                selected: selected,
+                onSelected: (_) {
+                  setState(() {
+                    _selectedGoal = g.key;
+                    final filtered = _getFilteredTemplates();
+                    if (filtered.isNotEmpty) {
+                      if (_selectedTemplate == null || !filtered.any((t) => t.key == _selectedTemplate!.key)) {
+                        _selectedTemplate = filtered.first;
+                      }
+                    } else {
+                      _selectedTemplate = null;
+                    }
+                  });
+                },
+                selectedColor: AppColors.mutedGold.withOpacity(0.4),
+                backgroundColor: AppColors.rowAlt,
+                labelStyle: TextStyle(color: selected ? AppColors.mutedGold : Colors.white70),
+              );
+            }),
+          ],
+        ),
+      ],
     );
   }
 
@@ -377,9 +488,54 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     );
   }
 
+  List<PlanTemplate> get _filteredTemplates {
+    if (_data == null) return [];
+    final templates = _data!.templates;
+    if (_selectedGoal == null) return templates;
+    return templates.where((t) => t.planGoal == _selectedGoal).toList();
+  }
+
+  String? _goalLabel(String? goalKey) {
+    if (goalKey == null || _data == null) return null;
+    final g = _data!.planGoals.where((x) => x.key == goalKey).firstOrNull;
+    return g?.labelRu;
+  }
+
+  Widget _buildEmptyTemplatesState() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark.withOpacity(0.6),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.inbox_outlined, color: Colors.white38, size: 40),
+          const SizedBox(height: 12),
+          Text(
+            'Планов с этой целью пока нет. Выбери другую цель или аудиторию.',
+            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTemplateSection() {
-    if (_data == null || _data!.templates.isEmpty) return const SizedBox.shrink();
-    final filtered = _data!.templates;
+    final filtered = _filteredTemplates;
+    if (_data == null) return const SizedBox.shrink();
+    if (filtered.isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text('Шаблон плана', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+          const SizedBox(height: 8),
+          _buildEmptyTemplatesState(),
+        ],
+      );
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -415,18 +571,37 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           ),
                           const SizedBox(width: 10),
                           Expanded(
-                            child: Text(
-                              t.nameRu,
-                              style: GoogleFonts.unbounded(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
-                              ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  t.nameRu,
+                                  style: GoogleFonts.unbounded(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                if (t.planGoal != null && _goalLabel(t.planGoal) != null) ...[
+                                  const SizedBox(height: 4),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.mutedGold.withOpacity(0.2),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: Text(
+                                      _goalLabel(t.planGoal)!,
+                                      style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold),
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      if (t.description != null) ...[
+                      if (t.description != null && t.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         Text(
                           t.description!,
@@ -435,7 +610,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       ],
                       const SizedBox(height: 4),
                       Text(
-                        'ОФП: ${t.ofpPerWeek}×/нед, СФП: ${t.sfpPerWeek}×/нед',
+                        'ОФП ${t.ofpPerWeek}× в неделю, СФП ${t.sfpPerWeek}×',
                         style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
                       ),
                     ],
@@ -526,6 +701,40 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             ),
           ),
         ),
+      ],
+    );
+  }
+
+  /// Для готовых планов — только выбор дней. ОФП/СФП уже заданы шаблоном.
+  Widget _buildCatalogWeekdaysSection() {
+    final t = _selectedTemplate;
+    final needed = (t != null) ? (t.ofpPerWeek + t.sfpPerWeek) : 4;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          t != null
+              ? 'В плане ОФП ${
+                  t.ofpPerWeek}× и СФП ${t.sfpPerWeek}× в неделю — выбери $needed дня'
+              : 'Дни недели',
+          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (int w = 1; w <= 7; w++) _buildWeekdayChip(w),
+          ],
+        ),
+        if (_scheduledWeekdays.isEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              'Выберите минимум $needed ${_daysLabel(needed)}',
+              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.orange),
+            ),
+          ),
       ],
     );
   }
