@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import '../login.dart';
 import '../main.dart';
 
-/// При 401 (не авторизован) — очищаем токен и сразу перекидываем на логин. 419 (rate limit) — не редиректим, не поможет.
+/// При 401 (не авторизован) — очищаем все данные и перекидываем на логин. 419 (rate limit) — не редиректим, не поможет.
 Future<void> redirectToLoginOnSessionError(BuildContext? context,
     [String message = 'Ошибка сессии']) async {
-  await clearToken();
+  await clearAllDataOnLogout();
   final ctx = context ?? navigatorKey.currentContext;
   if (ctx != null && ctx.mounted) {
     Navigator.of(ctx).pushAndRemoveUntil(

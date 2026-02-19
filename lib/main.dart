@@ -7,6 +7,11 @@ import 'package:login_app/MainScreen.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/RustorePushService.dart';
 import 'package:login_app/services/cache_service.dart';
+import 'package:login_app/services/ClimbingLogService.dart';
+import 'package:login_app/services/offline_queue_service.dart';
+import 'package:login_app/services/PlanCompletionClearService.dart';
+import 'package:login_app/services/PremiumSubscriptionService.dart';
+import 'package:login_app/services/TrainingPlanApiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'login.dart';
@@ -56,6 +61,60 @@ Future<void> clearToken() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.remove('token');
   await CacheService.remove(CacheService.keyProfile);
+}
+
+/// Полная очистка всех данных при выходе из аккаунта (кэш, SharedPreferences, in-memory).
+/// Вызывать при logout и redirectToLoginOnSessionError, чтобы новый аккаунт не видел данные предыдущего.
+Future<void> clearAllDataOnLogout() async {
+  final prefs = await SharedPreferences.getInstance();
+
+  // Токен
+  await prefs.remove('token');
+
+  // Весь кэш CacheService (профиль, соревнования, рейтинг, routes, event_details и т.д.)
+  await CacheService.clearAllCache();
+
+  // Premium
+  await PremiumSubscriptionService().invalidateStatusCache();
+  await prefs.remove('premium_trial_start_iso');
+
+  // План тренировок, упражнения, отметки
+  await PlanCompletionClearService.clearLocalData();
+
+  // Офлайн-очередь результатов
+  await OfflineQueueService.clear();
+
+  // In-memory кэши
+  ClimbingLogService.invalidateAllCaches();
+  TrainingPlanApiService.invalidatePlanCaches();
+
+  // Остальные пользовательские данные в SharedPreferences
+  const _userKeys = [
+    'strength_measurement_history',
+    'strength_last_metrics',
+    'training_xp',
+    'training_streak_days',
+    'training_last_session_date',
+    'training_last_measure_date',
+    'training_boss_fight_week',
+    'profile_welcome_shown',
+    'exercise_skip_swipe_hint_shown',
+    'training_disclaimer_acknowledged',
+  ];
+  for (final k in _userKeys) {
+    await prefs.remove(k);
+  }
+
+  // Ключи по префиксу
+  for (final key in prefs.getKeys()) {
+    if (key.startsWith('results_draft_') ||
+        key.startsWith('group_register_draft_') ||
+        key.startsWith('climbing_test_draft') ||
+        key == 'climbing_test_body_weight' ||
+        key == 'climbing_test_last_rank') {
+      await prefs.remove(key);
+    }
+  }
 }
 
 /// Ключ: пользователь нажал «Не сейчас» на предложении добавить Passkey после входа.
@@ -217,8 +276,7 @@ class _TokenCheckerState extends State<TokenChecker> {
 
     final isGuest = storedToken == null || (storedToken.trim().isEmpty);
     if (isGuest) {
-      await PremiumSubscriptionService().invalidateStatusCache();
-      await CacheService.clearAllUserData();
+      await clearAllDataOnLogout();
     }
     setState(() {
       token = storedToken;

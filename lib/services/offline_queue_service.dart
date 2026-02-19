@@ -117,4 +117,9 @@ class OfflineQueueService {
     list.removeWhere((e) => e.eventId == eventId);
     await _save(list);
   }
+
+  /// Очистить очередь. Вызывать при выходе из аккаунта.
+  static Future<void> clear() async {
+    await _save([]);
+  }
 }

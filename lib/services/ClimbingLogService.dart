@@ -28,6 +28,16 @@ class ClimbingLogService {
     _historyCacheTime = null;
   }
 
+  /// Инвалидирует весь in-memory кэш (история, грейды). Вызывать при выходе из аккаунта.
+  static void invalidateAllCaches() {
+    _historyCache = null;
+    _historyCacheTime = null;
+    _gradesCache = null;
+    _gradesCacheTime = null;
+    _gradesWithGroupsCache = null;
+    _gradesWithGroupsCacheTime = null;
+  }
+
   static const _gradesFallback = ['5', '6A', '6A+', '6B', '6B+', '6C', '6C+', '7A', '7A+', '7B', '7B+', '7C', '7C+', '8A+'];
   static final GradesResponse _gradesWithGroupsFallback = GradesResponse(
     grades: _gradesFallback,

@@ -90,7 +90,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
       );
 
       if (response.statusCode == 200) {
-        await clearToken();
+        await clearAllDataOnLogout();
         if (mounted) {
           Navigator.pushAndRemoveUntil(
             context,

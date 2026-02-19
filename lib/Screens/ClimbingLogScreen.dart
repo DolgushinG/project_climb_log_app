@@ -176,6 +176,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     if (ok == true && mounted) {
       final result = await _premiumService.startTrial();
       if (mounted) {
+        await _premiumService.invalidateStatusCache();
         await _loadPremiumStatus();
         if (result.success) {
           final endsAt = _premiumStatus?.trialEndsAt;

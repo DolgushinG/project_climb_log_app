@@ -50,6 +50,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
   bool _loading = true;
   bool _loadError = false;
   String? _loadErrorMessage;
+  bool _loadingTodayPlanDay = false;
   bool _wasVisible = false;
   /// Показать приветственную карточку после создания плана (детали и подсказки).
   bool _showPlanCreatedWelcome = false;
@@ -92,6 +93,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             _hasClimbingForToday = null;
             _planCompletedCount = null;
             _planTotalCount = null;
+            _loadingTodayPlanDay = false;
           }
         });
         if (plan != null) {
@@ -115,13 +117,20 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     final startDate = _parseDate(plan.startDate);
     if (todayDate.isBefore(startDate)) {
       if (mounted && _plan?.id == plan.id) {
-        setState(() => _todayPlanDay = null);
+        setState(() {
+          _todayPlanDay = null;
+          _loadingTodayPlanDay = false;
+        });
       }
       return;
     }
+    if (mounted && _plan?.id == plan.id) setState(() => _loadingTodayPlanDay = true);
     final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    final day = await _api.getPlanDay(plan.id, dateStr);
-    if (day == null || !mounted || _plan?.id != plan.id) return;
+    final day = await _api.getPlanDay(plan.id, dateStr, light: true);
+    if (day == null || !mounted || _plan?.id != plan.id) {
+      if (mounted && _plan?.id == plan.id) setState(() => _loadingTodayPlanDay = false);
+      return;
+    }
     final needClimbing = day.isClimbing || (plan.includeClimbingInDays && !day.isRest);
     final needCompletionsSkips = !day.isRest && day.exercises.isNotEmpty;
     // Параллельная загрузка history + completions + skips вместо последовательных вызовов
@@ -157,6 +166,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         _todayCompletedCount = null;
         _todaySkippedCount = null;
         _hasClimbingForToday = needClimbing ? sess != null : null;
+        _loadingTodayPlanDay = false;
       });
       return;
     }
@@ -173,6 +183,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         _todayCompletedCount = completedCount;
         _todaySkippedCount = skippedCount;
         _hasClimbingForToday = plan.includeClimbingInDays ? sess != null : null;
+        _loadingTodayPlanDay = false;
       });
       return;
     }
@@ -183,6 +194,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         _todayCompletedCount = null;
         _todaySkippedCount = null;
         _hasClimbingForToday = needClimbing ? sess != null : null;
+        _loadingTodayPlanDay = false;
       });
     }
   }
@@ -1155,8 +1167,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         _hasClimbingForToday == false &&
         (plan.includeClimbingInDays || day.isClimbing);
 
+    final isLoading = _loadingTodayPlanDay;
+
     Future<void> onTap() async {
-      if (beforeStart) return;
+      if (beforeStart || isLoading) return;
       if (isDone) {
         await Navigator.push(
           context,
@@ -1232,29 +1246,33 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
       }
     }
 
-    final cardActive = !beforeStart && !isRest;
+    final cardActive = !beforeStart && !isRest && !isLoading;
     final isCompletedState = isDone && day != null;
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: isLoading ? null : onTap,
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: beforeStart || isRest
-                ? AppColors.cardDark
-                : (canContinue
-                    ? AppColors.mutedGold.withOpacity(0.15)
-                    : (isCompletedState ? AppColors.successMuted.withOpacity(0.12) : AppColors.cardDark)),
+            color: isLoading
+                ? AppColors.mutedGold.withOpacity(0.08)
+                : (beforeStart || isRest
+                    ? AppColors.cardDark
+                    : (canContinue
+                        ? AppColors.mutedGold.withOpacity(0.15)
+                        : (isCompletedState ? AppColors.successMuted.withOpacity(0.12) : AppColors.cardDark))),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: beforeStart || isRest
-                  ? AppColors.graphite
-                  : (canContinue
-                      ? AppColors.mutedGold.withOpacity(0.5)
-                      : (isCompletedState ? AppColors.successMuted.withOpacity(0.5) : AppColors.mutedGold.withOpacity(0.4))),
+              color: isLoading
+                  ? AppColors.mutedGold.withOpacity(0.6)
+                  : (beforeStart || isRest
+                      ? AppColors.graphite
+                      : (canContinue
+                          ? AppColors.mutedGold.withOpacity(0.5)
+                          : (isCompletedState ? AppColors.successMuted.withOpacity(0.5) : AppColors.mutedGold.withOpacity(0.4)))),
             ),
           ),
           child: LayoutBuilder(
@@ -1372,19 +1390,25 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                       ),
                       if (cardActive && !narrow && !showAddClimbing)
                         FilledButton(
-                          onPressed: () => onTap(),
+                          onPressed: isLoading ? null : () => onTap(),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.mutedGold,
                             foregroundColor: Colors.black87,
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                             minimumSize: Size.zero,
                           ),
-                          child: Text(
-                            isCompletedState
-                                ? 'Подробнее'
-                                : (canContinue ? (remaining == 0 ? 'Завершить' : 'Продолжить') : 'Приступить'),
-                            style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
-                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54),
+                                )
+                              : Text(
+                                  isCompletedState
+                                      ? 'Подробнее'
+                                      : (canContinue ? (remaining == 0 ? 'Завершить' : 'Продолжить') : 'Приступить'),
+                                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
+                                ),
                         )
                       else if (cardActive && !narrow && showAddClimbing)
                         Icon(Icons.chevron_right, color: Colors.white54),
@@ -1396,18 +1420,24 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                       child: SizedBox(
                         width: double.infinity,
                         child: FilledButton(
-                          onPressed: () => onTap(),
+                          onPressed: isLoading ? null : () => onTap(),
                           style: FilledButton.styleFrom(
                             backgroundColor: AppColors.mutedGold,
                             foregroundColor: Colors.black87,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
-                          child: Text(
-                            isCompletedState
-                                ? 'Подробнее'
-                                : (canContinue ? (remaining == 0 ? 'Завершить' : 'Продолжить') : 'Приступить'),
-                            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
-                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  width: 22,
+                                  height: 22,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black54),
+                                )
+                              : Text(
+                                  isCompletedState
+                                      ? 'Подробнее'
+                                      : (canContinue ? (remaining == 0 ? 'Завершить' : 'Продолжить') : 'Приступить'),
+                                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
+                                ),
                         ),
                       ),
                     ),

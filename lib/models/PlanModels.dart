@@ -267,6 +267,26 @@ class ActivePlan {
   }
 }
 
+/// Ответ GET /plans/{id}/day-coach-comment — AI-комментарий, загружаемый в фоне.
+class PlanDayCoachCommentResponse {
+  final String? coachComment;
+  final String? whyThisSession;
+  final bool aiCoachAvailable;
+
+  PlanDayCoachCommentResponse({
+    this.coachComment,
+    this.whyThisSession,
+    this.aiCoachAvailable = false,
+  });
+
+  factory PlanDayCoachCommentResponse.fromJson(Map<String, dynamic> json) =>
+      PlanDayCoachCommentResponse(
+        coachComment: json['coach_comment'] as String?,
+        whyThisSession: json['why_this_session'] as String?,
+        aiCoachAvailable: json['ai_coach_available'] as bool? ?? false,
+      );
+}
+
 class PlanDayResponse {
   final String date;
   final String sessionType; // ofp | sfp | rest | climbing

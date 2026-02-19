@@ -30,12 +30,15 @@ class TrainingPlanApiService {
   static final Map<String, _PlanCacheEntry<PlanCalendarResponse?>> _planCalendarCache = {};
   static final Map<int, _PlanCacheEntry<PlanProgressResponse?>> _planProgressCache = {};
 
-  static void _invalidatePlanCaches() {
+  /// Инвалидирует весь in-memory кэш планов. Вызывать при выходе из аккаунта.
+  static void invalidatePlanCaches() {
     _activePlanCache = null;
     _planDayCache.clear();
     _planCalendarCache.clear();
     _planProgressCache.clear();
   }
+
+  static void _invalidatePlanCaches() => invalidatePlanCaches();
 
   static void _invalidatePlanDayCache(int planId, String date) {
     _planDayCache.removeWhere((k, _) => k.startsWith('$planId:$date'));
@@ -228,15 +231,18 @@ class TrainingPlanApiService {
     );
   }
 
-  /// GET /api/climbing-logs/plans/{id}/day?date=. Кэш 60 сек.
+  /// GET /api/climbing-logs/plans/{id}/day?date=.
+  /// [light] = true — отключает AI, rule-based ответ ~200–500 ms. Используется для быстрого показа экрана.
+  /// Кэш 60 сек.
   Future<PlanDayResponse?> getPlanDay(
     int planId,
     String date, {
     int? feeling,
     String? focus,
     int? availableMinutes,
+    bool light = false,
   }) async {
-    final key = '$planId:$date:$feeling:$focus:$availableMinutes';
+    final key = '$planId:$date:$feeling:$focus:$availableMinutes:light$light';
     final cached = _planDayCache[key];
     if (cached != null && DateTime.now().difference(cached.cachedAt) < _cacheTtl) {
       return cached.value;
@@ -248,6 +254,7 @@ class TrainingPlanApiService {
       if (feeling != null && feeling >= 1 && feeling <= 5) params['feeling'] = feeling.toString();
       if (focus != null) params['focus'] = focus;
       if (availableMinutes != null && availableMinutes > 0) params['available_minutes'] = availableMinutes.toString();
+      if (light) params['light'] = '1';
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/plans/$planId/day')
           .replace(queryParameters: params);
       final response = await http.get(uri, headers: _headers(token));
@@ -257,6 +264,34 @@ class TrainingPlanApiService {
         final result = json != null ? PlanDayResponse.fromJson(json) : null;
         _planDayCache[key] = _PlanCacheEntry(result, DateTime.now());
         return result;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// GET /api/climbing-logs/plans/{id}/day-coach-comment — AI-комментарий тренера (без блокировки экрана).
+  /// Загружать в фоне после показа дня (getPlanDay с light=1). При ошибке остаётся rule-based из day.
+  Future<PlanDayCoachCommentResponse?> getPlanDayCoachComment(
+    int planId,
+    String date, {
+    int? feeling,
+    String? focus,
+    int? availableMinutes,
+  }) async {
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final params = <String, String>{'date': date};
+      if (feeling != null && feeling >= 1 && feeling <= 5) params['feeling'] = feeling.toString();
+      if (focus != null) params['focus'] = focus;
+      if (availableMinutes != null && availableMinutes > 0) params['available_minutes'] = availableMinutes.toString();
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/plans/$planId/day-coach-comment')
+          .replace(queryParameters: params);
+      final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        return json != null ? PlanDayCoachCommentResponse.fromJson(json) : null;
       }
     } catch (_) {}
     return null;

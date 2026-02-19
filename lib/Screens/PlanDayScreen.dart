@@ -43,6 +43,12 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
   HistorySession? _climbingSessionForDate;
   bool _loading = true;
   String? _error;
+  /// AI-комментарий из day-coach-comment (подгружается в фоне при light-режиме).
+  String? _coachCommentFromAi;
+  String? _whyThisSessionFromAi;
+  bool _aiCoachAvailableFromAi = false;
+  /// Ждём ответ AI — показываем «Анализирую план» вместо rule-based.
+  bool _coachCommentLoading = false;
   /// exerciseId → completed для растяжки на эту дату
   Set<String> _stretchingCompletedIds = {};
   /// exerciseId для ОФП/СФП: выполнено / пропущено (для отображения на карточках)
@@ -74,6 +80,10 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
     setState(() {
       _loading = true;
       _error = null;
+      _coachCommentFromAi = null;
+      _whyThisSessionFromAi = null;
+      _aiCoachAvailableFromAi = false;
+      _coachCommentLoading = false;
     });
     PlanDayResponse? day;
     final canUseInitial = widget.initialDay != null &&
@@ -89,6 +99,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         feeling: _feeling,
         focus: _focus,
         availableMinutes: _availableMinutes,
+        light: true,
       );
     }
     HistorySession? climbing = null;
@@ -127,7 +138,33 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         _exerciseSkippedIds = exerciseSkipped;
         _loading = false;
       });
+      if (day != null && !day.isRest && !canUseInitial) {
+        _loadCoachCommentInBackground();
+      }
     }
+  }
+
+  void _loadCoachCommentInBackground() {
+    setState(() => _coachCommentLoading = true);
+    _api.getPlanDayCoachComment(
+      widget.plan.id,
+      _dateStr,
+      feeling: _feeling,
+      focus: _focus,
+      availableMinutes: _availableMinutes,
+    ).then((res) {
+      if (!mounted) return;
+      setState(() {
+        _coachCommentLoading = false;
+        if (res != null) {
+          _coachCommentFromAi = res.coachComment;
+          _whyThisSessionFromAi = res.whyThisSession;
+          _aiCoachAvailableFromAi = res.aiCoachAvailable;
+        }
+      });
+    }).catchError((_) {
+      if (mounted) setState(() => _coachCommentLoading = false);
+    });
   }
 
   bool get _expectsClimbing =>
@@ -135,9 +172,21 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       !_day!.isRest &&
       (_day!.isClimbing || _day!.expectsClimbing || widget.plan.includeClimbingInDays);
 
-  bool get _hasCoachContent =>
-      (_day?.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty) ||
-      (_day?.whyThisSession != null && _day!.whyThisSession!.isNotEmpty);
+  String? get _effectiveCoachRecommendation =>
+      _coachCommentFromAi ?? _day?.coachRecommendation;
+  String? get _effectiveWhyThisSession =>
+      _whyThisSessionFromAi ?? _day?.whyThisSession;
+  bool get _effectiveAiCoachAvailable =>
+      (_coachCommentFromAi != null || _whyThisSessionFromAi != null)
+          ? _aiCoachAvailableFromAi
+          : (_day?.aiCoachAvailable ?? false);
+
+  bool get _hasCoachContent {
+    if (_day == null || _day!.isRest) return false;
+    if (_coachCommentLoading) return true;
+    return (_effectiveCoachRecommendation != null && _effectiveCoachRecommendation!.isNotEmpty) ||
+        (_effectiveWhyThisSession != null && _effectiveWhyThisSession!.isNotEmpty);
+  }
 
   Future<void> _toggleComplete() async {
     if (_day == null) return;
@@ -392,16 +441,71 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
   }
 
   Widget _buildCoachContentSection() {
+    if (_coachCommentLoading) {
+      return _buildCoachCommentLoadingCard();
+    }
+    final coach = _effectiveCoachRecommendation;
+    final why = _effectiveWhyThisSession;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (_day!.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty)
-          _buildCoachCommentCard(_day!.coachRecommendation!, aiCoachAvailable: _day!.aiCoachAvailable ?? false),
-        if (_day!.whyThisSession != null && _day!.whyThisSession!.isNotEmpty) ...[
-          if (_day!.coachRecommendation != null && _day!.coachRecommendation!.isNotEmpty) const SizedBox(height: 10),
-          _buildWhyThisSessionTap(_day!.whyThisSession!),
+        if (coach != null && coach.isNotEmpty)
+          _buildCoachCommentCard(coach, aiCoachAvailable: _effectiveAiCoachAvailable),
+        if (why != null && why.isNotEmpty) ...[
+          if (coach != null && coach.isNotEmpty) const SizedBox(height: 10),
+          _buildWhyThisSessionTap(why),
         ],
       ],
+    );
+  }
+
+  Widget _buildCoachCommentLoadingCard() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.mutedGold.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.sports_martial_arts, color: AppColors.mutedGold, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                'От тренера',
+                style: GoogleFonts.unbounded(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedGold,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  color: AppColors.mutedGold,
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Text(
+                  'Анализирую план и подбираю рекомендации…',
+                  style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

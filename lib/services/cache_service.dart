@@ -73,6 +73,16 @@ class CacheService {
     await remove(keyCompetitions);
     await remove(keyHistory);
     await remove(keyAnalytics);
+    await remove(keyRating);
+  }
+
+  /// Полная очистка всего кэша (включая routes, event_stats, event_details) при выходе.
+  static Future<void> clearAllCache() async {
+    final prefs = await _prefs;
+    final keys = prefs.getKeys().where((k) => k.startsWith(_prefix)).toList();
+    for (final k in keys) {
+      await prefs.remove(k);
+    }
   }
 
   /// TTL по умолчанию.
