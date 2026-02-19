@@ -64,6 +64,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     ('finger_pain', 'Пальцы'),
     ('shoulder_pain', 'Плечи'),
     ('wrist_pain', 'Запястья'),
+    ('knee_pain', 'Колени'),
+    ('lower_back_pain', 'Поясница'),
+    ('neck_pain', 'Шея'),
   ];
   static const _styleOptions = [
     ('boulder', 'Болдер'),

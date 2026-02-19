@@ -312,6 +312,10 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                       const SizedBox(height: 12),
                       _buildIntensityModifierHint(),
                     ],
+                    if (_day!.weeklyFatigueWarning != null && _day!.weeklyFatigueWarning!.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _buildWeeklyFatigueWarning(),
+                    ],
                     const SizedBox(height: 20),
                     if (_hasCoachContent) ...[
                       _buildAnimatedCoachSection(),
@@ -390,6 +394,31 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.mutedGold,
               foregroundColor: Colors.white,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWeeklyFatigueWarning() {
+    final text = _day!.weeklyFatigueWarning!;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.amber.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.amber.withOpacity(0.35)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: Colors.amber.shade300, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
             ),
           ),
         ],

@@ -316,6 +316,9 @@ class PlanDayResponse {
   /// Слабые звенья пользователя — фокус на сегодня (блок «Твои слабые места»).
   /// Nullable для обратной совместимости с закэшированными/старыми объектами.
   final List<WeakLink>? weakLinks;
+  /// Предупреждение о недельной нагрузке (уже близко к пределу / облегчённый вариант).
+  /// null — всё в норме.
+  final String? weeklyFatigueWarning;
 
   PlanDayResponse({
     required this.date,
@@ -337,6 +340,7 @@ class PlanDayResponse {
     this.whyThisSession,
     this.sessionIntensityModifier,
     this.weakLinks,
+    this.weeklyFatigueWarning,
   });
 
   bool get isRest => sessionType == 'rest';
@@ -368,6 +372,7 @@ class PlanDayResponse {
       whyThisSession: json['why_this_session'] as String?,
       sessionIntensityModifier: (json['session_intensity_modifier'] as num?)?.toDouble(),
       weakLinks: wlRaw.map((e) => WeakLink.fromJson(Map<String, dynamic>.from(e as Map))).toList(),
+      weeklyFatigueWarning: json['weekly_fatigue_warning'] as String?,
     );
   }
 }
