@@ -33,14 +33,13 @@ class _WebBackObserver extends NavigatorObserver {
     });
   }
 
-  /// Overlay (bottom sheet, dialog) — не синхронизируем с history.
-  bool _isOverlayRoute(Route<dynamic> route) {
-    return route is ModalBottomSheetRoute || route is RawDialogRoute;
-  }
+  /// Синхронизируем только полноэкранные страницы (PageRoute).
+  /// Bottom sheet, dialog, popup — не трогаем.
+  bool _isPageRoute(Route<dynamic> route) => route is PageRoute;
 
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
-    if (_isOverlayRoute(route)) return;
+    if (!_isPageRoute(route)) return;
     html.window.history.pushState(
       {'route': route.hashCode},
       '',
@@ -54,7 +53,7 @@ class _WebBackObserver extends NavigatorObserver {
       _handlingUserSwipe = false;
       return; // свайп — браузер уже перешёл назад, не дублировать
     }
-    if (_isOverlayRoute(route)) return; // bottom sheet, dialog — не трогаем history
+    if (!_isPageRoute(route)) return; // только страницы
     _programmaticPop = true;
     html.window.history.back();
   }
