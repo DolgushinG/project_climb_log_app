@@ -17,7 +17,6 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'login.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/utils/url_helper.dart';
-import 'package:login_app/services/WebBackHandler.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -145,7 +144,6 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       navigatorKey: navigatorKey,
-      navigatorObservers: [createWebBackObserver(navigatorKey)],
       title: 'Climbing App',
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: AppColors.anthracite,
