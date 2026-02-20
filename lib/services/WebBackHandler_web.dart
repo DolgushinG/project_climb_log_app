@@ -15,7 +15,8 @@ class _WebBackObserver extends NavigatorObserver {
   }
 
   final GlobalKey<NavigatorState> _navigatorKey;
-  bool _programmaticPop = false;
+  bool _programmaticPop = false; // popstate от нашего history.back() — не вызывать maybePop
+  bool _handlingUserSwipe = false; // pop от жеста — браузер уже сделал back, не дублировать
 
   void _setupPopStateListener() {
     html.window.addEventListener('popstate', _onPopState);
@@ -26,7 +27,10 @@ class _WebBackObserver extends NavigatorObserver {
       _programmaticPop = false;
       return;
     }
-    _navigatorKey.currentState?.maybePop();
+    _handlingUserSwipe = true;
+    _navigatorKey.currentState?.maybePop().then((_) {
+      _handlingUserSwipe = false; // сброс, если maybePop не выполнил pop
+    });
   }
 
   @override
@@ -40,6 +44,10 @@ class _WebBackObserver extends NavigatorObserver {
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    if (_handlingUserSwipe) {
+      _handlingUserSwipe = false;
+      return; // свайп — браузер уже перешёл назад, не дублировать
+    }
     _programmaticPop = true;
     html.window.history.back();
   }
