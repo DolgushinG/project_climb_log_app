@@ -134,6 +134,18 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return 'beginner';
   }
 
+  /// Максимум месяцев стажа по аудитории: новичок не может выбрать «много месяцев» тренировок.
+  int _maxExperienceMonthsForAudience(String audienceKey, [String? nameRu]) {
+    final k = audienceKey.toLowerCase();
+    final name = (nameRu ?? '').toLowerCase();
+    if (k.contains('beginner') || k.contains('novice') || k.contains('zero')) {
+      if (name.contains('без опыта') || name.contains('нулевой')) return 3;
+      return 6;
+    }
+    if (k.contains('amateur') || k.contains('intermediate') || k.contains('любитель')) return 36;
+    return 60;
+  }
+
   /// Фильтр шаблонов по выбранной цели.
   List<PlanTemplate> _getFilteredTemplates() {
     if (_data == null) return [];
@@ -188,6 +200,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           _ensureSelectedTemplateInFilteredList(data);
           if (!isUpdate) {
             _durationWeeks = data.defaultDurationWeeks.clamp(data.minDurationWeeks, data.maxDurationWeeks);
+            final aud = data.audiences.where((a) => a.key == _selectedAudience).firstOrNull;
+            final maxExp = _maxExperienceMonthsForAudience(_selectedAudience, aud?.nameRu);
+            _experienceMonths = _experienceMonths.clamp(1, maxExp);
           }
           if (widget.catalogOnly && _scheduledWeekdays.isEmpty && _selectedTemplate != null) {
             final n = (_selectedTemplate!.ofpPerWeek + _selectedTemplate!.sfpPerWeek).clamp(1, 7);
@@ -475,7 +490,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               label: Text(a.nameRu, style: GoogleFonts.unbounded(fontSize: 13)),
               selected: selected,
               onSelected: (_) {
-                setState(() => _selectedAudience = a.key);
+                setState(() {
+                  _selectedAudience = a.key;
+                  final maxExp = _maxExperienceMonthsForAudience(a.key, a.nameRu);
+                  if (_experienceMonths > maxExp) _experienceMonths = maxExp;
+                });
                 _load();
               },
               selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -910,13 +929,25 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ),
           const SizedBox(height: 16),
           _buildPersonalizationLabel('Опыт (месяцев)', 'Стаж систематических тренировок'),
-          Slider(
-            value: _experienceMonths.toDouble(),
-            min: 1,
-            max: 60,
-            divisions: 59,
-            activeColor: AppColors.mutedGold,
-            onChanged: (v) => setState(() => _experienceMonths = v.round()),
+          Builder(
+            builder: (context) {
+              final audience = _data?.audiences.where((a) => a.key == _selectedAudience).firstOrNull;
+              final maxExp = _maxExperienceMonthsForAudience(_selectedAudience, audience?.nameRu);
+              final clamped = _experienceMonths.clamp(1, maxExp);
+              if (clamped != _experienceMonths) {
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  if (mounted) setState(() => _experienceMonths = clamped);
+                });
+              }
+              return Slider(
+                value: clamped.toDouble(),
+                min: 1,
+                max: maxExp.toDouble(),
+                divisions: (maxExp - 1).clamp(1, 59),
+                activeColor: AppColors.mutedGold,
+                onChanged: (v) => setState(() => _experienceMonths = v.round()),
+              );
+            },
           ),
           Text(
             '$_experienceMonths мес',
