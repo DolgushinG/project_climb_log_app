@@ -130,17 +130,9 @@ class StrengthTestApiService {
         return tests.map((e) {
           final m = e as Map<String, dynamic>;
           return StrengthMeasurementSession(
+            id: (m['id'] as num?)?.toInt(),
             date: m['date'] as String? ?? '',
-            metrics: StrengthMetrics(
-              fingerLeftKg: (m['finger_left_kg'] as num?)?.toDouble(),
-              fingerRightKg: (m['finger_right_kg'] as num?)?.toDouble(),
-              pinchKg: _pinchFromTest(m),
-              pinchBlockMm: 40,
-              pullAddedKg: (m['pulling_added_weight_kg'] as num?)?.toDouble(),
-              pull1RmPct: (m['pulling_relative_strength_pct'] as num?)?.toDouble(),
-              lockOffSec: (m['lock_off_sec'] as num?)?.toInt(),
-              bodyWeightKg: (m['body_weight_kg'] as num?)?.toDouble(),
-            ),
+            metrics: _metricsFromTest(m),
           );
         }).toList();
       }
@@ -148,14 +140,43 @@ class StrengthTestApiService {
     return [];
   }
 
-  double? _pinchFromTest(Map<String, dynamic> m) {
-    final v = m['pinch_40mm_kg'] ?? m['pinch_60mm_kg'] ?? m['pinch_80mm_kg'];
-    return v != null ? (v as num).toDouble() : null;
+  StrengthMetrics _metricsFromTest(Map<String, dynamic> m) {
+    final pinch40 = (m['pinch_40mm_kg'] as num?)?.toDouble();
+    final pinch60 = (m['pinch_60mm_kg'] as num?)?.toDouble();
+    final pinch80 = (m['pinch_80mm_kg'] as num?)?.toDouble();
+    return StrengthMetrics(
+      fingerLeftKg: (m['finger_left_kg'] as num?)?.toDouble(),
+      fingerRightKg: (m['finger_right_kg'] as num?)?.toDouble(),
+      pinch40Kg: pinch40,
+      pinch60Kg: pinch60,
+      pinch80Kg: pinch80,
+      pullAddedKg: (m['pulling_added_weight_kg'] as num?)?.toDouble(),
+      pull1RmPct: (m['pulling_relative_strength_pct'] as num?)?.toDouble(),
+      lockOffSec: (m['lock_off_sec'] as num?)?.toInt(),
+      bodyWeightKg: (m['body_weight_kg'] as num?)?.toDouble(),
+    );
+  }
+
+  /// DELETE /api/climbing-logs/strength-tests/:id или ?date=YYYY-MM-DD
+  Future<bool> deleteStrengthTest({int? id, String? date}) async {
+    if (id == null && date == null) return false;
+    final token = await _getToken();
+    if (token == null) return false;
+    try {
+      final Uri uri = id != null
+          ? Uri.parse('$DOMAIN/api/climbing-logs/strength-tests/$id')
+          : Uri.parse('$DOMAIN/api/climbing-logs/strength-tests')
+              .replace(queryParameters: {'date': date!});
+      final response = await http.delete(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return false;
+      return response.statusCode == 200 || response.statusCode == 204;
+    } catch (_) {}
+    return false;
   }
 
   /// GET /api/climbing-logs/strength-leaderboard
   Future<StrengthLeaderboard?> getLeaderboard({
-    String period = 'week',
+    String period = 'all',
     String? weightRangeKg,
   }) async {
     final token = await _getToken();
@@ -525,11 +546,10 @@ class StrengthTestApiService {
         'right_kg': m.fingerRightKg,
       };
     }
-    if (m.pinchKg != null) {
-      body['pinch_grip'] = {
-        'block_width_mm': m.pinchBlockMm,
-        'max_weight_kg': m.pinchKg,
-      };
+    if (m.pinch40Kg != null || m.pinch60Kg != null || m.pinch80Kg != null) {
+      body['pinch_40mm_kg'] = m.pinch40Kg;
+      body['pinch_60mm_kg'] = m.pinch60Kg;
+      body['pinch_80mm_kg'] = m.pinch80Kg;
     }
     if (m.pullAddedKg != null && m.bodyWeightKg != null && m.bodyWeightKg! > 0) {
       final total = m.bodyWeightKg! + m.pullAddedKg!;

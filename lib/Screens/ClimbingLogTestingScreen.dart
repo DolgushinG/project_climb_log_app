@@ -6,9 +6,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/StrengthTier.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
-import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
-import 'package:login_app/Screens/StrengthHistoryScreen.dart';
 import 'package:login_app/Screens/StrengthLeaderboardScreen.dart';
+import 'package:login_app/Screens/StrengthMeasurementsScreen.dart';
 import 'package:login_app/services/StrengthDashboardService.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthHistoryService.dart';
@@ -46,7 +45,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   AnimationController? _levelUpController;
   int? _lastKnownRankIndex;
   StrengthMeasurementSession? _lastSession;
-  StrengthLeaderboard? _leaderboard;
+  List<StrengthMeasurementSession> _allSessions = [];
 
   Timer? _draftSaveTimer;
   DateTime? _lockOffStart;
@@ -58,7 +57,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     super.initState();
     _loadBodyWeight().then((_) {
       _loadDraft();
-      _loadLeaderboard();
     });
     _loadLastRank();
     _loadLastSession();
@@ -119,37 +117,33 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     if (mounted) setState(() => _lastKnownRankIndex = last);
   }
 
-  Future<void> _loadLeaderboard() async {
-    final bw = _bodyWeight;
-    final range = bw != null && bw >= 30 && bw <= 200
-        ? '${(bw - 5).clamp(30.0, 195.0).round()}-${(bw + 5).clamp(35.0, 200.0).round()}'
-        : null;
-    final lb = await StrengthTestApiService().getLeaderboard(period: 'week', weightRangeKg: range);
-    if (mounted) setState(() => _leaderboard = lb);
-  }
-
   bool _hasUnsentDraft = false;
 
   Future<void> _saveDraftLocally() async {
     _draftSaveTimer?.cancel();
     _draftSaveTimer = Timer(const Duration(milliseconds: 500), () async {
       final prefs = await SharedPreferences.getInstance();
-      final draft = <String, String>{
-        'finger_left': _fingerLeftController.text.trim(),
-        'finger_right': _fingerRightController.text.trim(),
-        'pinch': _pinchWeightController.text.trim(),
-        'pull_added': _pullWeightController.text.trim(),
-        'pull_reps': _pullRepsController.text.trim(),
-        'lock_sec': _lockOffSecController.text.trim(),
-      };
-      final keys = draft.keys.toList();
-      for (final k in keys) {
-        await prefs.setString('${_keyDraft}_$k', draft[k]!);
+      var pinch40 = prefs.getString('${_keyDraft}_pinch_40') ?? '';
+      var pinch60 = prefs.getString('${_keyDraft}_pinch_60') ?? '';
+      var pinch80 = prefs.getString('${_keyDraft}_pinch_80') ?? '';
+      final currentPinch = _pinchWeightController.text.trim();
+      switch (_pinchBlockWidth) {
+        case 40: pinch40 = currentPinch; break;
+        case 60: pinch60 = currentPinch; break;
+        case 80: pinch80 = currentPinch; break;
       }
+      await prefs.setString('${_keyDraft}_finger_left', _fingerLeftController.text.trim());
+      await prefs.setString('${_keyDraft}_finger_right', _fingerRightController.text.trim());
+      await prefs.setString('${_keyDraft}_pinch_40', pinch40);
+      await prefs.setString('${_keyDraft}_pinch_60', pinch60);
+      await prefs.setString('${_keyDraft}_pinch_80', pinch80);
+      await prefs.setString('${_keyDraft}_pull_added', _pullWeightController.text.trim());
+      await prefs.setString('${_keyDraft}_pull_reps', _pullRepsController.text.trim());
+      await prefs.setString('${_keyDraft}_lock_sec', _lockOffSecController.text.trim());
       await prefs.setInt('${_keyDraft}_pinch_block', _pinchBlockWidth);
       final hasMeasurementData = _fingerLeftController.text.trim().isNotEmpty ||
           _fingerRightController.text.trim().isNotEmpty ||
-          _pinchWeightController.text.trim().isNotEmpty ||
+          currentPinch.isNotEmpty ||
           _pullWeightController.text.trim().isNotEmpty ||
           _lockOffSecController.text.trim().isNotEmpty;
       if (mounted) setState(() => _hasUnsentDraft = hasMeasurementData);
@@ -160,18 +154,29 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     final prefs = await SharedPreferences.getInstance();
     final fingerLeft = prefs.getString('${_keyDraft}_finger_left');
     final fingerRight = prefs.getString('${_keyDraft}_finger_right');
-    final pinch = prefs.getString('${_keyDraft}_pinch');
     final pullAdded = prefs.getString('${_keyDraft}_pull_added');
     final pullReps = prefs.getString('${_keyDraft}_pull_reps');
     final lockSec = prefs.getString('${_keyDraft}_lock_sec');
-    final pinchBlock = prefs.getInt('${_keyDraft}_pinch_block');
-    final hasAny = fingerLeft != null || fingerRight != null || pinch != null ||
+    var pinchBlock = prefs.getInt('${_keyDraft}_pinch_block');
+    if (pinchBlock == null || ![40, 60, 80].contains(pinchBlock)) pinchBlock = 40;
+    var pinch40 = prefs.getString('${_keyDraft}_pinch_40');
+    var pinch60 = prefs.getString('${_keyDraft}_pinch_60');
+    var pinch80 = prefs.getString('${_keyDraft}_pinch_80');
+    final oldPinch = prefs.getString('${_keyDraft}_pinch');
+    if (oldPinch != null && pinch40 == null && pinch60 == null && pinch80 == null) {
+      await prefs.setString('${_keyDraft}_pinch_$pinchBlock', oldPinch);
+      pinch40 = pinchBlock == 40 ? oldPinch : null;
+      pinch60 = pinchBlock == 60 ? oldPinch : null;
+      pinch80 = pinchBlock == 80 ? oldPinch : null;
+    }
+    final pinch = pinchBlock == 40 ? pinch40 : (pinchBlock == 60 ? pinch60 : pinch80);
+    final hasAny = fingerLeft != null || fingerRight != null || pinch40 != null || pinch60 != null || pinch80 != null ||
         pullAdded != null || pullReps != null || lockSec != null || pinchBlock != null;
     if (!hasAny || !mounted) return;
     setState(() {
       if (fingerLeft != null) _fingerLeftController.text = fingerLeft;
       if (fingerRight != null) _fingerRightController.text = fingerRight;
-      if (pinch != null) _pinchWeightController.text = pinch;
+      if (pinch != null && pinch.isNotEmpty) _pinchWeightController.text = pinch;
       if (pullAdded != null) _pullWeightController.text = pullAdded;
       if (pullReps != null && pullReps.isNotEmpty) _pullRepsController.text = pullReps;
       if (lockSec != null) _lockOffSecController.text = lockSec;
@@ -180,9 +185,38 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     });
   }
 
+  Future<void> _switchPinchBlock(int newBlock) async {
+    if (newBlock == _pinchBlockWidth) return;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('${_keyDraft}_pinch_$_pinchBlockWidth', _pinchWeightController.text.trim());
+    await prefs.setInt('${_keyDraft}_pinch_block', newBlock);
+    final newPinch = prefs.getString('${_keyDraft}_pinch_$newBlock') ?? '';
+    if (mounted) {
+      setState(() {
+        _pinchBlockWidth = newBlock;
+        _pinchWeightController.text = newPinch;
+      });
+    }
+  }
+
+  void _resetForm() {
+    _fingerLeftController.clear();
+    _fingerRightController.clear();
+    _pinchWeightController.clear();
+    _pullWeightController.text = '1';
+    _pullRepsController.text = '1';
+    _lockOffSecController.clear();
+    _pinchBlockWidth = 40;
+    _lockOffTimer?.cancel();
+    _lockOffStart = null;
+    _lockOffElapsedSec = 0;
+    _clearDraft();
+    setState(() => _hasUnsentDraft = false);
+  }
+
   Future<void> _clearDraft() async {
     final prefs = await SharedPreferences.getInstance();
-    for (final k in ['finger_left', 'finger_right', 'pinch', 'pull_added', 'pull_reps', 'lock_sec']) {
+    for (final k in ['finger_left', 'finger_right', 'pinch', 'pinch_40', 'pinch_60', 'pinch_80', 'pull_added', 'pull_reps', 'lock_sec']) {
       await prefs.remove('${_keyDraft}_$k');
     }
     await prefs.remove('${_keyDraft}_pinch_block');
@@ -192,18 +226,30 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   Future<void> _loadLastSession() async {
     final api = StrengthTestApiService();
     var history = await api.getStrengthTestsHistory(periodDays: 365);
-    StrengthMeasurementSession? session;
-    if (history.isNotEmpty) {
-      history = List.from(history)..sort((a, b) => b.date.compareTo(a.date));
-      session = history.first;
-    } else {
-      session = await StrengthHistoryService().getLastSession();
+    if (history.isEmpty) {
+      history = await StrengthHistoryService().getHistory();
     }
-    if (mounted) setState(() => _lastSession = session);
+    history = List.from(history)..sort((a, b) => b.date.compareTo(a.date));
+    final session = history.isNotEmpty ? history.first : null;
+    if (mounted) setState(() {
+      _lastSession = session;
+      _allSessions = history;
+    });
+  }
+
+  Future<Map<int, double>> _getPinchValuesForSave() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('${_keyDraft}_pinch_$_pinchBlockWidth', _pinchWeightController.text.trim());
+    return {
+      40: double.tryParse((prefs.getString('${_keyDraft}_pinch_40') ?? '').replaceAll(',', '.')) ?? 0,
+      60: double.tryParse((prefs.getString('${_keyDraft}_pinch_60') ?? '').replaceAll(',', '.')) ?? 0,
+      80: double.tryParse((prefs.getString('${_keyDraft}_pinch_80') ?? '').replaceAll(',', '.')) ?? 0,
+    };
   }
 
   Future<void> _saveMeasurement({bool silent = false}) async {
-    final m = _buildMetrics();
+    final pinches = await _getPinchValuesForSave();
+    final m = _buildMetrics(pinches: pinches);
     if (m.bodyWeightKg == null || m.bodyWeightKg! <= 0) {
       if (!silent) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -231,10 +277,13 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     await TrainingGamificationService().recordMeasurement();
     await _clearDraft();
     if (mounted) {
-      setState(() => _lastSession = StrengthMeasurementSession(date: dateStr, metrics: m));
+      final newSession = StrengthMeasurementSession(date: dateStr, metrics: m);
+      setState(() {
+        _lastSession = newSession;
+        _allSessions = [newSession, ..._allSessions.where((s) => s.date != dateStr)];
+        _showAddForm = false;
+      });
       _checkLevelUp();
-      _loadLastSession();
-      _loadLeaderboard();
       if (!silent) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -257,11 +306,10 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     }
   }
 
-  StrengthMetrics _buildMetrics() {
+  StrengthMetrics _buildMetrics({Map<int, double>? pinches}) {
     final bw = _bodyWeight;
     final left = _parseNum(_fingerLeftController);
     final right = _parseNum(_fingerRightController);
-    final pinch = _parseNum(_pinchWeightController);
     final addW = _parseNum(_pullWeightController);
     final reps = _parseInt(_pullRepsController) ?? 1;
     double? pull1RmPct;
@@ -271,11 +319,29 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
       pull1RmPct = (oneRm / bw) * 100;
     }
     final lockSec = _parseInt(_lockOffSecController);
+    double? pinch40;
+    double? pinch60;
+    double? pinch80;
+    if (pinches != null) {
+      if (pinches[40] != null && pinches[40]! > 0) pinch40 = pinches[40];
+      if (pinches[60] != null && pinches[60]! > 0) pinch60 = pinches[60];
+      if (pinches[80] != null && pinches[80]! > 0) pinch80 = pinches[80];
+    } else {
+      final p = _parseNum(_pinchWeightController);
+      if (p != null && p > 0) {
+        switch (_pinchBlockWidth) {
+          case 40: pinch40 = p; break;
+          case 60: pinch60 = p; break;
+          case 80: pinch80 = p; break;
+        }
+      }
+    }
     return StrengthMetrics(
       fingerLeftKg: left,
       fingerRightKg: right,
-      pinchKg: pinch,
-      pinchBlockMm: _pinchBlockWidth,
+      pinch40Kg: pinch40,
+      pinch60Kg: pinch60,
+      pinch80Kg: pinch80,
       pullAddedKg: addW,
       pull1RmPct: pull1RmPct,
       lockOffSec: lockSec,
@@ -445,9 +511,19 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     );
   }
 
+  bool _showAddForm = false;
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
+    if (_showAddForm) {
+      return _buildAddFormScreen();
+    }
+    return _buildMainScreen();
+  }
+
+  /// Главный экран: 3 отдельные кнопки
+  Widget _buildMainScreen() {
     return Scaffold(
       backgroundColor: AppColors.anthracite,
       body: SafeArea(
@@ -458,7 +534,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                 child: Text(
-                  'Тест силы',
+                  'Замеры',
                   style: GoogleFonts.unbounded(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
@@ -467,144 +543,333 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 ),
               ),
             ),
+            const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            if (_lastSession == null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildEmptyPlaceholder(),
+                ),
+              ),
+            if (_lastSession != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildLastMeasurementBlocks(),
+                ),
+              ),
+            if (_lastSession != null) const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            if (_lastSession != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildRankCard(metricsForDisplay: _lastSession!.metrics),
+                ),
+              ),
+            if (_lastSession != null) const SliverToBoxAdapter(child: SizedBox(height: 16)),
+            if (_lastSession != null)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: _buildBadgesCard(allSessions: _allSessions),
+                ),
+              ),
+            if (_lastSession != null) const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            if (_lastSession == null) const SliverToBoxAdapter(child: SizedBox(height: 24)),
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildActionButton(
+                      icon: Icons.fitness_center,
+                      label: 'Наши замеры',
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const StrengthMeasurementsScreen(),
+                        ),
+                      ).then((_) {
+                        if (mounted) _loadLastSession();
+                      }),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionButton(
+                      icon: Icons.leaderboard_outlined,
+                      label: 'Посмотреть рейтинг',
+                      onPressed: () {
+                        final bw = _bodyWeight;
+                        final range = bw != null && bw >= 30 && bw <= 200
+                            ? '${(bw - 5).clamp(30.0, 195.0).round()}-${(bw + 5).clamp(35.0, 200.0).round()}'
+                            : null;
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => StrengthLeaderboardScreen(weightRangeKg: range),
+                          ),
+                        );
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _buildActionButton(
+                      icon: Icons.add_circle_outline,
+                      label: 'Добавить замер',
+                      onPressed: () {
+                        _resetForm();
+                        setState(() => _showAddForm = true);
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SliverToBoxAdapter(child: SizedBox(height: 32)),
+          ],
+        ),
+      ),
+    );
+  }
 
-            // Header: Body Weight
+  /// Блоки с информацией о последнем замере
+  Widget _buildLastMeasurementBlocks() {
+    final s = _lastSession!;
+    final m = s.metrics;
+    final blocks = <Widget>[];
+
+    if (m.bodyWeightKg != null && m.bodyWeightKg! > 0) {
+      blocks.add(_buildMetricBlock(
+        icon: Icons.monitor_weight_outlined,
+        label: 'Вес',
+        value: '${m.bodyWeightKg!.toStringAsFixed(1)} кг',
+      ));
+    }
+    if (m.fingerLeftKg != null || m.fingerRightKg != null) {
+      blocks.add(_buildMetricBlock(
+        icon: Icons.back_hand_outlined,
+        label: 'Пальцы',
+        value: 'Л ${m.fingerLeftKg?.toStringAsFixed(1) ?? '—'} / П ${m.fingerRightKg?.toStringAsFixed(1) ?? '—'} кг',
+      ));
+    }
+    if (m.pinch40Kg != null || m.pinch60Kg != null || m.pinch80Kg != null) {
+      final parts = <String>[];
+      if (m.pinch40Kg != null) parts.add('40: ${m.pinch40Kg!.toStringAsFixed(1)}');
+      if (m.pinch60Kg != null) parts.add('60: ${m.pinch60Kg!.toStringAsFixed(1)}');
+      if (m.pinch80Kg != null) parts.add('80: ${m.pinch80Kg!.toStringAsFixed(1)}');
+      blocks.add(_buildMetricBlock(
+        icon: Icons.pan_tool_outlined,
+        label: 'Щипок (мм)',
+        value: parts.join(' / ') + ' кг',
+      ));
+    }
+    if (m.pullAddedKg != null) {
+      blocks.add(_buildMetricBlock(
+        icon: Icons.fitness_center,
+        label: 'Тяга',
+        value: '+${m.pullAddedKg!.toStringAsFixed(1)} кг',
+      ));
+    }
+    if (m.lockOffSec != null && m.lockOffSec! > 0) {
+      blocks.add(_buildMetricBlock(
+        icon: Icons.lock,
+        label: 'Lock-off',
+        value: '${m.lockOffSec} сек',
+      ));
+    }
+    if (blocks.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.calendar_today, color: AppColors.linkMuted, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              'Последний замер: ${s.dateFormatted}',
+              style: GoogleFonts.unbounded(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: blocks,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricBlock({
+    required IconData icon,
+    required String label,
+    required String value,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: AppColors.mutedGold, size: 20),
+          const SizedBox(width: 10),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+              ),
+              Text(
+                value,
+                style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyPlaceholder() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.graphite),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.fitness_center_outlined, size: 56, color: AppColors.mutedGold.withOpacity(0.5)),
+          const SizedBox(height: 16),
+          Text(
+            'Пока нет замеров',
+            style: GoogleFonts.unbounded(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Добавь первый замер, чтобы отслеживать прогресс',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.unbounded(
+              fontSize: 14,
+              color: Colors.white54,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActionButton({
+    required IconData icon,
+    required String label,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: onPressed,
+        icon: Icon(icon, size: 22, color: AppColors.mutedGold),
+        label: Text(
+          label,
+          style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.mutedGold,
+          side: BorderSide(color: AppColors.mutedGold.withOpacity(0.6)),
+          padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+        ),
+      ),
+    );
+  }
+
+  /// Экран формы добавления замера (после клика «Добавить замер»)
+  Widget _buildAddFormScreen() {
+    return Scaffold(
+      backgroundColor: AppColors.anthracite,
+      appBar: AppBar(
+        backgroundColor: AppColors.anthracite,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => setState(() => _showAddForm = false),
+        ),
+        title: Text(
+          'Добавить замер',
+          style: GoogleFonts.unbounded(
+            fontSize: 18,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ),
+      body: SafeArea(
+        child: CustomScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          slivers: [
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildBodyWeightCard(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Previous measurement (прошлый раз) + История замеров
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    if (_lastSession != null) ...[
-                      _buildPreviousMeasurementCard(),
-                      const SizedBox(height: 10),
-                    ],
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const StrengthHistoryScreen(),
-                          ),
-                        );
-                        if (mounted) _loadLastSession();
-                      },
-                      icon: Icon(Icons.history, size: 18, color: AppColors.linkMuted),
-                      label: Text(
-                        'Мои замеры',
-                        style: GoogleFonts.unbounded(fontSize: 14, color: AppColors.linkMuted),
-                      ),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.linkMuted,
-                        side: BorderSide(color: AppColors.linkMuted.withOpacity(0.5)),
-                        padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Rank (Strength Tier)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildRankCard(),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Badges / Трофеи
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildBadgesCard(),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Топ недели (открывается полный экран)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: _buildLeaderboardCard(),
-              ),
-            ),
-
-            const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Block A: Finger Isometrics
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildFingerIsometricsCard(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Block B: Pinch Grip
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildPinchGripCard(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Block C: Pulling Power
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildPullingPowerCard(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Block: Lock-off
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildLockOffCard(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Block D: Asymmetry Check
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildAsymmetryCard(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-            // Save measurement button
             SliverToBoxAdapter(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 child: _buildSaveMeasurementButton(),
               ),
             ),
-
             const SliverToBoxAdapter(child: SizedBox(height: 32)),
           ],
         ),
@@ -665,59 +930,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     );
   }
 
-  Widget _buildPreviousMeasurementCard() {
-    final s = _lastSession!;
-    final m = s.metrics;
-    final parts = <String>[];
-    if (m.bodyWeightKg != null && m.bodyWeightKg! > 0) {
-      parts.add('Вес: ${m.bodyWeightKg!.toStringAsFixed(1)} кг');
-    }
-    if (m.fingerLeftKg != null || m.fingerRightKg != null) {
-      parts.add('Пальцы: Л ${m.fingerLeftKg?.toStringAsFixed(1) ?? '—'} / П ${m.fingerRightKg?.toStringAsFixed(1) ?? '—'} кг');
-    }
-    if (m.pinchKg != null) parts.add('Щипок: ${m.pinchKg!.toStringAsFixed(1)} кг');
-    if (m.pullAddedKg != null) parts.add('Тяга: +${m.pullAddedKg!.toStringAsFixed(1)} кг');
-    if (m.lockOffSec != null && m.lockOffSec! > 0) parts.add('Lock-off: ${m.lockOffSec} сек');
-    if (parts.isEmpty) return const SizedBox.shrink();
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.linkMuted.withOpacity(0.5)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.history, color: AppColors.linkMuted, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                'В прошлый раз (${s.dateFormatted})',
-                style: GoogleFonts.unbounded(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 12,
-            runSpacing: 4,
-            children: parts.map((p) => Text(
-              p,
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
-            )).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildSaveMeasurementButton() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -768,9 +980,26 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     );
   }
 
-  Widget _buildRankCard() {
-    final rank = _currentRank;
-    final avg = _averageStrengthPct;
+  static double? _averageStrengthPctFromMetrics(StrengthMetrics m) {
+    final bw = m.bodyWeightKg;
+    if (bw == null || bw <= 0) return null;
+    final list = <double>[];
+    final finger = m.fingerBestPct;
+    if (finger != null) list.add(finger);
+    if (m.pinchPct != null) list.add(m.pinchPct!);
+    if (m.pull1RmPct != null) list.add(m.pull1RmPct!);
+    if (m.lockOffSec != null && m.lockOffSec! > 0) {
+      list.add((m.lockOffSec! / 30.0) * 100);
+    }
+    if (list.isEmpty) return null;
+    return list.reduce((a, b) => a + b) / list.length;
+  }
+
+  Widget _buildRankCard({StrengthMetrics? metricsForDisplay}) {
+    final avg = metricsForDisplay != null
+        ? _averageStrengthPctFromMetrics(metricsForDisplay)
+        : _averageStrengthPct;
+    final rank = avg != null ? StrengthTierExt.fromAveragePct(avg) : null;
     if (rank == null || avg == null) {
       if (_lastSession != null) return const SizedBox.shrink();
       return Container(
@@ -861,11 +1090,10 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     );
   }
 
-  Widget _buildBadgesCard() {
-    final m = _buildMetrics();
-    final lastM = _lastSession?.metrics;
-    final unlocked = strengthAchievements.where((a) => a.check(m) || (lastM != null && a.check(lastM))).toList();
-    final locked = strengthAchievements.where((a) => !a.check(m) && (lastM == null || !a.check(lastM))).toList();
+  Widget _buildBadgesCard({StrengthMetrics? metricsForDisplay, List<StrengthMeasurementSession>? allSessions}) {
+    final sessions = allSessions ?? (_lastSession != null ? [_lastSession!] : []);
+    final unlocked = strengthAchievements.where((a) => sessions.any((s) => a.check(s.metrics))).toList();
+    final locked = strengthAchievements.where((a) => !sessions.any((s) => a.check(s.metrics))).toList();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1104,124 +1332,6 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     );
   }
 
-  Widget _buildLeaderboardCard() {
-    final lb = _leaderboard;
-    final bw = _bodyWeight;
-    final range = bw != null && bw >= 30 && bw <= 200
-        ? '${(bw - 5).clamp(30.0, 195.0).round()}-${(bw + 5).clamp(35.0, 200.0).round()}'
-        : null;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => StrengthLeaderboardScreen(weightRangeKg: range),
-            ),
-          ).then((_) {
-            if (mounted) _loadLeaderboard();
-          });
-        },
-        borderRadius: BorderRadius.circular(16),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppColors.cardDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: AppColors.graphite),
-          ),
-          child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.leaderboard_outlined, color: Colors.white38, size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  'Топ недели (по весу)',
-                  style: GoogleFonts.unbounded(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (lb != null && lb.leaderboard.isNotEmpty) ...[
-            ...lb.leaderboard.take(5).map((e) => Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Row(
-                children: [
-                  Container(
-                    width: 28,
-                    height: 28,
-                    alignment: Alignment.center,
-                    decoration: BoxDecoration(
-                      color: e.rank <= 3 ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '${e.rank}',
-                      style: GoogleFonts.unbounded(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      e.displayName,
-                      style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    '${e.averageStrengthPct.toStringAsFixed(1)}%',
-                    style: GoogleFonts.unbounded(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.mutedGold,
-                    ),
-                  ),
-                ],
-              ),
-            )),
-            if (lb.userPosition != null && lb.totalParticipants > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'Ты ${lb.userPosition}-й из ${lb.totalParticipants}',
-                  style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
-                ),
-              ),
-          ] else if (lb != null && lb.leaderboard.isEmpty)
-            Text(
-              'Первый замер — и ты в топе. Сохрани результат.',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
-            )
-          else
-            Text(
-              'Рейтинг по твоей весовой. Грузим…',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
-            ),
-          const SizedBox(height: 8),
-          Text(
-            'Нажми для полного списка',
-            style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold.withOpacity(0.8)),
-          ),
-        ],
-      ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildTestCard({
     required String title,
     required IconData icon,
@@ -1402,26 +1512,11 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           const SizedBox(height: 8),
           Row(
             children: [
-              _buildChip('40 мм', _pinchBlockWidth == 40, () {
-                setState(() {
-                  _pinchBlockWidth = 40;
-                  _saveDraftLocally();
-                });
-              }),
+              _buildChip('40 мм', _pinchBlockWidth == 40, () => _switchPinchBlock(40)),
               const SizedBox(width: 8),
-              _buildChip('60 мм', _pinchBlockWidth == 60, () {
-                setState(() {
-                  _pinchBlockWidth = 60;
-                  _saveDraftLocally();
-                });
-              }),
+              _buildChip('60 мм', _pinchBlockWidth == 60, () => _switchPinchBlock(60)),
               const SizedBox(width: 8),
-              _buildChip('80 мм', _pinchBlockWidth == 80, () {
-                setState(() {
-                  _pinchBlockWidth = 80;
-                  _saveDraftLocally();
-                });
-              }),
+              _buildChip('80 мм', _pinchBlockWidth == 80, () => _switchPinchBlock(80)),
             ],
           ),
           const SizedBox(height: 16),

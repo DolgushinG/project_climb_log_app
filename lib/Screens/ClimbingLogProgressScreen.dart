@@ -3,11 +3,8 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
-import 'package:login_app/models/StrengthMeasurementSession.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
-import 'package:login_app/services/StrengthTestApiService.dart';
-import 'package:login_app/services/StrengthHistoryService.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';
 
 /// Экран прогресса (статистика трасс).
@@ -27,7 +24,6 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
   ClimbingProgress? _progress;
   ClimbingLogStatistics? _statisticsDaily;
   ClimbingLogStatistics? _statisticsWeekly;
-  List<StrengthMeasurementSession> _strengthHistory = [];
   bool _loading = true;
   String? _error;
   List<String> _orderedGrades = orderedGrades;
@@ -47,25 +43,15 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
       _service.getProgress(),
       _service.getStatistics(groupBy: 'day', periodDays: 14),
       _service.getStatistics(groupBy: 'week', periodDays: 56),
-      StrengthTestApiService().getStrengthTestsHistory(periodDays: 365),
     ]);
     var progress = results[0] as ClimbingProgress?;
     var statsDaily = results[1] as ClimbingLogStatistics?;
     var statsWeekly = results[2] as ClimbingLogStatistics?;
-    var strengthList = results[3] as List<StrengthMeasurementSession>;
-    if (strengthList.isEmpty) {
-      strengthList = await StrengthHistoryService().getHistory();
-    }
-    strengthList = List.from(strengthList)..sort((a, b) => a.date.compareTo(b.date));
-    if (strengthList.length > 30) {
-      strengthList = strengthList.sublist(strengthList.length - 30);
-    }
     if (!mounted) return;
     setState(() {
       _progress = progress;
       _statisticsDaily = statsDaily;
       _statisticsWeekly = statsWeekly;
-      _strengthHistory = strengthList;
       _loading = false;
       if (progress == null && _progress == null) {
         _error = 'Нет данных. Добавьте первую тренировку.';
@@ -126,7 +112,6 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                   ),
                 ..._buildContent(context),
                 ..._buildRouteCharts(context),
-                ..._buildStrengthProgress(context),
               ],
             ],
           ),
@@ -493,251 +478,6 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                   ],
                 );
               }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  bool _metricHasEnoughPoints(List<StrengthMeasurementSession> s, double? Function(StrengthMeasurementSession) get, {bool allowZero = false}) {
-    if (allowZero) {
-      return s.map((x) => get(x)).where((v) => v != null).length >= 2;
-    }
-    return s.map((x) => get(x)).where((v) => v != null && v > 0).length >= 2;
-  }
-
-  List<Widget> _buildStrengthProgress(BuildContext context) {
-    final sessions = _strengthHistory;
-    final hasCharts = sessions.isNotEmpty &&
-        (_metricHasEnoughPoints(sessions, (x) => x.metrics.fingerBestPct) ||
-            _metricHasEnoughPoints(sessions, (x) => x.metrics.pinchPct) ||
-            _metricHasEnoughPoints(sessions, (x) => x.metrics.pull1RmPct) ||
-            _metricHasEnoughPoints(sessions, (x) => x.metrics.lockOffSec?.toDouble(), allowZero: true));
-    final labels = sessions.map((s) {
-      if (s.date.length >= 10) {
-        return '${s.date.substring(8, 10)}.${s.date.substring(5, 7)}';
-      }
-      return s.date;
-    }).toList();
-
-    return [
-      SliverToBoxAdapter(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
-          child: Text(
-            'Прогресс по замерам силы',
-            style: GoogleFonts.unbounded(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
-            ),
-          ),
-        ),
-      ),
-      if (!hasCharts)
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: AppColors.cardDark,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.graphite),
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.fitness_center, size: 48, color: AppColors.mutedGold.withOpacity(0.5)),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Пройди тест силы хотя бы дважды,\nчтобы увидеть прогресс',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.unbounded(
-                      fontSize: 14,
-                      color: Colors.white70,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        )
-      else
-        SliverToBoxAdapter(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (_hasFingerData(sessions)) _buildStrengthChart(
-                  'Пальцы (% от веса)',
-                  sessions.map((s) => s.metrics.fingerBestPct?.toDouble()).toList(),
-                  labels,
-                  AppColors.mutedGold,
-                ),
-                if (_hasPinchData(sessions)) _buildStrengthChart(
-                  'Щипок (% от веса)',
-                  sessions.map((s) => s.metrics.pinchPct?.toDouble()).toList(),
-                  labels,
-                  AppColors.successMuted,
-                ),
-                if (_hasPullData(sessions)) _buildStrengthChart(
-                  'Тяга (1RM % от веса)',
-                  sessions.map((s) => s.metrics.pull1RmPct?.toDouble()).toList(),
-                  labels,
-                  const Color(0xFF8B5CF6),
-                ),
-                if (_hasLockOffData(sessions)) _buildStrengthChart(
-                  'Lock-off (сек)',
-                  sessions.map((s) => (s.metrics.lockOffSec ?? 0).toDouble()).toList(),
-                  labels,
-                  const Color(0xFF3B82F6),
-                ),
-              ],
-            ),
-          ),
-        ),
-      const SliverToBoxAdapter(child: SizedBox(height: 32)),
-    ];
-  }
-
-  bool _hasFingerData(List<StrengthMeasurementSession> s) =>
-      s.any((x) => x.metrics.fingerBestPct != null && x.metrics.fingerBestPct! > 0);
-  bool _hasPinchData(List<StrengthMeasurementSession> s) =>
-      s.any((x) => x.metrics.pinchPct != null && x.metrics.pinchPct! > 0);
-  bool _hasPullData(List<StrengthMeasurementSession> s) =>
-      s.any((x) => x.metrics.pull1RmPct != null && x.metrics.pull1RmPct! > 0);
-  bool _hasLockOffData(List<StrengthMeasurementSession> s) =>
-      s.any((x) => x.metrics.lockOffSec != null && x.metrics.lockOffSec! > 0);
-
-  Widget _buildStrengthChart(
-    String title,
-    List<double?> values,
-    List<String> labels,
-    Color color,
-  ) {
-    final spots = <FlSpot>[];
-    for (var i = 0; i < values.length; i++) {
-      final v = values[i];
-      if (v != null && v > 0) {
-        spots.add(FlSpot(i.toDouble(), v));
-      }
-    }
-    if (spots.length < 2) return const SizedBox.shrink();
-
-    final maxY = spots.map((s) => s.y).reduce((a, b) => a > b ? a : b) * 1.15;
-    final minY = (spots.map((s) => s.y).reduce((a, b) => a < b ? a : b) * 0.85).clamp(0.0, double.infinity);
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.graphite),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.unbounded(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 160,
-              child: LineChart(
-                LineChartData(
-                  minX: 0,
-                  maxX: (labels.length - 1).toDouble(),
-                  minY: minY,
-                  maxY: maxY,
-                  lineTouchData: LineTouchData(
-                    touchTooltipData: LineTouchTooltipData(
-                      getTooltipColor: (_) => AppColors.cardDark,
-                      tooltipRoundedRadius: 8,
-                      getTooltipItems: (touchedSpots) => touchedSpots.map((s) {
-                        final i = s.x.toInt();
-                        final label = i >= 0 && i < labels.length ? labels[i] : '';
-                        return LineTooltipItem(
-                          '${s.y.toStringAsFixed(1)}\n$label',
-                          GoogleFonts.unbounded(fontSize: 12, color: Colors.white),
-                        );
-                      }).toList(),
-                    ),
-                    handleBuiltInTouches: true,
-                  ),
-                  titlesData: FlTitlesData(
-                    bottomTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 24,
-                        getTitlesWidget: (v, meta) {
-                          final i = v.toInt();
-                          if (i >= 0 && i < labels.length) {
-                            final step = labels.length > 10 ? 2 : 1;
-                            if (i % step != 0) return const SizedBox.shrink();
-                            return Padding(
-                              padding: const EdgeInsets.only(top: 6),
-                              child: Text(
-                                labels[i],
-                                style: GoogleFonts.unbounded(fontSize: 9, color: Colors.white54),
-                              ),
-                            );
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
-                    ),
-                    leftTitles: AxisTitles(
-                      sideTitles: SideTitles(
-                        showTitles: true,
-                        reservedSize: 28,
-                        getTitlesWidget: (v, meta) => Text(
-                          v.toInt().toString(),
-                          style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54),
-                        ),
-                      ),
-                    ),
-                    topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                    rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  ),
-                  gridData: FlGridData(
-                    show: true,
-                    drawVerticalLine: false,
-                    getDrawingHorizontalLine: (_) => FlLine(color: Colors.white.withOpacity(0.08), strokeWidth: 1),
-                  ),
-                  borderData: FlBorderData(show: false),
-                  lineBarsData: [
-                    LineChartBarData(
-                      spots: spots,
-                      isCurved: true,
-                      color: color,
-                      barWidth: 2,
-                      isStrokeCapRound: true,
-                      dotData: FlDotData(
-                        show: spots.length <= 12,
-                        getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(
-                          radius: 3,
-                          color: color,
-                          strokeWidth: 0,
-                        ),
-                      ),
-                      belowBarData: BarAreaData(
-                        show: true,
-                        color: color.withOpacity(0.12),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
             ),
           ],
         ),

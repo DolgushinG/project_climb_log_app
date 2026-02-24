@@ -32,7 +32,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
       _error = null;
     });
     final lb = await StrengthTestApiService().getLeaderboard(
-      period: 'week',
+      period: 'all',
       weightRangeKg: widget.weightRangeKg,
     );
     if (mounted) {

@@ -1719,6 +1719,54 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     );
   }
 
+  void _showBenefitModal(String title, String text) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.route, color: AppColors.mutedGold, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Польза для скалолазания: $title',
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  text,
+                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildExerciseThumbnail(CatalogExercise e) {
     final url = _fullImageUrl(e.imageUrl);
     if (url.isEmpty) {
@@ -1838,7 +1886,24 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        _CollapsibleBenefitRow(text: e.description!, icon: Icons.lightbulb_outline),
+                        InkWell(
+                          onTap: () => _showBenefitModal(e.displayName, e.description!),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 2),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.route, size: 14, color: AppColors.mutedGold),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Польза для скалолазания',
+                                  style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                       if (e.hint != null && e.hint!.isNotEmpty) ...[
                         const SizedBox(height: 6),
@@ -2256,11 +2321,14 @@ class _CollapsibleBenefitRow extends StatefulWidget {
   final String text;
   final IconData icon;
   final String title;
+  /// Цвет заголовка и иконки — по умолчанию linkMuted (зеленоватый); для «Польза для скалолазания» — mutedGold.
+  final Color? titleColor;
 
   const _CollapsibleBenefitRow({
     required this.text,
     this.icon = Icons.lightbulb_outline,
     this.title = 'Польза для скалолазания',
+    this.titleColor,
   });
 
   @override
@@ -2272,6 +2340,7 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
 
   @override
   Widget build(BuildContext context) {
+    final color = widget.titleColor ?? AppColors.linkMuted;
     return InkWell(
       onTap: () => setState(() => _expanded = !_expanded),
       borderRadius: BorderRadius.circular(8),
@@ -2280,7 +2349,7 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(widget.icon, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
+            Icon(widget.icon, size: 14, color: color.withOpacity(0.9)),
             const SizedBox(width: 6),
             Expanded(
               child: Column(
@@ -2292,7 +2361,7 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
                         widget.title,
                         style: GoogleFonts.unbounded(
                           fontSize: 12,
-                          color: AppColors.linkMuted,
+                          color: color,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -2300,7 +2369,7 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
                       Icon(
                         _expanded ? Icons.expand_less : Icons.expand_more,
                         size: 16,
-                        color: AppColors.linkMuted,
+                        color: color,
                       ),
                     ],
                   ),

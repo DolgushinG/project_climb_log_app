@@ -55,4 +55,13 @@ class StrengthHistoryService {
       return null;
     }
   }
+
+  /// Удалить сессию по дате.
+  Future<void> deleteSessionByDate(String date) async {
+    final prefs = await SharedPreferences.getInstance();
+    final list = await getHistory();
+    final filtered = list.where((s) => s.date != date).toList();
+    final jsonList = filtered.map((s) => s.toJson()).toList();
+    await prefs.setString(_keyHistory, jsonEncode(jsonList));
+  }
 }

@@ -123,7 +123,13 @@ class _StrengthHistoryScreenState extends State<StrengthHistoryScreen> {
     if (m.fingerLeftKg != null || m.fingerRightKg != null) {
       parts.add('Пальцы: Л ${m.fingerLeftKg?.toStringAsFixed(1) ?? '—'} / П ${m.fingerRightKg?.toStringAsFixed(1) ?? '—'} кг');
     }
-    if (m.pinchKg != null) parts.add('Щипок: ${m.pinchKg!.toStringAsFixed(1)} кг');
+    if (m.pinch40Kg != null || m.pinch60Kg != null || m.pinch80Kg != null) {
+      final p = <String>[];
+      if (m.pinch40Kg != null) p.add('40: ${m.pinch40Kg!.toStringAsFixed(1)}');
+      if (m.pinch60Kg != null) p.add('60: ${m.pinch60Kg!.toStringAsFixed(1)}');
+      if (m.pinch80Kg != null) p.add('80: ${m.pinch80Kg!.toStringAsFixed(1)}');
+      parts.add('Щипок: ${p.join(' / ')} кг');
+    }
     if (m.pullAddedKg != null) parts.add('Тяга: +${m.pullAddedKg!.toStringAsFixed(1)} кг');
     if (m.lockOffSec != null && m.lockOffSec! > 0) parts.add('Lock-off: ${m.lockOffSec} сек');
 

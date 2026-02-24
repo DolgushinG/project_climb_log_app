@@ -1193,7 +1193,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _ClimbingBenefitRow(text: ex.climbingBenefit!, isCompact: false),
+                      _buildClimbingBenefitBlock(ex.name, ex.climbingBenefit!, isCompact: false),
                     ],
                   ],
                 ),
@@ -1222,6 +1222,78 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             Text(
               'Как выполнять',
               style: GoogleFonts.unbounded(fontSize: fontSize, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Кнопка «Польза для скалолазания» — по нажатию показывается в bottom sheet.
+  Widget _buildClimbingBenefitBlock(String exerciseName, String benefitText, {bool isCompact = false}) {
+    final iconSize = isCompact ? 12.0 : 14.0;
+    final fontSize = isCompact ? 11.0 : 12.0;
+    return InkWell(
+      onTap: () => _showBenefitModal(exerciseName, benefitText),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.route, size: iconSize, color: AppColors.mutedGold),
+            const SizedBox(width: 6),
+            Text(
+              'Польза для скалолазания',
+              style: GoogleFonts.unbounded(fontSize: fontSize, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBenefitModal(String title, String text) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.6),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.route, color: AppColors.mutedGold, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Польза для скалолазания: $title',
+                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  text,
+                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                ),
+              ),
             ),
           ],
         ),
@@ -1409,7 +1481,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      _ClimbingBenefitRow(text: ex.climbingBenefit!, isCompact: true),
+                      _buildClimbingBenefitBlock(ex.name, ex.climbingBenefit!, isCompact: true),
                     ],
                   ],
                 ),
@@ -1706,73 +1778,3 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
   }
 }
 
-/// Сворачиваемый блок «Польза для скалолазания» на карточке упражнения.
-class _ClimbingBenefitRow extends StatefulWidget {
-  final String text;
-  final bool isCompact;
-
-  const _ClimbingBenefitRow({required this.text, this.isCompact = false});
-
-  @override
-  State<_ClimbingBenefitRow> createState() => _ClimbingBenefitRowState();
-}
-
-class _ClimbingBenefitRowState extends State<_ClimbingBenefitRow> {
-  bool _expanded = false;
-
-  @override
-  Widget build(BuildContext context) {
-    final iconSize = widget.isCompact ? 12.0 : 14.0;
-    final fontSize = widget.isCompact ? 11.0 : 12.0;
-    return InkWell(
-      onTap: () => setState(() => _expanded = !_expanded),
-      borderRadius: BorderRadius.circular(8),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 2),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(Icons.route, size: iconSize, color: AppColors.mutedGold.withOpacity(0.8)),
-            const SizedBox(width: 6),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Польза для скалолазания',
-                        style: GoogleFonts.unbounded(
-                          fontSize: fontSize,
-                          color: AppColors.linkMuted,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      const SizedBox(width: 4),
-                      Icon(
-                        _expanded ? Icons.expand_less : Icons.expand_more,
-                        size: iconSize + 2,
-                        color: AppColors.linkMuted,
-                      ),
-                    ],
-                  ),
-                  if (_expanded) ...[
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.text,
-                      style: GoogleFonts.unbounded(
-                        fontSize: fontSize,
-                        color: AppColors.mutedGold.withOpacity(0.9),
-                        height: 1.4,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

@@ -24,8 +24,9 @@ class StrengthAchievement {
 class StrengthMetrics {
   final double? fingerLeftKg;
   final double? fingerRightKg;
-  final double? pinchKg;
-  final int pinchBlockMm;
+  final double? pinch40Kg;
+  final double? pinch60Kg;
+  final double? pinch80Kg;
   final double? pullAddedKg;
   final double? pull1RmPct;
   final int? lockOffSec;
@@ -34,13 +35,23 @@ class StrengthMetrics {
   StrengthMetrics({
     this.fingerLeftKg,
     this.fingerRightKg,
-    this.pinchKg,
-    this.pinchBlockMm = 40,
+    this.pinch40Kg,
+    this.pinch60Kg,
+    this.pinch80Kg,
     this.pullAddedKg,
     this.pull1RmPct,
     this.lockOffSec,
     this.bodyWeightKg,
   });
+
+  /// Лучший щипок из всех блоков (для ачивок и графиков).
+  double? get pinchKg {
+    final list = [pinch40Kg, pinch60Kg, pinch80Kg].whereType<double>().toList();
+    return list.isEmpty ? null : list.reduce((a, b) => a > b ? a : b);
+  }
+
+  /// Для обратной совместимости с парсингом.
+  int get pinchBlockMm => 40;
 
   double? get fingerBestPct {
     if (bodyWeightKg == null || bodyWeightKg! <= 0) return null;
@@ -52,8 +63,9 @@ class StrengthMetrics {
   }
 
   double? get pinchPct {
-    if (bodyWeightKg == null || bodyWeightKg! <= 0 || pinchKg == null) return null;
-    return (pinchKg! / bodyWeightKg!) * 100;
+    final best = pinchKg;
+    if (bodyWeightKg == null || bodyWeightKg! <= 0 || best == null) return null;
+    return (best / bodyWeightKg!) * 100;
   }
 
   double? get asymmetryPct {
