@@ -38,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool isLoading = true;
   String? _loadError;
   PremiumStatus? _premiumStatus;
+  bool _isRefreshing = false;
 
   Widget _buildSubscriptionCard() {
     final s = _premiumStatus;
@@ -294,6 +295,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (mounted) setState(() => _premiumStatus = results[1] as PremiumStatus?);
   }
 
+  /// Обновление без кэшей: сброс кэша профиля и подписки, загрузка свежих данных.
+  Future<void> _refreshWithoutCache() async {
+    if (_isRefreshing) return;
+    setState(() => _isRefreshing = true);
+    await CacheService.remove(CacheService.keyProfile);
+    final results = await Future.wait([
+      fetchProfileData(),
+      PremiumSubscriptionService().getStatus(forceRefresh: true),
+    ]);
+    if (mounted) {
+      setState(() {
+        _premiumStatus = results[1] as PremiumStatus?;
+        _isRefreshing = false;
+      });
+    }
+  }
+
   Future<void> _maybeShowWelcomeModal() async {
     final prefs = await SharedPreferences.getInstance();
     if (prefs.getBool(_keyWelcomeShown) == true) return;
@@ -370,13 +388,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text('Профиль', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+        actions: [
+          IconButton(
+            icon: _isRefreshing
+                ? SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
+                  )
+                : Icon(Icons.refresh_rounded, color: Colors.white70),
+            onPressed: _isRefreshing ? null : () => _refreshWithoutCache(),
+            tooltip: 'Обновить',
+          ),
+        ],
       ),
       body: isLoading && avatar.isEmpty && firstName == 'Имя'
           ? Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
+          : RefreshIndicator(
+              onRefresh: _refreshWithoutCache,
+              color: AppColors.mutedGold,
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
             children: [
               if (_loadError != null)
                 Padding(
@@ -538,9 +573,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
             ],
+                ),
+              ),
+            ),
           ),
-        ),
-      ),
     );
   }
 }

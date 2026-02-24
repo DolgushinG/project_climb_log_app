@@ -120,12 +120,16 @@ class PremiumSubscriptionService {
     } catch (_) {}
   }
 
-  Future<PremiumStatus> getStatus() async {
+  /// [forceRefresh] — игнорировать кэш и всегда запрашивать с бэкенда.
+  Future<PremiumStatus> getStatus({bool forceRefresh = false}) async {
+    if (forceRefresh) await invalidateStatusCache();
     try {
       final token = await getToken();
       if (token != null && token.trim().isNotEmpty) {
-        final shortCached = await _getStatusCacheShortTtl();
-        if (shortCached != null) return shortCached;
+        if (!forceRefresh) {
+          final shortCached = await _getStatusCacheShortTtl();
+          if (shortCached != null) return shortCached;
+        }
         final status = await _fetchFromBackend(token);
         if (status != null) {
           if (status.isUnauthorized) {
