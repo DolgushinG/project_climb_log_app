@@ -58,9 +58,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   bool _disclaimerChecked = false;
 
   static const _ofpSfpFocusOptions = [
-    ('balanced', 'Сбалансировано', 'Стандартное соотношение ОФП и СФП'),
-    ('sfp', 'Больше СФП', 'Акцент на хват, пальцы, тягу. Пример при 4 днях: 2 СФП + 1 ОФП + 1 лазание'),
-    ('ofp', 'Больше ОФП', 'Акцент на общую силу. Пример при 4 днях: 2 ОФП + 1 СФП + 1 лазание'),
+    ('balanced', 'Сбалансировано', 'Стандартное соотношение'),
+    ('sfp', 'Больше СФП', 'Хват, пальцы, тяга'),
+    ('ofp', 'Больше ОФП', 'Общая сила'),
   ];
 
   static const _injuryOptions = [
@@ -94,6 +94,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       _selectedAudience = _inferAudienceFromTemplate(p.templateKey);
       final focus = p.ofpSfpFocus;
       if (focus != null && ['balanced', 'sfp', 'ofp'].contains(focus)) _ofpSfpFocus = focus;
+      if (p.availableMinutes != null && p.availableMinutes! > 0) _availableMinutes = p.availableMinutes!;
+      if (p.hasFingerboard != null) _hasFingerboard = p.hasFingerboard!;
+      if (p.injuries != null && p.injuries!.isNotEmpty) _injuries.addAll(p.injuries!);
+      if (p.preferredStyle != null && ['boulder', 'lead', 'both'].contains(p.preferredStyle)) _preferredStyle = p.preferredStyle!;
+      if (p.experienceMonths != null && p.experienceMonths! >= 1) _experienceMonths = p.experienceMonths!;
+      if (p.ofpWeekdays != null && p.sfpWeekdays != null && (p.ofpWeekdays!.isNotEmpty || p.sfpWeekdays!.isNotEmpty)) {
+        _ofpSfpScheduleMode = 'manual';
+        _ofpWeekdays = List.from(p.ofpWeekdays!);
+        _sfpWeekdays = List.from(p.sfpWeekdays!);
+      }
     }
     _load();
     _loadDisclaimerStatus();
@@ -107,7 +117,6 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   bool get _canCreatePlan {
     if (_selectedTemplate == null || _loading || _scheduledWeekdays.isEmpty) return false;
     if (widget.existingPlan != null) return true;
-    if (widget.catalogOnly) return true;
     return _disclaimerAcknowledged || _disclaimerChecked;
   }
 
@@ -176,8 +185,18 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     if (data == null && _selectedAudience.isNotEmpty) {
       data = await _api.getPlanTemplates(audience: null);
     }
+    // При редактировании: если шаблон не найден в ответе по аудитории — загружаем все шаблоны.
+    final isUpdate = widget.existingPlan != null;
+    if (isUpdate && data != null && _initialTemplateKey != null) {
+      final found = data.templates.any((t) => t.key == _initialTemplateKey);
+      if (!found && _selectedAudience.isNotEmpty) {
+        final allData = await _api.getPlanTemplates(audience: null);
+        if (allData != null && allData.templates.any((t) => t.key == _initialTemplateKey)) {
+          data = allData;
+        }
+      }
+    }
     if (mounted) {
-      final isUpdate = widget.existingPlan != null;
       setState(() {
         _data = data;
         _loading = false;
@@ -187,9 +206,11 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             final match = matches.isNotEmpty ? matches.first : null;
             if (match != null) {
               _selectedTemplate = match;
+              _selectedGoal = match.planGoal;
               _initialTemplateKey = null;
             } else {
               _selectedTemplate = data.templates.first;
+              _initialTemplateKey = null;
             }
           } else if (_selectedTemplate == null || !data.templates.any((t) => t.key == _selectedTemplate!.key)) {
             _selectedTemplate = data.templates.first;
@@ -209,7 +230,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             _scheduledWeekdays = List.generate(n, (i) => [1, 3, 5, 6, 2, 4, 7][i]);
             _daysPerWeek = _scheduledWeekdays.length;
           }
-          if (!data.availableMinutesOptions.contains(_availableMinutes)) {
+          if (!isUpdate && !data.availableMinutesOptions.contains(_availableMinutes)) {
             _availableMinutes = data.availableMinutesOptions.contains(45) ? 45 : data.availableMinutesOptions.first;
           }
         }
@@ -378,7 +399,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       const SizedBox(height: 20),
                       _buildPlanGuideBlock(),
                     ],
-                    if (widget.existingPlan == null && !_disclaimerAcknowledged && !widget.catalogOnly) ...[
+                    if (widget.existingPlan == null && !_disclaimerAcknowledged) ...[
                       const SizedBox(height: 20),
                       _buildDisclaimerBlock(),
                     ],
@@ -836,7 +857,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ),
           if (_ofpSfpScheduleMode == 'auto') ...[
             const SizedBox(height: 16),
-            _buildPersonalizationLabel('Фокус ОФП / СФП', 'Соотношение общей силы и специфической (хват, пальцы, тяга)'),
+            _buildPersonalizationLabel('Фокус ОФП / СФП', null),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -851,16 +872,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(color: selected ? AppColors.mutedGold : AppColors.graphite),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70)),
-                        const SizedBox(height: 2),
-                        SizedBox(
-                          width: 220,
-                          child: Text(e.$3, style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54, height: 1.3)),
-                        ),
+                        if (e.$3.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Text(e.$3, style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54)),
+                        ],
                       ],
                     ),
                   ),
@@ -869,7 +888,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             ),
           ],
           const SizedBox(height: 16),
-          _buildPersonalizationLabel('Сколько времени на ОФП/СФП + растяжку?', 'Объём упражнений подстроится под выбранное время'),
+          _buildPersonalizationLabel('Сколько времени на ОФП/СФП + растяжку?', null),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -997,7 +1016,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       children: [
         _buildPersonalizationLabel(
           'Назначение дней: ОФП / СФП',
-          'Авто — бэк распределяет сам. Вручную — вы назначаете, в какой день ОФП, в какой СФП, в какой только лазание',
+          'Авто или вручную',
         ),
         Wrap(
           spacing: 8,
@@ -1105,14 +1124,15 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     );
   }
 
-  Widget _buildPersonalizationLabel(String label, String hint) {
+  Widget _buildPersonalizationLabel(String label, String? hint) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70)),
-          Text(hint, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38)),
+          if (hint != null && hint.isNotEmpty)
+            Text(hint, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38)),
         ],
       ),
     );

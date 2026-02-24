@@ -6,6 +6,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/RegisterScreen.dart';
 import 'package:login_app/services/AuthConfigService.dart';
 import 'package:login_app/services/WebAuthnService.dart';
+import 'package:login_app/utils/network_error_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:convert';
 import 'MainScreen.dart';
@@ -69,6 +70,8 @@ class _LoginScreenState extends State<LoginScreen> {
           MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
           (route) => false,
         );
+      } else if (response.statusCode == 404 || response.statusCode >= 500) {
+        _showError('Сервер недоступен. Проверьте, подключение к интернету.');
       } else {
         String message = 'Неверный email или пароль. Проверьте данные и попробуйте снова.';
         try {
@@ -82,7 +85,7 @@ class _LoginScreenState extends State<LoginScreen> {
         _showError(message);
       }
     } catch (error) {
-      _showError('Ошибка соединения. Проверьте интернет и попробуйте снова.');
+      _showError(networkErrorMessage(error, 'Ошибка соединения. Проверьте интернет и попробуйте снова.'));
     } finally {
       if (mounted) {
         setState(() {

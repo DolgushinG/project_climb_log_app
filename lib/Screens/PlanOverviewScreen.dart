@@ -558,7 +558,6 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     final hasContent = (sectionsList != null && sectionsList.isNotEmpty) || (itemsList != null && itemsList.isNotEmpty);
     if (!hasContent) return const SizedBox.shrink();
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14),
@@ -571,49 +570,54 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+          title: Text(
             title,
             style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
           ),
-          const SizedBox(height: 12),
-          if (sectionsList != null)
-            ...sectionsList.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (e.title != null && e.title!.isNotEmpty)
-                        Text(
-                          e.title!,
-                          style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
-                        ),
-                      if (e.text != null && e.text!.isNotEmpty)
-                        Text(
-                          e.text!,
-                          style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-                        ),
-                    ],
-                  ),
-                )),
-          if (itemsList != null)
-            ...itemsList.map((e) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    '• ${(e.label != null && e.label!.isNotEmpty) ? '${e.label}: ' : ''}${e.text ?? ''}',
-                    style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-                  ),
-                )),
-        ],
+          iconColor: AppColors.mutedGold,
+          collapsedIconColor: AppColors.mutedGold,
+          children: [
+            if (sectionsList != null)
+              ...sectionsList.map((e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (e.title != null && e.title!.isNotEmpty)
+                          Text(
+                            e.title!,
+                            style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                          ),
+                        if (e.text != null && e.text!.isNotEmpty)
+                          Text(
+                            e.text!,
+                            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+                          ),
+                      ],
+                    ),
+                  )),
+            if (itemsList != null)
+              ...itemsList.map((e) => Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Text(
+                      '• ${(e.label != null && e.label!.isNotEmpty) ? '${e.label}: ' : ''}${e.text ?? ''}',
+                      style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+                    ),
+                  )),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildInfoCard(String title, String text) {
     return Container(
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(14),
@@ -626,19 +630,25 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
+          title: Text(
             title,
             style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
           ),
-          const SizedBox(height: 8),
-          Text(
-            text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
-          ),
-        ],
+          iconColor: AppColors.mutedGold,
+          collapsedIconColor: AppColors.mutedGold,
+          children: [
+            Text(
+              text,
+              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1204,11 +1214,13 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         return;
       }
       if (canContinue) {
+        final stretching = day?.stretching.expand((z) => z.exercises).toList() ?? <PlanStretchingExercise>[];
         final completed = await Navigator.push<bool>(
           context,
           MaterialPageRoute(
             builder: (_) => ExerciseCompletionScreen(
               workoutExerciseEntries: entries,
+              stretchingFromPlan: stretching,
               date: today,
             ),
           ),

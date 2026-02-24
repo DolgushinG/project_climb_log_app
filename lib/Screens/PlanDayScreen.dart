@@ -1193,19 +1193,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.route, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              ex.climbingBenefit!,
-                              style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
-                            ),
-                          ),
-                        ],
-                      ),
+                      _ClimbingBenefitRow(text: ex.climbingBenefit!, isCompact: false),
                     ],
                   ],
                 ),
@@ -1421,19 +1409,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(Icons.route, size: 12, color: AppColors.mutedGold.withOpacity(0.8)),
-                          const SizedBox(width: 6),
-                          Expanded(
-                            child: Text(
-                              ex.climbingBenefit!,
-                              style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
-                            ),
-                          ),
-                        ],
-                      ),
+                      _ClimbingBenefitRow(text: ex.climbingBenefit!, isCompact: true),
                     ],
                   ],
                 ),
@@ -1504,11 +1480,13 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
     if (_day == null || _day!.exercises.isEmpty) return;
     final entries = _planDayToWorkoutEntries();
     if (entries.isEmpty) return;
+    final stretching = _day!.stretching.expand((z) => z.exercises).toList();
     final completed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
         builder: (_) => ExerciseCompletionScreen(
           workoutExerciseEntries: entries,
+          stretchingFromPlan: stretching,
           date: widget.date,
         ),
       ),
@@ -1723,6 +1701,77 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
             ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Сворачиваемый блок «Польза для скалолазания» на карточке упражнения.
+class _ClimbingBenefitRow extends StatefulWidget {
+  final String text;
+  final bool isCompact;
+
+  const _ClimbingBenefitRow({required this.text, this.isCompact = false});
+
+  @override
+  State<_ClimbingBenefitRow> createState() => _ClimbingBenefitRowState();
+}
+
+class _ClimbingBenefitRowState extends State<_ClimbingBenefitRow> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final iconSize = widget.isCompact ? 12.0 : 14.0;
+    final fontSize = widget.isCompact ? 11.0 : 12.0;
+    return InkWell(
+      onTap: () => setState(() => _expanded = !_expanded),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(Icons.route, size: iconSize, color: AppColors.mutedGold.withOpacity(0.8)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        'Польза для скалолазания',
+                        style: GoogleFonts.unbounded(
+                          fontSize: fontSize,
+                          color: AppColors.linkMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _expanded ? Icons.expand_less : Icons.expand_more,
+                        size: iconSize + 2,
+                        color: AppColors.linkMuted,
+                      ),
+                    ],
+                  ),
+                  if (_expanded) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.text,
+                      style: GoogleFonts.unbounded(
+                        fontSize: fontSize,
+                        color: AppColors.mutedGold.withOpacity(0.9),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

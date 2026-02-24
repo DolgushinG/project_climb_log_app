@@ -1,12 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
+import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
 import 'package:login_app/models/TrainingPlan.dart';
 import 'package:login_app/models/Workout.dart';
@@ -22,6 +25,8 @@ class ExerciseCompletionScreen extends StatefulWidget {
   final StrengthMetrics? metrics;
   /// Упражнения из сгенерированной тренировки (blockKey, exercise) — при наличии используются вместо плана и ОФП.
   final List<MapEntry<String, WorkoutBlockExercise>>? workoutExerciseEntries;
+  /// Растяжка из плана дня (уже загружена) — без доп. запросов к API.
+  final List<PlanStretchingExercise>? stretchingFromPlan;
   /// Комментарий тренера (при workoutExerciseEntries).
   final String? coachComment;
   /// Распределение нагрузки (при workoutExerciseEntries).
@@ -35,6 +40,7 @@ class ExerciseCompletionScreen extends StatefulWidget {
     super.key,
     this.metrics,
     this.workoutExerciseEntries,
+    this.stretchingFromPlan,
     this.coachComment,
     this.loadDistribution,
     this.progressionHint,
@@ -87,6 +93,12 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   bool _showSwipeHint = false;
   AnimationController? _swipeHintController;
 
+  /// На web: кнопка «Пропустить» появляется после удержания 1 сек на блоке.
+  final Set<String> _skipButtonRevealedFor = {};
+  Timer? _longPressTimer;
+  String? _longPressExerciseId;
+  double _longPressProgress = 0.0;
+
   @override
   void initState() {
     super.initState();
@@ -97,6 +109,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   @override
   void dispose() {
     _restTimer?.cancel();
+    _longPressTimer?.cancel();
     _swipeHintController?.dispose();
     super.dispose();
   }
@@ -343,11 +356,18 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     for (var i = 0; i < entries.length; i++) {
       _workoutBlockKeys[ofpList[i].id] = entries[i].key;
     }
+
+    // Растяжка из плана дня (уже загружена) — без доп. запросов
+    final stretchingList = (widget.stretchingFromPlan ?? [])
+        .where((e) => e.exerciseId != null)
+        .map((e) => CatalogExercise.fromPlanStretching(e))
+        .toList();
+
     if (mounted) {
       setState(() {
         _plan = null;
         _ofpExercises = ofpList;
-        _stretchingExercises = [];
+        _stretchingExercises = stretchingList;
         _completed = completed;
         _completionIds = completionIds;
         _skipped = skipped;
@@ -446,27 +466,143 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
       final prefs = await SharedPreferences.getInstance();
       if (prefs.getBool(_keySwipeHintShown) == true) return;
       if (!mounted) return;
-      prefs.setBool(_keySwipeHintShown, true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
         _swipeHintController?.dispose();
-        _swipeHintController = AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 1500),
-        )..repeat(reverse: true);
+        if (_isSwipeSupported) {
+          _swipeHintController = AnimationController(
+            vsync: this,
+            duration: const Duration(milliseconds: 1500),
+          )..repeat(reverse: true);
+        }
         setState(() => _showSwipeHint = true);
-        Future.delayed(const Duration(seconds: 6), () {
-          if (mounted && _showSwipeHint) _dismissSwipeHint();
-        });
       });
     } catch (_) {}
   }
 
-  void _dismissSwipeHint() {
+  Future<void> _dismissSwipeHint() async {
     if (!_showSwipeHint) return;
     _swipeHintController?.dispose();
     _swipeHintController = null;
     setState(() => _showSwipeHint = false);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keySwipeHintShown, true);
+    } catch (_) {}
+  }
+
+  /// На web и iOS PWA свайп не работает — показываем кнопку «Пропустить» на карточках.
+  bool get _isSwipeSupported => !kIsWeb;
+
+  Future<void> _skipExerciseWithConfirmation(String exerciseId) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(
+          'Упражнение будет отмечено как пропущенное.',
+          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+            child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true && mounted) _toggleExerciseSkipped(exerciseId, true, skipConfirmation: true);
+  }
+
+  void _cancelLongPressTimer() {
+    _longPressTimer?.cancel();
+    _longPressTimer = null;
+    _longPressExerciseId = null;
+    if (_longPressProgress > 0) {
+      _longPressProgress = 0;
+      if (mounted) setState(() {});
+    }
+  }
+
+  Widget _wrapWithLongPressReveal(String exerciseId, Widget child) {
+    if (_isSwipeSupported) return child;
+    final isHolding = _longPressExerciseId == exerciseId;
+    return Listener(
+      onPointerDown: (_) {
+        _cancelLongPressTimer();
+        _longPressExerciseId = exerciseId;
+        _longPressProgress = 0.0;
+        if (mounted) setState(() {});
+        _longPressTimer = Timer.periodic(const Duration(milliseconds: 50), (t) {
+          if (!mounted) {
+            t.cancel();
+            return;
+          }
+          setState(() {
+            _longPressProgress += 0.05;
+            if (_longPressProgress >= 1.0) {
+              _skipButtonRevealedFor.add(exerciseId);
+              t.cancel();
+              _longPressTimer = null;
+              _longPressExerciseId = null;
+              _longPressProgress = 0.0;
+              HapticFeedback.mediumImpact();
+            }
+          });
+        });
+      },
+      onPointerUp: (_) => _cancelLongPressTimer(),
+      onPointerCancel: (_) => _cancelLongPressTimer(),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          child,
+          if (isHolding && _longPressProgress > 0)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(bottom: Radius.circular(12)),
+                child: LinearProgressIndicator(
+                  value: _longPressProgress,
+                  backgroundColor: AppColors.mutedGold.withOpacity(0.2),
+                  valueColor: const AlwaysStoppedAnimation<Color>(AppColors.mutedGold),
+                  minHeight: 4,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  bool _isSkipButtonVisible(String exerciseId, {required bool done, required bool skipped}) =>
+      !done && !skipped && !_isSwipeSupported && _skipButtonRevealedFor.contains(exerciseId);
+
+  Widget _buildSkipButton(String exerciseId) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _skipExerciseWithConfirmation(exerciseId),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.skip_next, color: AppColors.mutedGold, size: 20),
+              const SizedBox(width: 6),
+              Text('Пропустить', style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _toggleCompleted(TrainingDrill d, bool value) async {
@@ -538,7 +674,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           content: Text(
-            'Упражнение будет отмечено как пропущенное. Вы сможете отменить, нажав на иконку пропуска.',
+            'Упражнение будет отмечено как пропущенное.',
             style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
           ),
           actions: [
@@ -1062,6 +1198,11 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   }
 
   Widget _buildSwipeHintBanner() {
+    final isWeb = !_isSwipeSupported;
+    final hintText = isWeb
+        ? 'Удерживайте блок упражнения 1 секунду, чтобы появилась кнопка пропуска'
+        : 'Свайпните влево, чтобы пропустить упражнение';
+    final hintIcon = isWeb ? Icons.touch_app : Icons.swipe_left;
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: 1),
       duration: const Duration(milliseconds: 450),
@@ -1086,7 +1227,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           ),
           child: Row(
             children: [
-              if (_swipeHintController != null)
+              if (!isWeb && _swipeHintController != null)
                 AnimatedBuilder(
                   animation: _swipeHintController!,
                   builder: (context, _) {
@@ -1094,7 +1235,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     return Transform.translate(
                       offset: Offset(dx, 0),
                       child: Icon(
-                        Icons.swipe_left,
+                        hintIcon,
                         color: AppColors.mutedGold,
                         size: 32,
                       ),
@@ -1102,11 +1243,11 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                   },
                 )
               else
-                Icon(Icons.swipe_left, color: AppColors.mutedGold, size: 32),
+                Icon(hintIcon, color: AppColors.mutedGold, size: 32),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
-                  'Свайпните влево, чтобы пропустить упражнение',
+                  hintText,
                   style: GoogleFonts.unbounded(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -1458,37 +1599,26 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Icon(Icons.lightbulb_outline, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                e.description!,
-                                style: GoogleFonts.unbounded(
-                                  fontSize: 12,
-                                  color: AppColors.mutedGold.withOpacity(0.9),
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
+                        _CollapsibleBenefitRow(
+                          text: e.description!,
+                          icon: Icons.fitness_center,
+                          title: 'Как выполнять',
                         ),
                       ],
                     ],
                   ),
                 ),
+                if (_isSkipButtonVisible(e.id, done: done, skipped: skipped)) ...[
+                  const SizedBox(width: 8),
+                  _buildSkipButton(e.id),
+                ],
               ],
             ),
           ),
         ),
       ),
     );
-    if (!done && !skipped) {
+    if (!done && !skipped && _isSwipeSupported) {
       return Dismissible(
         key: ValueKey('stretch_${e.id}'),
         direction: DismissDirection.endToStart,
@@ -1530,6 +1660,9 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         onDismissed: (_) => _toggleExerciseSkipped(e.id, true, skipConfirmation: true),
         child: tile,
       );
+    }
+    if (!done && !skipped && !_isSwipeSupported) {
+      return _wrapWithLongPressReveal(e.id, tile);
     }
     return tile;
   }
@@ -1705,26 +1838,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 2),
-                              child: Icon(Icons.lightbulb_outline, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                e.description!,
-                                style: GoogleFonts.unbounded(
-                                  fontSize: 12,
-                                  color: AppColors.mutedGold.withOpacity(0.9),
-                                  height: 1.4,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
+                        _CollapsibleBenefitRow(text: e.description!, icon: Icons.lightbulb_outline),
                       ],
                       if (e.hint != null && e.hint!.isNotEmpty) ...[
                         const SizedBox(height: 6),
@@ -1810,13 +1924,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     ],
                   ),
                 ),
+                if (_isSkipButtonVisible(e.id, done: done, skipped: skipped)) ...[
+                  const SizedBox(width: 8),
+                  _buildSkipButton(e.id),
+                ],
               ],
             ),
           ],
         ),
       ),
     );
-    if (!done && !skipped) {
+    if (!done && !skipped && _isSwipeSupported) {
       return Dismissible(
         key: ValueKey('ofp_${e.id}'),
         direction: DismissDirection.endToStart,
@@ -1858,6 +1976,9 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         onDismissed: (_) => _toggleExerciseSkipped(e.id, true, skipConfirmation: true),
         child: tile,
       );
+    }
+    if (!done && !skipped && !_isSwipeSupported) {
+      return _wrapWithLongPressReveal(e.id, tile);
     }
     return tile;
   }
@@ -2033,13 +2154,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     ],
                   ),
                 ),
+                if (_isSkipButtonVisible(key, done: done, skipped: skipped)) ...[
+                  const SizedBox(width: 8),
+                  _buildSkipButton(key),
+                ],
               ],
             ),
           ],
         ),
       ),
     );
-    if (!done && !skipped) {
+    if (!done && !skipped && _isSwipeSupported) {
       return Dismissible(
         key: ValueKey('drill_$key'),
         direction: DismissDirection.endToStart,
@@ -2082,6 +2207,9 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         child: tile,
       );
     }
+    if (!done && !skipped && !_isSwipeSupported) {
+      return _wrapWithLongPressReveal(key, tile);
+    }
     return tile;
   }
 
@@ -2120,5 +2248,79 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     } else {
       _startRestTimer(key, restSec);
     }
+  }
+}
+
+/// Сворачиваемый блок пользы/описания на карточке упражнения.
+class _CollapsibleBenefitRow extends StatefulWidget {
+  final String text;
+  final IconData icon;
+  final String title;
+
+  const _CollapsibleBenefitRow({
+    required this.text,
+    this.icon = Icons.lightbulb_outline,
+    this.title = 'Польза для скалолазания',
+  });
+
+  @override
+  State<_CollapsibleBenefitRow> createState() => _CollapsibleBenefitRowState();
+}
+
+class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () => setState(() => _expanded = !_expanded),
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(widget.icon, size: 14, color: AppColors.mutedGold.withOpacity(0.8)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        widget.title,
+                        style: GoogleFonts.unbounded(
+                          fontSize: 12,
+                          color: AppColors.linkMuted,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Icon(
+                        _expanded ? Icons.expand_less : Icons.expand_more,
+                        size: 16,
+                        color: AppColors.linkMuted,
+                      ),
+                    ],
+                  ),
+                  if (_expanded) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.text,
+                      style: GoogleFonts.unbounded(
+                        fontSize: 12,
+                        color: AppColors.mutedGold.withOpacity(0.9),
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

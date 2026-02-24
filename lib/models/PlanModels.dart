@@ -258,6 +258,14 @@ class ActivePlan {
   final bool includeClimbingInDays;
   /// Фокус ОФП/СФП: balanced | sfp | ofp. От бэка при GET plans/active — для предзаполнения при редактировании.
   final String? ofpSfpFocus;
+  /// Персонализация — для предзаполнения при редактировании (если бэк возвращает в GET plans/active).
+  final int? availableMinutes;
+  final bool? hasFingerboard;
+  final List<String>? injuries;
+  final String? preferredStyle;
+  final int? experienceMonths;
+  final List<int>? ofpWeekdays;
+  final List<int>? sfpWeekdays;
 
   ActivePlan({
     required this.id,
@@ -268,11 +276,21 @@ class ActivePlan {
     this.scheduledWeekdaysLabels,
     this.includeClimbingInDays = true,
     this.ofpSfpFocus,
+    this.availableMinutes,
+    this.hasFingerboard,
+    this.injuries,
+    this.preferredStyle,
+    this.experienceMonths,
+    this.ofpWeekdays,
+    this.sfpWeekdays,
   });
 
   factory ActivePlan.fromJson(Map<String, dynamic> json) {
     final sw = json['scheduled_weekdays'] as List<dynamic>?;
     final labels = json['scheduled_weekdays_labels'] as List<dynamic>?;
+    final injRaw = json['injuries'] as List<dynamic>?;
+    final ofpRaw = json['ofp_weekdays'] as List<dynamic>?;
+    final sfpRaw = json['sfp_weekdays'] as List<dynamic>?;
     return ActivePlan(
       id: json['id'] as int? ?? 0,
       templateKey: json['template_key'] as String? ?? '',
@@ -282,6 +300,13 @@ class ActivePlan {
       scheduledWeekdaysLabels: labels?.map((e) => e.toString()).toList(),
       includeClimbingInDays: json['include_climbing_in_days'] as bool? ?? true,
       ofpSfpFocus: json['ofp_sfp_focus'] as String?,
+      availableMinutes: _parseInt(json['available_minutes']),
+      hasFingerboard: json['has_fingerboard'] as bool?,
+      injuries: injRaw?.map((e) => e.toString()).toList(),
+      preferredStyle: json['preferred_style'] as String?,
+      experienceMonths: _parseInt(json['experience_months']),
+      ofpWeekdays: ofpRaw?.map((e) => (e as num).toInt()).toList(),
+      sfpWeekdays: sfpRaw?.map((e) => (e as num).toInt()).toList(),
     );
   }
 

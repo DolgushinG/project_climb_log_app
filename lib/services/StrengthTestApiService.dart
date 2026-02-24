@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
 import 'package:login_app/utils/session_error_helper.dart';
+import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
 import 'package:login_app/models/TrainingPlan.dart';
 import 'package:login_app/models/Workout.dart';
@@ -770,6 +771,26 @@ class CatalogExercise {
   /// Текст дозировки: dosage, если есть, иначе «defaultSets × defaultReps».
   String get dosageDisplay =>
       (dosage != null && dosage!.isNotEmpty) ? dosage! : '$defaultSets × $defaultReps';
+
+  /// Создаёт CatalogExercise из PlanStretchingExercise (без запроса медиа).
+  static CatalogExercise fromPlanStretching(PlanStretchingExercise ex) {
+    final id = ex.exerciseId ?? 'stretch_${ex.name.hashCode.abs()}';
+    final dosage = ex.estimatedMinutes != null ? '~${ex.estimatedMinutes} мин' : '1 × 1';
+    return CatalogExercise(
+      id: id,
+      name: ex.name,
+      nameRu: ex.name,
+      category: 'stretching',
+      level: 'intermediate',
+      description: ex.hint,
+      hint: ex.hint,
+      dosage: dosage,
+      imageUrl: null,
+      defaultSets: 1,
+      defaultReps: '1',
+      defaultRest: '0s',
+    );
+  }
 
   /// Создаёт CatalogExercise из WorkoutBlockExercise (для экрана выполнения).
   static CatalogExercise fromWorkoutBlock(WorkoutBlockExercise w) {
