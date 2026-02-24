@@ -111,7 +111,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
 
   Future<void> _loadDisclaimerStatus() async {
     final ack = await _disclaimerService.isAcknowledged();
-    if (mounted) setState(() => _disclaimerAcknowledged = ack);
+    if (mounted) setState(() {
+      _disclaimerAcknowledged = ack;
+      if (ack) _disclaimerChecked = true; // уже подтверждал — галочка предзаполнена
+    });
   }
 
   bool get _canCreatePlan {
@@ -399,7 +402,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                       const SizedBox(height: 20),
                       _buildPlanGuideBlock(),
                     ],
-                    if (widget.existingPlan == null && !_disclaimerAcknowledged) ...[
+                    if (widget.existingPlan == null) ...[
                       const SizedBox(height: 20),
                       _buildDisclaimerBlock(),
                     ],
