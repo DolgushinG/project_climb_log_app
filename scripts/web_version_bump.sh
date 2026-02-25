@@ -2,7 +2,7 @@
 # Синхронизирует ?v= в web/index.html и manifest.json с build-number из pubspec.yaml.
 # Entry-point файлы (index.html, manifest, service worker) должны не кэшироваться (см. docs/WEB_CACHE_UPDATE.md).
 # Запускать перед `flutter build web`, например:
-#   ./scripts/web_version_bump.sh && flutter build web
+#   ./scripts/web_version_bump.sh && flutter build web --no-web-resources-cdn
 
 set -e
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
