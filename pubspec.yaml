@@ -72,6 +72,10 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  fonts:
+    - family: Unbounded
+      fonts:
+        - asset: assets/fonts/Unbounded-Variable.ttf
   assets:
     - assets/poster.png
     - assets/i18n/strength_tests_ru.json

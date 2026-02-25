@@ -23,6 +23,10 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    // Шрифты Unbounded в assets — без запросов к Google Fonts CDN
+    if (kIsWeb) {
+      GoogleFonts.config.allowRuntimeFetching = false;
+    }
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
       if (kDebugMode) {
