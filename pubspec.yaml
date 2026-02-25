@@ -75,6 +75,10 @@ flutter:
     - family: Unbounded
       fonts:
         - asset: assets/fonts/Unbounded-Variable.ttf
+    # Roboto — локально, чтобы Flutter не запрашивал fonts.gstatic.com (fallback для греческих символов и т.п.)
+    - family: Roboto
+      fonts:
+        - asset: assets/fonts/Roboto-Regular.ttf
   assets:
     - assets/poster.png
     - assets/i18n/strength_tests_ru.json
