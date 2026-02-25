@@ -28,6 +28,10 @@ jobs:
       - name: Build web
         run: flutter build web --release
 
+      # Убирает //# sourceMappingURL=flutter.js.map — Flutter не генерирует .map, браузер получает 404 (HTML) → JSON Parse error.
+      - name: Strip source map references
+        run: ./scripts/web_strip_sourcemaps.sh
+
       # Flutter build web не копирует web/premium/ — страницы success/fail для postMessage из iframe.
       # Без них PayAnyWay редирект на /premium/success не загружает нужный HTML, postMessage не срабатывает.
       - name: Copy premium success/fail pages
