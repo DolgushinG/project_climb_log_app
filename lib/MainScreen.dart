@@ -14,6 +14,7 @@ import 'Screens/RegisterScreen.dart';
 import 'login.dart';
 import 'main.dart';
 import 'services/connectivity_service.dart';
+import 'services/RustorePushService.dart';
 import 'services/cache_service.dart';
 import 'services/prefetch_service.dart';
 import 'widgets/top_notification_banner.dart';
@@ -141,6 +142,9 @@ class _MainScreenState extends State<MainScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPasskeyPrompt());
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => prefetchCompetitionsAndRating());
+    if (!widget.isGuest) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => RustorePushService.sendStoredTokenToBackend());
+    }
   }
 
   Future<void> _checkFirstTimeAndGoToProfile() async {

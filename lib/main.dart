@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:login_app/MainScreen.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/RustorePushService.dart';
+import 'package:login_app/services/MeasurementReminderService.dart';
 import 'package:login_app/services/cache_service.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/offline_queue_service.dart';
@@ -30,6 +31,9 @@ Future<void> main() async {
       }
     };
     await RustorePushService.init();
+    try {
+      await MeasurementReminderService.init();
+    } catch (_) {}
     runApp(MyApp());
   }, (error, stack) {
     if (kDebugMode) {

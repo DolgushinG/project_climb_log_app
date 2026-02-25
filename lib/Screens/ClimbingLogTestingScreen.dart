@@ -11,6 +11,7 @@ import 'package:login_app/services/StrengthDashboardService.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthHistoryService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
+import 'package:login_app/services/MeasurementReminderService.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
 
 /// Экран «Тестирование» — замеры силы: тяга пальцами, щипок, подтягивания.
@@ -276,6 +277,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     await TrainingGamificationService().recordMeasurement();
     await _clearDraft();
     if (mounted) {
+      final prevSession = _lastSession;
       final newSession = StrengthMeasurementSession(date: dateStr, metrics: m);
       setState(() {
         _lastSession = newSession;
@@ -283,6 +285,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         _showAddForm = false;
       });
       _checkLevelUp();
+      MeasurementReminderService.scheduleReminder();
       if (!silent) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -292,8 +295,80 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             duration: const Duration(seconds: 2),
           ),
         );
+        if (prevSession != null) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _showComparisonDialog(prev: prevSession, current: newSession);
+          });
+        }
       }
     }
+  }
+
+  void _showComparisonDialog({
+    required StrengthMeasurementSession prev,
+    required StrengthMeasurementSession current,
+  }) {
+    final lines = <String>[];
+    final pm = prev.metrics;
+    final cm = current.metrics;
+
+    void addLine(String label, double? oldVal, double? newVal, String suffix) {
+      if (oldVal == null && newVal == null) return;
+      final o = oldVal ?? 0.0;
+      final n = newVal ?? 0.0;
+      final diff = n - o;
+      final sign = diff >= 0 ? '+' : '';
+      lines.add('$label: ${o.toStringAsFixed(1)} → ${n.toStringAsFixed(1)} ($sign${diff.toStringAsFixed(1)}$suffix)');
+    }
+
+    void addLineInt(String label, int? oldVal, int? newVal, String suffix) {
+      if (oldVal == null && newVal == null) return;
+      final diff = (newVal ?? 0) - (oldVal ?? 0);
+      final sign = diff >= 0 ? '+' : '';
+      lines.add('$label: $oldVal → $newVal ($sign$diff$suffix)');
+    }
+
+    addLine('Пальцы Л', pm.fingerLeftKg, cm.fingerLeftKg, ' кг');
+    addLine('Пальцы П', pm.fingerRightKg, cm.fingerRightKg, ' кг');
+    addLine('Щипок 40 мм', pm.pinch40Kg, cm.pinch40Kg, ' кг');
+    addLine('Щипок 60 мм', pm.pinch60Kg, cm.pinch60Kg, ' кг');
+    addLine('Щипок 80 мм', pm.pinch80Kg, cm.pinch80Kg, ' кг');
+    addLine('Тяга (+кг)', pm.pullAddedKg, cm.pullAddedKg, ' кг');
+    addLine('Тяга (% от веса)', pm.pull1RmPct, cm.pull1RmPct, '%');
+    addLineInt('Lock-off', pm.lockOffSec, cm.lockOffSec, ' сек');
+
+    if (lines.isEmpty) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Сравнение с предыдущим замером',
+          style: unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: lines.map((line) => Padding(
+              padding: const EdgeInsets.only(bottom: 4),
+              child: Text(
+                line,
+                style: unbounded(color: Colors.white70, fontSize: 13),
+              ),
+            )).toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Ок', style: unbounded(color: AppColors.mutedGold)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _saveBodyWeight(String value) async {
@@ -542,6 +617,36 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 ),
               ),
             ),
+            if (MeasurementReminderService.shouldShowHint(_lastSession?.date))
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.mutedGold.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: AppColors.mutedGold.withOpacity(0.35)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule, color: AppColors.mutedGold, size: 22),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'Рекомендуем замериться раз в 2–4 недели для отслеживания прогресса.',
+                            style: unbounded(
+                              fontSize: 13,
+                              color: Colors.white70,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             const SliverToBoxAdapter(child: SizedBox(height: 24)),
             if (_lastSession == null)
               SliverToBoxAdapter(

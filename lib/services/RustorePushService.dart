@@ -1,6 +1,11 @@
+import 'dart:convert';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_rustore_push/flutter_rustore_push.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'package:login_app/main.dart';
 
 /// Сервис пуш-уведомлений RuStore.
 /// Работает только на Android при установленном RuStore.
@@ -46,10 +51,30 @@ class RustorePushService {
         },
       );
 
-      // Не вызываем available()/getToken()/getInitialMessage() сразу: нативный
-      // RuStorePushClient.init() выполняется после setup(), и вызов методов до
-      // этого приводит к IllegalStateException. Токен придёт в onNewToken когда
-      // SDK будет готов. getInitialMessage можно запросить позже при необходимости.
+      // SDK инициализируется асинхронно. Запрашиваем токен с задержкой — onNewToken
+      // может не вызваться при первом запуске, getToken() создаёт/возвращает токен.
+      Future.delayed(const Duration(seconds: 3), () async {
+        try {
+          final available = await RustorePushClient.available();
+          if (kDebugMode) {
+            print('[RuStore Push] available: $available');
+          }
+          if (available) {
+            final token = await RustorePushClient.getToken();
+            if (kDebugMode) {
+              print('[RuStore Push] getToken: ${token.isNotEmpty ? "ok" : "empty"}');
+            }
+            if (token.isNotEmpty) {
+              await _saveToken(token);
+              await _onTokenReceived(token);
+            }
+          }
+        } catch (e) {
+          if (kDebugMode) {
+            print('[RuStore Push] delayed getToken error: $e');
+          }
+        }
+      });
     } catch (e, st) {
       if (kDebugMode) {
         print('[RuStore Push] init error: $e\n$st');
@@ -77,13 +102,83 @@ class RustorePushService {
     return prefs.getString(_pushTokenKey);
   }
 
-  /// Вызывается при получении/обновлении токена. Переопределите отправку на бэкенд здесь.
-  static Future<void> _onTokenReceived(String token) async {
-    // TODO: отправить token на ваш бэкенд для рассылки пушей, например:
-    // await http.post(Uri.parse('$DOMAIN/api/device/push-token'), body: {'token': token}, headers: {...});
-    if (kDebugMode) {
-      print('[RuStore Push] Token для бэкенда: $token');
+  /// Отправить сохранённый токен на бэкенд (вызвать после входа пользователя).
+  static Future<void> sendStoredTokenToBackend() async {
+    final pushToken = await getStoredToken();
+    if (pushToken != null) await _onTokenReceived(pushToken);
+  }
+
+  /// Запросить токен у RuStore вручную (для кнопки «Получить токен» в debug).
+  /// Возвращает true, если токен получен и сохранён.
+  static Future<bool> requestToken() async {
+    if (!_isAndroid) return false;
+    try {
+      final available = await RustorePushClient.available();
+      if (kDebugMode) {
+        print('[RuStore Push] requestToken available: $available');
+      }
+      if (!available) return false;
+      final token = await RustorePushClient.getToken();
+      if (kDebugMode) {
+        print('[RuStore Push] requestToken: ${token.isNotEmpty ? "ok" : "empty"}');
+      }
+      if (token.isEmpty) return false;
+      await _saveToken(token);
+      await _onTokenReceived(token);
+      return true;
+    } catch (e) {
+      if (kDebugMode) {
+        print('[RuStore Push] requestToken error: $e');
+      }
+      return false;
     }
+  }
+
+  /// Отправка токена на бэкенд для рассылки пушей.
+  static Future<void> _onTokenReceived(String token) async {
+    final authToken = await getToken();
+    if (authToken == null || authToken.trim().isEmpty) {
+      if (kDebugMode) {
+        print('[RuStore Push] Токен не отправлен на бэкенд: пользователь не авторизован');
+      }
+      return;
+    }
+
+    try {
+      final body = jsonEncode({
+        'token': token,
+        'platform': 'rustore',
+        'device_id': await _getOrCreateDeviceId(),
+      });
+      final response = await http.post(
+        Uri.parse('$DOMAIN/api/climbing-logs/device-push-token'),
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $authToken',
+        },
+        body: body,
+      );
+      if (kDebugMode) {
+        print('[RuStore Push] device-push-token: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (kDebugMode) {
+        print('[RuStore Push] device-push-token error: $e');
+      }
+    }
+  }
+
+  static const String _deviceIdKey = 'device_push_id';
+
+  static Future<String> _getOrCreateDeviceId() async {
+    final prefs = await SharedPreferences.getInstance();
+    var id = prefs.getString(_deviceIdKey);
+    if (id == null || id.isEmpty) {
+      id = 'rustore_${DateTime.now().millisecondsSinceEpoch}';
+      await prefs.setString(_deviceIdKey, id);
+    }
+    return id;
   }
 
   /// Проверка доступности пушей (RuStore установлен и готов).

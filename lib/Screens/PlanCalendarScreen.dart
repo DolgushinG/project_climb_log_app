@@ -209,6 +209,11 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
       subtitle = 'Восстановление и лёгкая активность. Не перегружайте организм.';
       icon = Icons.spa;
       accentColor = AppColors.successMuted;
+    } else if (sessionType == 'measurement') {
+      title = 'Сегодня день замеров';
+      subtitle = 'Замеры силы: пальцы, щипок, тяга, lock-off.';
+      icon = Icons.science_outlined;
+      accentColor = AppColors.linkMuted;
     } else if (sessionType == 'climbing') {
       title = 'Сегодня только лазание';
       subtitle = '1–2 часа на стене. Лазание без ОФП/СФП.';
@@ -388,7 +393,9 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
                               ? Border.all(color: AppColors.mutedGold, width: 2)
                               : sessionType == 'rest'
                                   ? Border.all(color: AppColors.successMuted.withOpacity(0.6), width: 1)
-                                  : null,
+                                  : sessionType == 'measurement'
+                                      ? Border.all(color: AppColors.linkMuted.withOpacity(0.6), width: 1)
+                                      : null,
                         ),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -413,13 +420,17 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
                                             ? Icons.back_hand
                                             : sessionType == 'climbing'
                                                 ? Icons.route
-                                                : Icons.spa,
+                                                : sessionType == 'measurement'
+                                                    ? Icons.science_outlined
+                                                    : Icons.spa,
                                     size: 12,
                                     color: sessionType == 'rest'
                                         ? AppColors.successMuted.withOpacity(0.8)
-                                        : (completed ? AppColors.successMuted : AppColors.mutedGold.withOpacity(0.7)),
+                                        : sessionType == 'measurement'
+                                            ? AppColors.linkMuted.withOpacity(0.8)
+                                            : (completed ? AppColors.successMuted : AppColors.mutedGold.withOpacity(0.7)),
                                   ),
-                                  if (sessionType != 'rest' && sessionType != 'climbing' && widget.plan.includeClimbingInDays) ...[
+                                  if (sessionType != 'rest' && sessionType != 'climbing' && sessionType != 'measurement' && widget.plan.includeClimbingInDays) ...[
                                     const SizedBox(width: 2),
                                     Icon(
                                       Icons.route,
@@ -460,6 +471,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
   Color _cellColor(bool inRange, bool completed, bool isToday, String? sessionType) {
     if (!inRange) return AppColors.rowAlt.withOpacity(0.3);
     if (sessionType == 'rest') return AppColors.successMuted.withOpacity(0.35);
+    if (sessionType == 'measurement') return AppColors.linkMuted.withOpacity(0.25);
     if (completed) return AppColors.successMuted.withOpacity(0.25);
     if (isToday) return AppColors.mutedGold.withOpacity(0.15);
     return AppColors.cardDark;
@@ -468,6 +480,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
   Color _textColor(bool inRange, bool isToday, String? sessionType) {
     if (!inRange) return Colors.white38;
     if (sessionType == 'rest') return AppColors.successMuted.withOpacity(0.9);
+    if (sessionType == 'measurement') return AppColors.linkMuted.withOpacity(0.95);
     if (isToday) return AppColors.mutedGold;
     return Colors.white70;
   }
@@ -481,6 +494,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
         _legendItem(Icons.fitness_center, 'ОФП'),
         _legendItem(Icons.back_hand, 'СФП'),
         _legendItem(Icons.spa, 'Отдых', color: AppColors.successMuted),
+        _legendItem(Icons.science_outlined, 'Замеры', color: AppColors.linkMuted),
         if (widget.plan.includeClimbingInDays)
           _legendItem(Icons.route, 'Лазание', color: AppColors.mutedGold.withOpacity(0.6)),
       ],

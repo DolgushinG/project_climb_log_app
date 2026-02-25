@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
@@ -6,6 +8,7 @@ import 'package:login_app/Screens/AuthSettingScreen.dart';
 import 'dart:convert';
 
 import 'Screens/AnalyticsScreen.dart';
+import 'services/RustorePushService.dart';
 import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/RelatedUsersScreen.dart';
@@ -38,6 +41,90 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String? _loadError;
   PremiumStatus? _premiumStatus;
   bool _isRefreshing = false;
+  String? _pushToken;
+
+  bool _pushTokenLoading = false;
+
+  Widget _buildPushTestCard() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: InkWell(
+        onTap: () async {
+          final token = _pushToken;
+          if (token != null) {
+            Clipboard.setData(ClipboardData(text: token));
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Токен скопирован. Вставьте в RuStore Консоль → Push → Тестовая отправка', style: unbounded()),
+                  backgroundColor: AppColors.cardDark,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          } else if (!_pushTokenLoading) {
+            setState(() => _pushTokenLoading = true);
+            final ok = await RustorePushService.requestToken();
+            if (mounted) {
+              setState(() => _pushTokenLoading = false);
+              if (ok) {
+                final t = await RustorePushService.getStoredToken();
+                if (mounted) setState(() => _pushToken = t);
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    ok ? 'Токен получен' : 'Не удалось (RuStore установлен? Войдите в него)',
+                    style: unbounded(),
+                  ),
+                  backgroundColor: ok ? AppColors.cardDark : Colors.orange.shade900,
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            }
+          }
+        },
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.mutedGold.withOpacity(0.12),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.mutedGold.withOpacity(0.3)),
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Row(
+            children: [
+              Icon(Icons.notifications_active, color: AppColors.mutedGold, size: 24),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Тест пушей RuStore', style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold)),
+                    const SizedBox(height: 4),
+                    Text(
+                      _pushToken != null
+                          ? 'Нажмите, чтобы скопировать токен. Отправка: console.rustore.ru → приложение → Push → Тестовая отправка'
+                          : _pushTokenLoading
+                              ? 'Запрос токена...'
+                              : 'Токен не получен. Нажмите, чтобы запросить (нужен RuStore, вход в него)',
+                      style: unbounded(fontSize: 11, color: Colors.white70, height: 1.3),
+                    ),
+                  ],
+                ),
+              ),
+              if (_pushTokenLoading)
+                SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold))
+              else if (_pushToken != null)
+                Icon(Icons.copy_rounded, color: AppColors.mutedGold, size: 20)
+              else
+                Icon(Icons.refresh_rounded, color: AppColors.mutedGold, size: 20),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildSubscriptionCard() {
     final s = _premiumStatus;
@@ -284,6 +371,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadProfileAndPremium();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcomeModal());
+    if (kDebugMode) {
+      RustorePushService.getStoredToken().then((token) {
+        if (mounted) setState(() => _pushToken = token);
+      });
+    }
   }
 
   Future<void> _loadProfileAndPremium() async {
@@ -303,9 +395,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
       fetchProfileData(),
       PremiumSubscriptionService().getStatus(forceRefresh: true),
     ]);
+    String? pushToken;
+    if (kDebugMode) pushToken = await RustorePushService.getStoredToken();
     if (mounted) {
       setState(() {
         _premiumStatus = results[1] as PremiumStatus?;
+        if (pushToken != null) _pushToken = pushToken;
         _isRefreshing = false;
       });
     }
@@ -520,6 +615,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  if (kDebugMode) _buildPushTestCard(),
                   ProfileActionCard(
                     title: 'История участия',
                     icon: Icons.history,
