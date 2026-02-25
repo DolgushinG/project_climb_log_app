@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
@@ -47,7 +46,7 @@ class _StrengthHistoryScreenState extends State<StrengthHistoryScreen> {
         backgroundColor: AppColors.anthracite,
           title: Text(
           'Мои замеры',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -83,7 +82,7 @@ class _StrengthHistoryScreenState extends State<StrengthHistoryScreen> {
                               const SizedBox(height: 16),
                               Text(
                                 'Пока пусто',
-                                style: GoogleFonts.unbounded(
+                                style: unbounded(
                                   fontSize: 16,
                                   color: Colors.white54,
                                 ),
@@ -91,7 +90,7 @@ class _StrengthHistoryScreenState extends State<StrengthHistoryScreen> {
                               const SizedBox(height: 8),
                               Text(
                                 'Сделай тест и нажми «Записать замер»',
-                                style: GoogleFonts.unbounded(
+                                style: unbounded(
                                   fontSize: 13,
                                   color: Colors.white38,
                                 ),
@@ -150,7 +149,7 @@ class _StrengthHistoryScreenState extends State<StrengthHistoryScreen> {
               const SizedBox(width: 8),
               Text(
                 s.dateFormatted,
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -165,7 +164,7 @@ class _StrengthHistoryScreenState extends State<StrengthHistoryScreen> {
               runSpacing: 6,
               children: parts.map((p) => Text(
                 p,
-                style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                style: unbounded(fontSize: 13, color: Colors.white70),
               )).toList(),
             ),
           ],

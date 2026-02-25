@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -38,7 +37,7 @@ class _AboutScreenState extends State<AboutScreen> {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Не удалось открыть ссылку', style: GoogleFonts.unbounded()),
+            content: Text('Не удалось открыть ссылку', style: unbounded()),
             backgroundColor: AppColors.graphite,
           ),
         );
@@ -54,7 +53,7 @@ class _AboutScreenState extends State<AboutScreen> {
         backgroundColor: AppColors.anthracite,
         title: Text(
           'О приложении',
-          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
+          style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
         ),
         iconTheme: const IconThemeData(color: AppColors.mutedGold),
       ),
@@ -80,7 +79,7 @@ class _AboutScreenState extends State<AboutScreen> {
             Text(
               'Climbing-events',
               textAlign: TextAlign.center,
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.3,
@@ -104,7 +103,7 @@ class _AboutScreenState extends State<AboutScreen> {
             const SizedBox(height: 32),
             Text(
               'Контакты',
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: AppColors.mutedGold,
@@ -134,7 +133,7 @@ class _AboutScreenState extends State<AboutScreen> {
               const SizedBox(height: 28),
               Text(
                 'Тест пушей RuStore',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -159,7 +158,7 @@ class _AboutScreenState extends State<AboutScreen> {
                     Expanded(
                       child: SelectableText(
                         _pushToken!,
-                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70, height: 1.4),
+                        style: unbounded(fontSize: 11, color: Colors.white70, height: 1.4),
                         maxLines: 3,
                       ),
                     ),
@@ -171,7 +170,7 @@ class _AboutScreenState extends State<AboutScreen> {
                         if (mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
-                              content: Text('Токен скопирован', style: GoogleFonts.unbounded()),
+                              content: Text('Токен скопирован', style: unbounded()),
                               backgroundColor: AppColors.cardDark,
                               behavior: SnackBarBehavior.floating,
                             ),
@@ -235,7 +234,7 @@ class _ContactTile extends StatelessWidget {
                   children: [
                     Text(
                       label,
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: Colors.white.withOpacity(0.6),

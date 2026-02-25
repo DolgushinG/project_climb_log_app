@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -611,13 +610,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Оформление', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
+        appBar: AppBar(title: Text('Оформление', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: Text('Оформление', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
+        appBar: AppBar(title: Text('Оформление', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -661,7 +660,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Оформление', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Оформление', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -733,8 +732,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
         children: [
-          Text('$label: ', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14)),
-          Expanded(child: Text(value, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14))),
+          Text('$label: ', style: unbounded(color: Colors.white70, fontSize: 14)),
+          Expanded(child: Text(value, style: unbounded(color: Colors.white, fontSize: 14))),
         ],
       ),
     );
@@ -750,7 +749,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Как оплатить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          Text('Как оплатить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(
             '1. Выберите пакет участия\n'
@@ -758,7 +757,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             '3. После этого сохранится ваш выбор\n'
             '4. Цена и ссылка обновятся автоматически\n'
             '5. После выбора можно перейти к оплате',
-            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13),
+            style: unbounded(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),
@@ -782,7 +781,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Expanded(
             child: Text(
               'Оплатите и прикрепите чек до истечения времени: ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
-              style: GoogleFonts.unbounded(color: isUrgent ? Colors.red : Colors.white, fontWeight: FontWeight.w500),
+              style: unbounded(color: isUrgent ? Colors.red : Colors.white, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -791,7 +790,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   Widget _buildSectionTitle(String title) {
-    return Text(title, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600));
+    return Text(title, style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600));
   }
 
   Widget _buildMerchGallery(List merchGallery) {
@@ -889,8 +888,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(name, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                Text('${price.toInt()} ₽', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16)),
+                Text(name, style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+                Text('${price.toInt()} ₽', style: unbounded(color: Colors.white, fontSize: 16)),
               ],
             ),
             ...merch.map((m) {
@@ -908,23 +907,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(merchName, style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14)),
+                        Text(merchName, style: unbounded(color: Colors.white70, fontSize: 14)),
                         if (available != null && limit != null)
-                          Text(' (осталось: $available)', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
+                          Text(' (осталось: $available)', style: unbounded(color: Colors.white54, fontSize: 12)),
                       ],
                     ),
                     if (sizes.isNotEmpty) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 4, bottom: 2),
-                        child: Text('Размер:', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
+                        child: Text('Размер:', style: unbounded(color: Colors.white54, fontSize: 12)),
                       ),
                       DropdownButton<String>(
                         value: _selectedSizes[merchName],
-                        hint: Text('Выберите размер', style: GoogleFonts.unbounded(color: Colors.white54)),
+                        hint: Text('Выберите размер', style: unbounded(color: Colors.white54)),
                         dropdownColor: AppColors.graphite,
                         items: sizes.map((s) {
                           final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
-                          return DropdownMenuItem(value: sz, child: Text(sz, style: GoogleFonts.unbounded(color: Colors.white)));
+                          return DropdownMenuItem(value: sz, child: Text(sz, style: unbounded(color: Colors.white)));
                         }).toList(),
                         onChanged: isDisabled ? null : (v) {
                           setState(() {
@@ -974,7 +973,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       ? ElevatedButton.icon(
                           onPressed: null,
                           icon: const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                          label: Text('Выбрано', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                          label: Text('Выбрано', style: unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.mutedGold,
                             foregroundColor: Colors.white,
@@ -998,7 +997,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   await _savePackage(name, sizes, price.toInt());
                                 },
                           icon: const Icon(Icons.add_shopping_cart, size: 20),
-                          label: Text('Выбрать', style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
+                          label: Text('Выбрать', style: unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.mutedGold,
                             side: const BorderSide(color: AppColors.mutedGold, width: 2),
@@ -1025,17 +1024,17 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Промокод', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          Text('Промокод', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Row(
             children: [
               Expanded(
                 child: TextField(
                   controller: _promoController,
-                  style: GoogleFonts.unbounded(color: Colors.white),
+                  style: unbounded(color: Colors.white),
                   decoration: InputDecoration(
                     hintText: 'Введите промокод',
-                    hintStyle: GoogleFonts.unbounded(color: Colors.white54),
+                    hintStyle: unbounded(color: Colors.white54),
                     filled: true,
                     fillColor: AppColors.rowAlt,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide.none),
@@ -1046,20 +1045,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               if (_appliedPromo != null)
                 TextButton(
                   onPressed: _cancelPromo,
-                  child: Text('Убрать', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                  child: Text('Убрать', style: unbounded(color: AppColors.mutedGold)),
                 )
               else
                 ElevatedButton(
                   onPressed: _isApplyingPromo ? null : _applyPromo,
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: _isApplyingPromo ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('Применить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: _isApplyingPromo ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)) : Text('Применить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
             ],
           ),
           if (_appliedPromo != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text('Промокод $_appliedPromo применён', style: GoogleFonts.unbounded(color: Colors.green.shade300, fontSize: 13)),
+              child: Text('Промокод $_appliedPromo применён', style: unbounded(color: Colors.green.shade300, fontSize: 13)),
             ),
         ],
       ),
@@ -1125,10 +1124,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text('Итого:', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+          Text('Итого:', style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
           Text(
             hasPackage ? '$total ₽' : '—',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               color: hasPackage ? Colors.white : Colors.white54,
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -1150,7 +1149,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text('Перейти к оплате или прикрепить чек', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+        child: Text('Перейти к оплате или прикрепить чек', style: unbounded(fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -1164,7 +1163,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       ),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text('Ссылка на оплату', style: GoogleFonts.unbounded(color: Colors.white)),
+        title: Text('Ссылка на оплату', style: unbounded(color: Colors.white)),
         trailing: const Icon(Icons.open_in_new, color: Colors.blue),
         onTap: () async {
           if (uri != null && await canLaunchUrl(uri)) {
@@ -1188,7 +1187,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('QR-код для оплаты', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text('QR-код для оплаты', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             CachedNetworkImage(
               imageUrl: url,
@@ -1215,9 +1214,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Загрузить чек', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text('Загрузить чек', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 8),
-            Text('JPEG, PNG или PDF. Макс. 10 МБ', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
+            Text('JPEG, PNG или PDF. Макс. 10 МБ', style: unbounded(color: Colors.white54, fontSize: 12)),
             const SizedBox(height: 12),
             Row(
               children: [
@@ -1272,7 +1271,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Expanded(
             child: Text(
               'Чек уже загружен! Ожидайте подтверждения администратором.',
-              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
+              style: unbounded(color: Colors.white, fontSize: 16),
             ),
           ),
         ],

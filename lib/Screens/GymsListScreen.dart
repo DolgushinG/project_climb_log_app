@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../models/Gym.dart';
 import '../theme/app_theme.dart';
@@ -132,7 +131,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Список скалодромов', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Список скалодромов', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         backgroundColor: AppColors.cardDark,
       ),
       backgroundColor: AppColors.anthracite,
@@ -156,10 +155,10 @@ class _GymsListScreenState extends State<GymsListScreen> {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
           child: TextField(
             controller: _searchController,
-            style: GoogleFonts.unbounded(color: Colors.white),
+            style: unbounded(color: Colors.white),
             decoration: InputDecoration(
               hintText: 'Поиск по названию, городу, адресу...',
-              hintStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+              hintStyle: unbounded(color: AppColors.graphite),
               prefixIcon: Icon(Icons.search, color: AppColors.mutedGold),
               filled: true,
               fillColor: AppColors.rowAlt,
@@ -185,7 +184,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: Text(
               'Найдено скалодромов: ${_pagination!.total}',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+              style: unbounded(fontSize: 13, color: Colors.white70),
             ),
           ),
       ],
@@ -197,7 +196,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
     return Padding(
       padding: const EdgeInsets.only(right: 8),
       child: FilterChip(
-        label: Text(label, style: GoogleFonts.unbounded(fontSize: 13)),
+        label: Text(label, style: unbounded(fontSize: 13)),
         selected: isSelected,
         onSelected: (selected) {
           setState(() {
@@ -208,7 +207,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
         backgroundColor: AppColors.rowAlt,
         selectedColor: AppColors.mutedGold.withOpacity(0.3),
         checkmarkColor: AppColors.mutedGold,
-        labelStyle: GoogleFonts.unbounded(
+        labelStyle: unbounded(
           color: isSelected ? Colors.white : Colors.white70,
           fontSize: 13,
         ),
@@ -300,7 +299,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                       children: [
                         Text(
                           gym.name,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 17,
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
@@ -310,7 +309,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                           const SizedBox(height: 4),
                           Text(
                             gym.city!,
-                            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                            style: unbounded(fontSize: 13, color: Colors.white70),
                           ),
                         ],
                       ],
@@ -328,7 +327,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                         const SizedBox(width: 4),
                         Text(
                           '${gym.sumLikes}',
-                          style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                          style: unbounded(fontSize: 13, color: Colors.white70),
                         ),
                       ],
                     ),
@@ -355,7 +354,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                         gym.address!,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                        style: unbounded(fontSize: 13, color: Colors.white70),
                       ),
                     ),
                   ],
@@ -373,7 +372,7 @@ class _GymsListScreenState extends State<GymsListScreen> {
                     const SizedBox(width: 8),
                     Text(
                       gym.phone!,
-                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                      style: unbounded(fontSize: 12, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -396,13 +395,13 @@ class _GymsListScreenState extends State<GymsListScreen> {
             Text(
               _error!,
               textAlign: TextAlign.center,
-              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
+              style: unbounded(color: Colors.white, fontSize: 16),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () => _load(page: 1),
               icon: const Icon(Icons.refresh),
-              label: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+              label: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.mutedGold,
                 foregroundColor: Colors.white,
@@ -428,13 +427,13 @@ class _GymsListScreenState extends State<GymsListScreen> {
             Text(
               'Скалодромы не найдены',
               textAlign: TextAlign.center,
-              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+              style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
             Text(
               'Попробуйте изменить запрос поиска',
               textAlign: TextAlign.center,
-              style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+              style: unbounded(color: Colors.white70, fontSize: 14),
             ),
           ],
         ),

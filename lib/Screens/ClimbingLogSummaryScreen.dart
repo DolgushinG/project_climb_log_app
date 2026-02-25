@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
@@ -188,7 +187,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                 children: [
                   Text(
                     'Прогресс плана',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.mutedGold,
@@ -196,7 +195,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                   ),
                   Text(
                     '$completed из $total • ${total > 0 ? ((completed / total) * 100).round() : 0}%',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Colors.white70,
@@ -232,7 +231,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
               const SizedBox(height: 6),
               Text(
                 'Нажмите для календаря',
-                style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
+                style: unbounded(fontSize: 11, color: Colors.white38),
               ),
             ],
           ),
@@ -279,7 +278,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                 children: [
                   Text(
                     cancelled ? 'Подписка отменена' : 'Подписка активна',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                       fontSize: 16,
@@ -289,7 +288,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                     cancelled
                         ? 'Действует до конца периода ($days ${_dayWord(days)})'
                         : 'Осталось $days ${_dayWord(days)}. Спасибо за поддержку!',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       color: Colors.white70,
                       fontSize: 13,
                       height: 1.3,
@@ -323,7 +322,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                 children: [
                   Text(
                     'Premium',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                       fontSize: 16,
@@ -333,7 +332,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                     status?.isInTrial == true
                         ? 'Пробный период: ${status!.trialDaysLeft} ${_dayWord(status.trialDaysLeft)}'
                         : 'Подписка — доступ ко всем функциям',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       color: Colors.white70,
                       fontSize: 13,
                       height: 1.3,
@@ -368,7 +367,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                     children: [
                       Text(
                         'Обзор',
-                        style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                       ),
                       if (!_loading && _summary != null && (_summary!.totalSessions) > 0) ...[
                         const SizedBox(height: 16),
@@ -404,7 +403,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                           Text(
                             _error ?? 'Не удалось загрузить данные',
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.unbounded(color: Colors.white70),
+                            style: unbounded(color: Colors.white70),
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
@@ -414,7 +413,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                            child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -465,7 +464,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                   children: [
                     Text(
                       'Рекомендации',
-                      style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     const SizedBox(height: 12),
                     _buildRecommendations(_recommendations),
@@ -525,7 +524,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
             Text(
               'Цель: ${next != null ? "достичь ${next.titleRu}" : rank.titleRu}'
               '${progressToNext != null && next != null ? " — ${(progressToNext * 100).toStringAsFixed(0)}% готово" : ""}',
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -537,7 +536,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
           ],
           Text(
             'Рекомендация: $focusHint',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 13,
               color: AppColors.mutedGold,
             ),
@@ -558,7 +557,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
                   _strengthChangePct! >= 0
                       ? 'Прирост +${_strengthChangePct!.toStringAsFixed(1)}%'
                       : 'Регресс ${_strengthChangePct!.toStringAsFixed(1)}%',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: _strengthChangePct! >= 0 ? AppColors.successMuted : Colors.orange,
@@ -581,7 +580,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
               Expanded(
                 child: Text(
                   'Восстановление: ${_gamification.recoveryStatusTextRu(_recoveryStatus)}',
-                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                  style: unbounded(fontSize: 12, color: Colors.white70),
                 ),
               ),
             ],
@@ -591,13 +590,13 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
             children: [
               Text(
                 'Опыт: $_xp',
-                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                style: unbounded(fontSize: 12, color: Colors.white54),
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Text(
                   'Серия: $_streak ${_dayWord(_streak)}',
-                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                  style: unbounded(fontSize: 12, color: Colors.white54),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -653,13 +652,13 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
           const SizedBox(height: 16),
           Text(
             'Добро пожаловать в трекер тренировок',
-            style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
+            style: unbounded(fontSize: 16, color: Colors.white, fontWeight: FontWeight.w600),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Выполните план на сегодня или добавьте тренировку во вкладке «История» — здесь появится сводка и рекомендации.',
-            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+            style: unbounded(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),
         ],
@@ -739,12 +738,12 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.unbounded(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
+            style: unbounded(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
+            style: unbounded(color: Colors.white70, fontSize: 12),
           ),
         ],
       ),
@@ -767,7 +766,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
             Expanded(
               child: Text(
                 'Добавьте первую тренировку в следующей вкладке',
-                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                style: unbounded(color: Colors.white70, fontSize: 14),
               ),
             ),
           ],
@@ -791,7 +790,7 @@ class _ClimbingLogSummaryScreenState extends State<ClimbingLogSummaryScreen>
               Expanded(
                 child: Text(
                   r.text,
-                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                  style: unbounded(color: Colors.white70, fontSize: 14),
                 ),
               ),
             ],

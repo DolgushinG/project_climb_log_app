@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/Screens/FranceResultScreen.dart';
 import 'package:login_app/login.dart';
@@ -383,7 +382,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Соревнования', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+        title: Text('Соревнования', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
@@ -401,12 +400,12 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                   borderRadius: BorderRadius.circular(999),
                   color: AppColors.mutedGold.withOpacity(0.3),
                 ),
-                labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
-                unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
+                labelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                unselectedLabelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                 labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                 tabs: [
-                  Tab(child: Text('Текущие', style: GoogleFonts.unbounded(fontSize: 13))),
-                  Tab(child: Text('Завершенные', style: GoogleFonts.unbounded(fontSize: 13))),
+                  Tab(child: Text('Текущие', style: unbounded(fontSize: 13))),
+                  Tab(child: Text('Завершенные', style: unbounded(fontSize: 13))),
                 ],
               ),
             ),
@@ -625,7 +624,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                     competition.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.unbounded(
+                                    style: unbounded(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.white,
@@ -647,7 +646,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                   ),
                                   child: Text(
                                     isCurrent ? 'Идут' : 'Завершены',
-                                    style: GoogleFonts.unbounded(
+                                    style: unbounded(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w500,
                                       color: isCurrent
@@ -672,7 +671,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                                     '${competition.city}, ${competition.address}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                                    style: unbounded(fontSize: 12, color: Colors.white70),
                                   ),
                                 ),
                               ],
@@ -682,7 +681,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
                               children: [
                                 Text(
                                   dateLabel,
-                                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                                  style: unbounded(fontSize: 12, color: Colors.white70),
                                 ),
                               ],
                             ),
@@ -781,12 +780,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите сет', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Выберите сет', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: SingleChildScrollView(
                 child: Column(
                   children: numberSetList.map((numberSet) {
                     return RadioListTile<NumberSets>(
-                      title: Text(formatSetCompact(numberSet), style: GoogleFonts.unbounded(color: Colors.white)),
+                      title: Text(formatSetCompact(numberSet), style: unbounded(color: Colors.white)),
                       value: numberSet,
                       groupValue: tempSelectedNumberSet,
                       onChanged: (NumberSets? value) {
@@ -801,7 +800,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -809,7 +808,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -829,12 +828,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите категорию', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Выберите категорию', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: SingleChildScrollView(
                 child: Column(
                   children: categoryList.map((category) {
                     return RadioListTile<Category>(
-                      title: Text(category.category, style: GoogleFonts.unbounded(color: Colors.white)),
+                      title: Text(category.category, style: unbounded(color: Colors.white)),
                       value: category,
                       groupValue: tempSelectedCategory,
                       onChanged: (Category? value) {
@@ -849,7 +848,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -857,7 +856,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -877,12 +876,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите разряд', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Выберите разряд', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: SingleChildScrollView(
                 child: Column(
                   children: categoryList.map((sport_category) {
                     return RadioListTile<SportCategory>(
-                      title: Text(sport_category.sport_category, style: GoogleFonts.unbounded(color: Colors.white)),
+                      title: Text(sport_category.sport_category, style: unbounded(color: Colors.white)),
                       value: sport_category,
                       groupValue: tempSelectedSportCategory,
                       onChanged: (SportCategory? value) {
@@ -897,7 +896,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -905,7 +904,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -968,7 +967,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 children: [
                   Text(
                     initialNumberSets != null ? 'Изменить данные в листе ожидания' : 'Добавиться в лист ожидания',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 18,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -976,10 +975,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                   const SizedBox(height: 16),
                   if (_competitionDetails.is_input_set == 0 && busySets.isNotEmpty) ...[
-                    Text('Занятый сет', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+                    Text('Занятый сет', style: unbounded(fontSize: 14, color: Colors.white70)),
                     const SizedBox(height: 6),
                     ...busySets.map((s) => CheckboxListTile(
-                      title: Text(formatSetCompact(s), style: GoogleFonts.unbounded(color: Colors.white)),
+                      title: Text(formatSetCompact(s), style: unbounded(color: Colors.white)),
                       value: sheetSelectedSets.contains(s),
                       activeColor: Colors.orange,
                       onChanged: (checked) {
@@ -995,10 +994,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     const SizedBox(height: 12),
                   ],
                   if (needCategory) ...[
-                    Text('Категория', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+                    Text('Категория', style: unbounded(fontSize: 14, color: Colors.white70)),
                     const SizedBox(height: 6),
                     ...categoryList.map((c) => RadioListTile<Category>(
-                      title: Text(c.category, style: GoogleFonts.unbounded(color: Colors.white)),
+                      title: Text(c.category, style: unbounded(color: Colors.white)),
                       value: c,
                       groupValue: sheetSelectedCategory,
                       onChanged: (v) => setSheetState(() => sheetSelectedCategory = v),
@@ -1006,10 +1005,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     const SizedBox(height: 12),
                   ],
                   if (needSportCategory) ...[
-                    Text('Разряд', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+                    Text('Разряд', style: unbounded(fontSize: 14, color: Colors.white70)),
                     const SizedBox(height: 6),
                     ...sportCategoryList.map((sc) => RadioListTile<SportCategory>(
-                      title: Text(sc.sport_category, style: GoogleFonts.unbounded(color: Colors.white)),
+                      title: Text(sc.sport_category, style: unbounded(color: Colors.white)),
                       value: sc,
                       groupValue: sheetSelectedSportCategory,
                       onChanged: (v) => setSheetState(() => sheetSelectedSportCategory = v),
@@ -1064,7 +1063,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text('Подтвердить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: Text('Подтвердить', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                   const SizedBox(height: 24),
                 ],
@@ -1214,7 +1213,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               const SizedBox(width: 8),
               Text(
                 'Лист ожидания',
-                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ],
           ),
@@ -1222,21 +1221,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             const SizedBox(height: 8),
             Text(
               'Сеты: $setLabels',
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+              style: unbounded(fontSize: 14, color: Colors.white70),
             ),
           ],
           if (selectedCategory != null) ...[
             const SizedBox(height: 4),
             Text(
               'Категория: ${selectedCategory!.category}',
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+              style: unbounded(fontSize: 14, color: Colors.white70),
             ),
           ],
           if (selectedSportCategory != null) ...[
             const SizedBox(height: 4),
             Text(
               'Разряд: ${selectedSportCategory!.sport_category}',
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+              style: unbounded(fontSize: 14, color: Colors.white70),
             ),
           ],
           const SizedBox(height: 12),
@@ -1248,7 +1247,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     initialNumberSets: _competitionDetails.list_pending_number_sets,
                   ),
                   icon: const Icon(Icons.edit, size: 18, color: AppColors.mutedGold),
-                  label: Text('Изменить', style: GoogleFonts.unbounded(fontSize: 14, color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+                  label: Text('Изменить', style: unbounded(fontSize: 14, color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.mutedGold,
                     side: const BorderSide(color: AppColors.mutedGold),
@@ -1264,19 +1263,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     final confirm = await showDialog<bool>(
                       context: context,
                       builder: (ctx) => AlertDialog(
-                        title: Text('Удалить из листа ожидания?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+                        title: Text('Удалить из листа ожидания?', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
                         content: Text(
                           'Вы будете удалены из листа ожидания. Освободившееся место смогут занять другие.',
-                          style: GoogleFonts.unbounded(color: Colors.white70),
+                          style: unbounded(color: Colors.white70),
                         ),
                         actions: [
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, false),
-                            child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                            child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                           ),
                           TextButton(
                             onPressed: () => Navigator.pop(ctx, true),
-                            child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.red, fontWeight: FontWeight.w500)),
+                            child: Text('Удалить', style: unbounded(color: Colors.red, fontWeight: FontWeight.w500)),
                           ),
                         ],
                       ),
@@ -1284,7 +1283,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     if (confirm == true) await _removeFromListPending();
                   },
                   icon: const Icon(Icons.person_remove, size: 18),
-                  label: Text('Удалить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                  label: Text('Удалить', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: Colors.redAccent,
                     side: const BorderSide(color: Colors.redAccent),
@@ -1317,7 +1316,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             const SizedBox(width: 6),
             Text(
               'Сеты',
-              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),
@@ -1327,7 +1326,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               'Нет сетов для вашей возрастной группы',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+              style: unbounded(fontSize: 12, color: Colors.white70),
             ),
           )
         else
@@ -1379,12 +1378,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               children: [
                 Text(
                   '№${s.number_set}',
-                  style: GoogleFonts.unbounded(fontSize: 9, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                  style: unbounded(fontSize: 9, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                 ),
                 const SizedBox(width: 2),
                 Text(
                   '${s.participants_count}/${s.max_participants}',
-                  style: GoogleFonts.unbounded(fontSize: 8, fontWeight: FontWeight.w500, color: textColor),
+                  style: unbounded(fontSize: 8, fontWeight: FontWeight.w500, color: textColor),
                 ),
               ],
             ),
@@ -1403,7 +1402,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
             const SizedBox(height: 2),
             Text(
               extractSetTimeOnly(s.time),
-              style: GoogleFonts.unbounded(fontSize: 8, color: Colors.white54),
+              style: unbounded(fontSize: 8, color: Colors.white54),
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
             ),
@@ -1547,7 +1546,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   children: [
                     Text(
                       'Скалодром',
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 12,
                         fontWeight: FontWeight.w500,
                         color: Colors.white.withOpacity(0.6),
@@ -1556,7 +1555,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     const SizedBox(height: 4),
                     Text(
                       _competitionDetails.climbing_gym_name,
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppColors.mutedGold,
@@ -1566,7 +1565,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     const SizedBox(height: 2),
                     Text(
                       'Нажмите для перехода в профиль скалодрома',
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 10,
                         fontWeight: FontWeight.w400,
                         color: Colors.white.withOpacity(0.45),
@@ -1628,7 +1627,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'О соревновании',
-                  style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ],
             ),
@@ -1644,7 +1643,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 children: [
                   Text(
                     _competitionDetails.title,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 20,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -1695,7 +1694,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                         onTap: () => _selectDate(context),
                         decoration: InputDecoration(
                           labelText: 'Выберите дату',
-                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          labelStyle: unbounded(color: AppColors.graphite),
                           filled: true,
                           fillColor: AppColors.rowAlt,
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -1722,7 +1721,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                             selectedSportCategory == null
                                 ? 'Выберите разряд'
                                 : 'Разряд: ${displayValue(selectedSportCategory!.sport_category)}',
-                            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
+                            style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
                           ),
                         ),
                       ),
@@ -1779,7 +1778,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                     icon: const Icon(Icons.edit, size: 18, color: AppColors.mutedGold),
                                     label: Text(
                                       'Заполнить в профиле',
-                                      style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600),
+                                      style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ],
@@ -1864,7 +1863,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                           selectedCategory == null
                               ? 'Выберите категорию'
                               : 'Категория: ${displayValue(selectedCategory!.category)}',
-                          style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
+                          style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
                         ),
                       ),
                   ),
@@ -1887,7 +1886,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                       _effectiveSelectedNumberSet == null
                           ? 'Выберите сет'
                           : 'Сет: ${formatSetCompact(_effectiveSelectedNumberSet!)}',
-                      style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
+                      style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
                     ),
                 ),
                 )
@@ -1899,7 +1898,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 const SizedBox(width: 8),
                 Text(
                   'Ваше участие',
-                  style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ],
             ),
@@ -1917,7 +1916,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                 child: Center(
                   child: Text(
                     'Соревнование завершено',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
                   ),
                 ),
               ),
@@ -1944,7 +1943,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   ),
                   child: Text(
                     'Список участников',
-                    style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                    style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -2022,7 +2021,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                     ),
                                     child: Text(
                                       'Войти чтобы принять участие',
-                                      style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                                      style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                                     ),
                                   )
                                 : needsPayment
@@ -2046,7 +2045,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                         ),
                                     child: Text(
                                       'Продолжить оплату',
-                                      style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
+                                      style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                                     ),
                                       )
                                     : TakePartButtonScreen(
@@ -2104,7 +2103,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                               ),
                               child: Text(
                                 'Список участников',
-                                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -2132,7 +2131,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                 ),
                                 child: Text(
                                   'Заявить группу',
-                                  style: GoogleFonts.unbounded(
+                                  style: unbounded(
                                     color: Colors.white,
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -2244,22 +2243,22 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                           backgroundColor: AppColors.cardDark,
                                           title: Text(
                                             'Подтверждение отмены регистрации',
-                                            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                                            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                                           ),
                                           content: Text(
                                             'Вы уверены, что хотите отменить регистрацию?',
-                                            style: GoogleFonts.unbounded(color: Colors.white70),
+                                            style: unbounded(color: Colors.white70),
                                           ),
                                           actions: <Widget>[
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.of(context).pop(false),
-                                              child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                                              child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                                             ),
                                             TextButton(
                                               onPressed: () =>
                                                   Navigator.of(context).pop(true),
-                                              child: Text('Подтвердить', style: GoogleFonts.unbounded(color: Colors.redAccent, fontWeight: FontWeight.w600)),
+                                              child: Text('Подтвердить', style: unbounded(color: Colors.redAccent, fontWeight: FontWeight.w600)),
                                             ),
                                           ],
                                         );
@@ -2272,7 +2271,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                   },
                                   child: Text(
                                     'Отменить регистрацию',
-                                    style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
+                                    style: unbounded(fontSize: 14, fontWeight: FontWeight.w600),
                                     textAlign: TextAlign.center,
                                   ),
                                 ),
@@ -2347,7 +2346,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                   fit: BoxFit.scaleDown,
                   child: Text(
                     label,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 9,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                       color: color,
@@ -2368,7 +2367,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Детали соревнования', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Детали соревнования', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         actions: [
           IconButton(
             icon: _isRefreshing
@@ -2472,7 +2471,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       child: Scaffold(
         appBar: AppBar(
           automaticallyImplyLeading: false,
-          title: Text('Результаты', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+          title: Text('Результаты', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
           bottom: PreferredSize(
             preferredSize: const Size.fromHeight(48),
             child: Padding(
@@ -2489,15 +2488,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     borderRadius: BorderRadius.circular(999),
                     color: AppColors.mutedGold.withOpacity(0.3),
                   ),
-                  labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
-                  unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
+                  labelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                  unselectedLabelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                   labelPadding: const EdgeInsets.symmetric(horizontal: 12),
                   tabs: [
-                    Tab(child: Text('Квалификация', style: GoogleFonts.unbounded(fontSize: 13))),
+                    Tab(child: Text('Квалификация', style: unbounded(fontSize: 13))),
                     if (_competitionDetails.is_semifinal)
-                      Tab(child: Text('Полуфинал', style: GoogleFonts.unbounded(fontSize: 13))),
+                      Tab(child: Text('Полуфинал', style: unbounded(fontSize: 13))),
                     if (_competitionDetails.is_result_in_final_exists)
-                      Tab(child: Text('Финал', style: GoogleFonts.unbounded(fontSize: 13))),
+                      Tab(child: Text('Финал', style: unbounded(fontSize: 13))),
                   ],
                 ),
               ),
@@ -3350,7 +3349,7 @@ class CompetitionInfoCard extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: Colors.white.withOpacity(0.6),
@@ -3359,7 +3358,7 @@ class CompetitionInfoCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     value,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                       color: Colors.white,

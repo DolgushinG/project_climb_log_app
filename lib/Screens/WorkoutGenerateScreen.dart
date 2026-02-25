@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
@@ -169,7 +168,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
         backgroundColor: AppColors.anthracite,
         title: Text(
           'Сгенерировать тренировку',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -191,7 +190,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             if (_loading) _buildThematicLoader() else _buildForm(),
             if (!_loading) const SizedBox(height: 24),
             if (_error != null) ...[
-              Text(_error!, style: GoogleFonts.unbounded(color: Colors.orange)),
+              Text(_error!, style: unbounded(color: Colors.orange)),
               const SizedBox(height: 16),
             ],
           ],
@@ -243,7 +242,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
           const SizedBox(height: 24),
           Text(
             'Генерируем план...',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 14,
               color: Colors.white54,
               fontWeight: FontWeight.w500,
@@ -252,7 +251,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
           const SizedBox(height: 8),
           Text(
             'Подбираем упражнения под ваш уровень',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white38),
+            style: unbounded(fontSize: 12, color: Colors.white38),
           ),
         ],
       ),
@@ -278,7 +277,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
               children: [
                 Text(
                   'Персональный план',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -287,7 +286,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
                 const SizedBox(height: 4),
                 Text(
                   'Укажите уровень, цель и доступное время — алгоритм соберёт тренировку из разминки, основного блока, антагонистов, кора и заминки.',
-                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54, height: 1.4),
+                  style: unbounded(fontSize: 12, color: Colors.white54, height: 1.4),
                 ),
               ],
             ),
@@ -319,7 +318,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
                     Expanded(
                       child: Text(
                         'Недельная нагрузка: ${f.weeklyFatigueSum}${f.maxRecommended != null ? ' / ${f.maxRecommended}' : ''}',
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -343,7 +342,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
                 if (f.warning != null)
                   Text(
                     f.warning!,
-                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.orange),
+                    style: unbounded(fontSize: 12, color: Colors.orange),
                   ),
               ],
             ),
@@ -368,7 +367,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+              style: unbounded(fontSize: 13, color: Colors.white70),
             ),
           ),
         ],
@@ -382,15 +381,15 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16)),
+        title: Text(title, style: unbounded(color: Colors.white, fontSize: 16)),
         content: Text(
           text,
-          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+          style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Понятно', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+            child: Text('Понятно', style: unbounded(color: AppColors.mutedGold)),
           ),
         ],
       ),
@@ -414,7 +413,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
               const SizedBox(width: 8),
               Text(
                 'Важная информация',
-                style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ],
           ),
@@ -423,7 +422,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             'Рекомендации и тренировки носят исключительно информационный характер и не являются медицинской или профессиональной консультацией. '
             'При травмах, болях или сомнениях проконсультируйтесь с врачом или тренером. '
             'Вы самостоятельно несёте ответственность за нагрузку и технику выполнения. Силовые тренировки несут риск травм.',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 12, color: Colors.white70, height: 1.5),
           ),
           const SizedBox(height: 12),
           CheckboxListTile(
@@ -435,7 +434,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             dense: true,
             title: Text(
               'Ознакомлен(а), принимаю',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white),
+              style: unbounded(fontSize: 13, color: Colors.white),
             ),
           ),
         ],
@@ -462,7 +461,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
               children: [
                 Text(
                   'Уровень и опыт не совпадают',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -472,7 +471,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
                 Text(
                   'Выбран высокий уровень (${_levelLabels[_userLevel]}) при стаже $_experienceMonths мес. '
                   'Алгоритм учтёт оба параметра и подберёт компромисс — возможно, менее интенсивную версию для вашего стажа.',
-                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.4),
+                  style: unbounded(fontSize: 12, color: Colors.white70, height: 1.4),
                 ),
               ],
             ),
@@ -491,10 +490,10 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+                Text(label, style: unbounded(fontSize: 12, color: Colors.white54)),
                 Text(
                   hint,
-                  style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
+                  style: unbounded(fontSize: 11, color: Colors.white38),
                 ),
               ],
             ),
@@ -537,7 +536,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
           ),
           Text(
             '$_userLevel — ${_levelLabels[_userLevel] ?? ''}',
-            style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+            style: unbounded(fontSize: 16, color: Colors.white),
           ),
           const SizedBox(height: 16),
           _formLabel(
@@ -552,7 +551,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             children: _goals.map((e) {
               final selected = _goal == e.$1;
               return ChoiceChip(
-                label: Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text(e.$2, style: unbounded(fontSize: 12)),
                 selected: selected,
                 onSelected: (_) => setState(() => _goal = e.$1),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -576,7 +575,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             activeColor: AppColors.mutedGold,
             onChanged: (v) => setState(() => _availableTime = v.round()),
           ),
-          Text('$_availableTime мин', style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white)),
+          Text('$_availableTime мин', style: unbounded(fontSize: 16, color: Colors.white)),
           const SizedBox(height: 16),
           _formLabel(
             'Опыт (мес)',
@@ -592,7 +591,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
             activeColor: AppColors.mutedGold,
             onChanged: (v) => setState(() => _experienceMonths = v.round()),
           ),
-          Text('$_experienceMonths мес', style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white)),
+          Text('$_experienceMonths мес', style: unbounded(fontSize: 16, color: Colors.white)),
           if (_hasLevelExperienceMismatch) ...[
             const SizedBox(height: 12),
             _buildMismatchWarning(),
@@ -620,7 +619,7 @@ class _WorkoutGenerateScreenState extends State<WorkoutGenerateScreen>
                     )
                   : Text(
                       'Сгенерировать',
-                      style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                      style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                     ),
             ),
           ),

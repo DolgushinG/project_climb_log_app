@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/PlanModels.dart';
@@ -116,7 +115,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
         ),
         title: Text(
           'Календарь',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
       ),
       body: CustomScrollView(
@@ -148,7 +147,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
                         _monthTitle(),
                         textAlign: TextAlign.center,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                        style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                       ),
                     ),
                   ),
@@ -282,12 +281,12 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
                   children: [
                     Text(
                       title,
-                      style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                      style: unbounded(fontSize: 12, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -314,7 +313,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
             child: Center(
               child: Text(
                 w,
-                style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
+                style: unbounded(fontSize: 11, color: Colors.white38),
               ),
             ),
           )).toList(),
@@ -396,7 +395,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
                           children: [
                             Text(
                               '$day',
-                              style: GoogleFonts.unbounded(
+                              style: unbounded(
                                 fontSize: 14,
                                 fontWeight: isToday ? FontWeight.w700 : FontWeight.w500,
                                 color: _textColor(inRange, isToday, sessionType),
@@ -497,7 +496,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
         const SizedBox(width: 4),
         Text(
           label,
-          style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+          style: unbounded(fontSize: 11, color: Colors.white54),
         ),
       ],
     );

@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../main.dart';
@@ -171,7 +170,7 @@ class _RatingScreenState extends State<RatingScreen> {
                   padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
                   child: Text(
                     'Рейтинг',
-                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -190,7 +189,7 @@ class _RatingScreenState extends State<RatingScreen> {
                           Text(
                             _error!,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.unbounded(color: Colors.white70),
+                            style: unbounded(color: Colors.white70),
                           ),
                           const SizedBox(height: 16),
                           ElevatedButton(
@@ -200,7 +199,7 @@ class _RatingScreenState extends State<RatingScreen> {
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                            child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -265,7 +264,7 @@ class _Section extends StatelessWidget {
             padding: const EdgeInsets.only(top: 16, bottom: 8),
             child: Text(
               title,
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),
           ...entries.map((e) => _RatingTile(entry: e, onTap: () => onTap(e))),
@@ -298,7 +297,7 @@ class _RatingTile extends StatelessWidget {
                 width: 28,
                 child: Text(
                   '${entry.rank}',
-                  style: GoogleFonts.unbounded(fontWeight: FontWeight.w700, color: _rankColor(entry.rank)),
+                  style: unbounded(fontWeight: FontWeight.w700, color: _rankColor(entry.rank)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -308,12 +307,12 @@ class _RatingTile extends StatelessWidget {
                   children: [
                     Text(
                       entry.name,
-                      style: GoogleFonts.unbounded(fontWeight: FontWeight.w600, color: Colors.white),
+                      style: unbounded(fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     if (entry.team.isNotEmpty)
                       Text(
                         entry.team,
-                        style: GoogleFonts.unbounded(color: Colors.white60, fontSize: 13),
+                        style: unbounded(color: Colors.white60, fontSize: 13),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -355,7 +354,7 @@ class _RatingTile extends StatelessWidget {
       ),
       child: Text(
         text,
-        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+        style: unbounded(fontSize: 11, color: Colors.white70),
       ),
     );
   }

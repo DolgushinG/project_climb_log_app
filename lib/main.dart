@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/MainScreen.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/RustorePushService.dart';
@@ -23,10 +22,6 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
-    // Шрифты Unbounded в assets — без запросов к Google Fonts CDN
-    if (kIsWeb) {
-      GoogleFonts.config.allowRuntimeFetching = false;
-    }
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
       if (kDebugMode) {
@@ -140,6 +135,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     final baseTheme = ThemeData(
       useMaterial3: true,
+      fontFamily: 'Unbounded', // Без Roboto — только self-hosted шрифты
       colorScheme: ColorScheme.dark().copyWith(
         primary: AppColors.mutedGold,
         surface: AppColors.surfaceDark,
@@ -152,7 +148,7 @@ class MyApp extends StatelessWidget {
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: AppColors.anthracite,
         dividerColor: Colors.transparent,
-        textTheme: GoogleFonts.unboundedTextTheme(baseTheme.textTheme).copyWith(
+        textTheme: unboundedTextTheme(baseTheme.textTheme).copyWith(
           titleLarge: baseTheme.textTheme.titleLarge?.copyWith(
             fontSize: 20,
             fontWeight: FontWeight.w600,
@@ -375,7 +371,7 @@ class StartPage extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(
                   'CLIMBING EVENTS.',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     color: Colors.white,
                     fontSize: 32,
                     fontWeight: FontWeight.w600,
@@ -411,7 +407,7 @@ class StartPage extends StatelessWidget {
                       child: Center(
                         child: Text(
                           'Продолжить',
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             color: AppColors.anthracite,
                             fontSize: 16,
                             fontWeight: FontWeight.w500,

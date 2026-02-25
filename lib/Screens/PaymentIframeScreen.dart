@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 
@@ -91,7 +90,7 @@ class _PaymentIframeScreenState extends State<PaymentIframeScreen> {
         ),
         title: Text(
           'Оплата подписки',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
       ),
       body: impl.buildPaymentIframe(widget.paymentUrl),

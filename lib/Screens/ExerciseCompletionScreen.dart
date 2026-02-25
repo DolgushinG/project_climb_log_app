@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
@@ -500,17 +499,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        title: Text('Пропустить упражнение?', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
         content: Text(
           'Упражнение будет отмечено как пропущенное.',
-          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+          style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: unbounded(color: Colors.white54))),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-            child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+            child: Text('Пропустить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -597,7 +596,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             children: [
               Icon(Icons.skip_next, color: AppColors.mutedGold, size: 20),
               const SizedBox(width: 6),
-              Text('Пропустить', style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+              Text('Пропустить', style: unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
             ],
           ),
         ),
@@ -671,21 +670,21 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Пропустить упражнение?',
-            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           content: Text(
             'Упражнение будет отмечено как пропущенное.',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54)),
+              child: Text('Отмена', style: unbounded(color: Colors.white54)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-              child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+              child: Text('Пропустить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -766,7 +765,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               const SizedBox(height: 16),
               Text(
                 msg['title']!,
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 22,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -776,7 +775,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               const SizedBox(height: 8),
               Text(
                 msg['subtitle']!,
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   color: Colors.white70,
                   height: 1.4,
@@ -790,7 +789,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               onPressed: () => Navigator.pop(ctx),
               child: Text(
                 'Ок',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -812,7 +811,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         leadingWidth: 56,
         title: Text(
           'Выполнить упражнения',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -959,7 +958,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             icon: const Icon(Icons.check_circle, size: 22),
             label: Text(
               'Завершить тренировку',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.successMuted,
@@ -976,7 +975,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             icon: const Icon(Icons.refresh, size: 18, color: Colors.white54),
             label: Text(
               'Обновить данные',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+              style: unbounded(fontSize: 13, color: Colors.white54),
             ),
           ),
         ),
@@ -995,7 +994,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             const SizedBox(height: 16),
             Text(
               'Нет данных для плана',
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
                 color: Colors.white54,
@@ -1005,7 +1004,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             const SizedBox(height: 8),
             Text(
               'Сделай тест силы и сохрани замер — тогда появится персональный план',
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 13,
                 color: Colors.white38,
               ),
@@ -1051,14 +1050,14 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               const SizedBox(width: 8),
               Text(
                 'От тренера',
-                style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             widget.coachComment!,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
         ],
       ),
@@ -1082,7 +1081,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         children: [
           Text(
             'Распределение нагрузки',
-            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 10),
           ...entries.map((e) {
@@ -1094,7 +1093,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                    style: unbounded(fontSize: 11, color: Colors.white70),
                     softWrap: true,
                   ),
                   const SizedBox(height: 4),
@@ -1110,7 +1109,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text('${e.value}%', style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54)),
+                      Text('${e.value}%', style: unbounded(fontSize: 11, color: Colors.white54)),
                     ],
                   ),
                 ],
@@ -1139,14 +1138,14 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               const SizedBox(width: 8),
               Text(
                 'Прогрессия',
-                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
+                style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             widget.progressionHint!,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
         ],
       ),
@@ -1172,7 +1171,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               children: [
                 Text(
                   'План на сегодня',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -1182,7 +1181,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                   _skippedCount > 0
                       ? '$_doneCount выполнено, $_skippedCount пропущено из $total'
                       : '$_doneCount из $total выполнено',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 13,
                     color: Colors.white70,
                   ),
@@ -1248,7 +1247,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               Expanded(
                 child: Text(
                   hintText,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
@@ -1281,7 +1280,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           Expanded(
             child: Text(
               tip,
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 13,
                 color: Colors.white70,
                 height: 1.4,
@@ -1313,7 +1312,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               Expanded(
                 child: Text(
                   'Отдых между подходами: ${remain ~/ 60}:${(remain % 60).toString().padLeft(2, '0')}',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
@@ -1324,7 +1323,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                 onPressed: _skipRest,
                 child: Text(
                   'Пропустить',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 13,
                     color: AppColors.mutedGold,
                     fontWeight: FontWeight.w600,
@@ -1476,7 +1475,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       child: Text(
                         title,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: Colors.white70,
@@ -1492,14 +1491,14 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         ),
                         child: Text(
                           badge,
-                          style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                          style: unbounded(fontSize: 11, color: Colors.white70),
                         ),
                       ),
                       const SizedBox(width: 8),
                     ],
                     Text(
                       '$count',
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 13,
                         color: Colors.white54,
                         fontWeight: FontWeight.w500,
@@ -1585,7 +1584,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         e.displayName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: done || skipped ? Colors.white70 : Colors.white,
@@ -1595,7 +1594,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       const SizedBox(height: 4),
                       Text(
                         '${e.dosageDisplay} • отдых ${e.defaultRest}',
-                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                        style: unbounded(fontSize: 12, color: Colors.white54),
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
@@ -1631,7 +1630,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           ),
           child: Text(
             'Пропустить',
-            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
           ),
         ),
         confirmDismiss: (direction) async {
@@ -1640,17 +1639,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             builder: (ctx) => AlertDialog(
               backgroundColor: AppColors.cardDark,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Пропустить упражнение?', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Text(
                 'Смайпните влево для пропуска. Нажмите на иконку, чтобы отменить.',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: unbounded(color: Colors.white54))),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
                   style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-                  child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+                  child: Text('Пропустить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -1695,7 +1694,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                 Expanded(
                   child: Text(
                     'Как выполнять: $title',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -1709,7 +1708,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               child: SingleChildScrollView(
                 child: Text(
                   hint,
-                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
                 ),
               ),
             ),
@@ -1743,7 +1742,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                 Expanded(
                   child: Text(
                     'Польза для скалолазания: $title',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -1757,7 +1756,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               child: SingleChildScrollView(
                 child: Text(
                   text,
-                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
                 ),
               ),
             ),
@@ -1872,7 +1871,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         e.displayName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: done || skipped ? Colors.white70 : Colors.white,
@@ -1882,7 +1881,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       const SizedBox(height: 4),
                       Text(
                         '${e.dosageDisplay} • отдых ${e.defaultRest}',
-                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                        style: unbounded(fontSize: 12, color: Colors.white54),
                       ),
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
@@ -1898,7 +1897,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                 const SizedBox(width: 6),
                                 Text(
                                   'Польза для скалолазания',
-                                  style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
+                                  style: unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -1919,7 +1918,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                 const SizedBox(width: 6),
                                 Text(
                                   'Как выполнять',
-                                  style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+                                  style: unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
                                 ),
                               ],
                             ),
@@ -1972,7 +1971,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                           ),
                                         Text(
                                           '${i + 1} подход',
-                                          style: GoogleFonts.unbounded(
+                                          style: unbounded(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
                                             color: isDone ? Colors.white70 : (enabled ? Colors.white : Colors.white54),
@@ -2012,7 +2011,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           ),
           child: Text(
             'Пропустить',
-            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
           ),
         ),
         confirmDismiss: (direction) async {
@@ -2021,17 +2020,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             builder: (ctx) => AlertDialog(
               backgroundColor: AppColors.cardDark,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Пропустить упражнение?', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Text(
                 'Смайпните влево для пропуска. Нажмите на иконку, чтобы отменить.',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: unbounded(color: Colors.white54))),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
                   style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-                  child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+                  child: Text('Пропустить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -2120,7 +2119,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         d.name,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: done || skipped ? Colors.white70 : Colors.white,
@@ -2135,11 +2134,11 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                           if (d.targetWeightKg != null)
                             Text(
                               '${d.targetWeightKg!.toStringAsFixed(1)} кг',
-                              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                              style: unbounded(fontSize: 12, color: Colors.white54),
                             ),
                           Text(
                             '${d.sets} × ${d.reps} • отдых ${d.rest}',
-                            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                            style: unbounded(fontSize: 12, color: Colors.white54),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -2149,7 +2148,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         const SizedBox(height: 6),
                         Text(
                           d.hint!,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 11,
                             color: Colors.white38,
                             height: 1.3,
@@ -2202,7 +2201,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                           ),
                         Text(
                           '${i + 1} подход',
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
                             color: isDone ? Colors.white70 : (enabled ? Colors.white : Colors.white54),
@@ -2242,7 +2241,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           ),
           child: Text(
             'Пропустить',
-            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
           ),
         ),
         confirmDismiss: (direction) async {
@@ -2251,17 +2250,17 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             builder: (ctx) => AlertDialog(
               backgroundColor: AppColors.cardDark,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              title: Text('Пропустить упражнение?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Пропустить упражнение?', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Text(
                 'Смайпните влево для пропуска. Нажмите на иконку, чтобы отменить.',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
               ),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54))),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: unbounded(color: Colors.white54))),
                 FilledButton(
                   onPressed: () => Navigator.pop(ctx, true),
                   style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-                  child: Text('Пропустить', style: GoogleFonts.unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+                  child: Text('Пропустить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -2359,7 +2358,7 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
                     children: [
                       Text(
                         widget.title,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 12,
                           color: color,
                           fontWeight: FontWeight.w500,
@@ -2377,7 +2376,7 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
                     const SizedBox(height: 6),
                     Text(
                       widget.text,
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 12,
                         color: AppColors.mutedGold.withOpacity(0.9),
                         height: 1.4,

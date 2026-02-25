@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:login_app/theme/app_theme.dart';
@@ -82,7 +81,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
         backgroundColor: AppColors.anthracite,
         title: Text(
           'История оплат',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -127,7 +126,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
           const SizedBox(height: 16),
           Text(
             _error!,
-            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+            style: unbounded(color: Colors.white70, fontSize: 14),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 20),
@@ -135,7 +134,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
             onPressed: _load,
             child: Text(
               'Повторить',
-              style: GoogleFonts.unbounded(color: AppColors.mutedGold),
+              style: unbounded(color: AppColors.mutedGold),
             ),
           ),
         ],
@@ -154,7 +153,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
           const SizedBox(height: 20),
           Text(
             'Платежей пока нет',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white70,
@@ -163,7 +162,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
           const SizedBox(height: 8),
           Text(
             'После оплаты подписки здесь появится история платежей',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+            style: unbounded(fontSize: 14, color: Colors.white54),
             textAlign: TextAlign.center,
           ),
         ],
@@ -176,7 +175,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
       padding: const EdgeInsets.only(top: 8),
       child: Text(
         'Возврат после оплаты не предусмотрен.',
-        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white38, height: 1.4),
+        style: unbounded(fontSize: 12, color: Colors.white38, height: 1.4),
         textAlign: TextAlign.center,
       ),
     );
@@ -220,7 +219,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
                     children: [
                       Text(
                         '${p.amount.toInt()} ₽',
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -228,7 +227,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
                       ),
                       Text(
                         dateStr,
-                        style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white60),
+                        style: unbounded(fontSize: 13, color: Colors.white60),
                       ),
                     ],
                   ),
@@ -241,7 +240,7 @@ class _PremiumPaymentHistoryScreenState extends State<PremiumPaymentHistoryScree
                   ),
                   child: Text(
                     _statusLabel(p.status),
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 12,
                       fontWeight: FontWeight.w500,
                       color: _statusColor(p.status),

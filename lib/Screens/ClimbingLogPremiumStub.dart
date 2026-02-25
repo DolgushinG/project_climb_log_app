@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/PremiumPaymentScreen.dart';
@@ -39,12 +38,12 @@ class ClimbingLogPremiumStub extends StatelessWidget {
                           children: [
                             Text(
                               'Premium',
-                              style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                              style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Полный доступ к разделу «Тренировки»',
-                              style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                              style: unbounded(color: Colors.white70, fontSize: 14),
                             ),
                           ],
                         ),
@@ -73,7 +72,7 @@ class ClimbingLogPremiumStub extends StatelessWidget {
                     Expanded(
                       child: Text(
                         'Оформите подписку, чтобы пользоваться всеми функциями',
-                        style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14),
+                        style: unbounded(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 14),
                       ),
                     ),
                   ],
@@ -86,7 +85,7 @@ class ClimbingLogPremiumStub extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 8),
               child: Text(
                 'Возможности',
-                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ),
           ),
@@ -132,7 +131,7 @@ class ClimbingLogPremiumStub extends StatelessWidget {
                     onPurchased?.call(result == true);
                   },
                   icon: const Icon(Icons.shopping_cart_outlined, size: 20),
-                  label: Text('Купить подписку', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
+                  label: Text('Купить подписку', style: unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.mutedGold,
                     foregroundColor: Colors.white,
@@ -183,12 +182,12 @@ class _FeatureTile extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
+                    style: unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 15),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13, height: 1.35),
+                    style: unbounded(color: Colors.white70, fontSize: 13, height: 1.35),
                   ),
                 ],
               ),

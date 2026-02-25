@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
@@ -56,7 +55,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
         ),
         title: Text(
           'Топ недели',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         actions: [
           IconButton(
@@ -76,13 +75,13 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
                       children: [
                         Text(
                           _error!,
-                          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+                          style: unbounded(fontSize: 14, color: Colors.white70),
                           textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 16),
                         TextButton(
                           onPressed: _load,
-                          child: Text('Повторить', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                          child: Text('Повторить', style: unbounded(color: AppColors.mutedGold)),
                         ),
                       ],
                     ),
@@ -115,7 +114,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
                   const SizedBox(width: 8),
                   Text(
                     'Что означают показатели',
-                    style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ],
               ),
@@ -128,7 +127,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
               const SizedBox(height: 16),
               TextButton(
                 onPressed: () => Navigator.pop(ctx),
-                child: Text('Понятно', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                child: Text('Понятно', style: unbounded(color: AppColors.mutedGold)),
               ),
             ],
           ),
@@ -147,13 +146,13 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
             width: 70,
             child: Text(
               term,
-              style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+              style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
             ),
           ),
           Expanded(
             child: Text(
               desc,
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.3),
+              style: unbounded(fontSize: 13, color: Colors.white70, height: 1.3),
             ),
           ),
         ],
@@ -171,7 +170,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
           Center(
             child: Text(
               'Первый замер — и ты в топе. Сохрани результат в разделе Тест.',
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+              style: unbounded(fontSize: 14, color: Colors.white54),
               textAlign: TextAlign.center,
             ),
           ),
@@ -191,7 +190,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
               widget.weightRangeKg != null
                   ? 'Твоя весовая: ${widget.weightRangeKg} кг'
                   : 'Все участники',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+              style: unbounded(fontSize: 13, color: Colors.white54),
             ),
           );
         }
@@ -226,14 +225,14 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
                 ),
                 child: Text(
                   '${e.rank}',
-                  style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   e.displayName,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 14,
                     fontWeight: isUser ? FontWeight.w600 : FontWeight.w500,
                     color: Colors.white,
@@ -244,12 +243,12 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
               const SizedBox(width: 8),
               Text(
                 e.weightKg != null ? '${e.weightKg!.toStringAsFixed(0)} кг' : '—',
-                style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                style: unbounded(fontSize: 13, color: Colors.white70),
               ),
               const SizedBox(width: 8),
               Text(
                 '${e.averageStrengthPct.toStringAsFixed(1)}%',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -287,7 +286,7 @@ class _StrengthLeaderboardScreenState extends State<StrengthLeaderboardScreen> {
       ),
       child: Text(
         '$label: $value',
-        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+        style: unbounded(fontSize: 11, color: Colors.white70),
       ),
     );
   }

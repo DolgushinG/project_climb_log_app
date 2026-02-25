@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -652,7 +651,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (_isLoading) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Заявить группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          title: Text('Заявить группу', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
           backgroundColor: AppColors.cardDark,
         ),
         body: const Center(child: CircularProgressIndicator()),
@@ -661,7 +660,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (_error != null) {
       return Scaffold(
         appBar: AppBar(
-          title: Text('Заявить группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          title: Text('Заявить группу', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
           backgroundColor: AppColors.cardDark,
         ),
         body: Center(
@@ -689,7 +688,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Заявить группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Заявить группу', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -711,7 +710,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   eventTitle,
-                  style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             if (_hasUnpaidGroup) ...[
@@ -741,12 +740,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                             children: [
                               Text(
                                 'Есть неоплаченная групповая заявка',
-                                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Продолжить оплату',
-                                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                                style: unbounded(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -788,12 +787,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                             children: [
                               Text(
                                 'Документы участников',
-                                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                               const SizedBox(height: 4),
                               Text(
                                 'Загрузить документы для участников группы',
-                                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                                style: unbounded(color: Colors.white70, fontSize: 14),
                               ),
                             ],
                           ),
@@ -820,7 +819,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             const SizedBox(height: 20),
             Text(
               'Ранее заявленные участники',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 12),
             if (relatedUsers.isEmpty)
@@ -832,7 +831,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 ),
                 child: Text(
                   'У вас пока нет ранее заявленных участников. Добавьте новых участников ниже.',
-                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                  style: unbounded(color: Colors.white70, fontSize: 14),
                 ),
               )
             else
@@ -852,14 +851,14 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 Expanded(
                   child: Text(
                     'Новые участники',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 TextButton.icon(
                   onPressed: _addNewParticipant,
                   icon: const Icon(Icons.add, size: 20, color: AppColors.mutedGold),
-                  label: Text('Добавить', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
+                  label: Text('Добавить', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
                 ),
               ],
             ),
@@ -873,7 +872,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 ),
                 child: Text(
                   'Нажмите «Добавить», чтобы зарегистрировать нового участника.',
-                  style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                  style: unbounded(color: Colors.white70, fontSize: 14),
                 ),
               )
             else ...[
@@ -893,7 +892,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: Text('Зарегистрировать группу', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600, color: AppColors.anthracite)),
+                child: Text('Зарегистрировать группу', style: unbounded(fontWeight: FontWeight.w600, color: AppColors.anthracite)),
               ),
             ),
           ],
@@ -911,12 +910,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(text, style: GoogleFonts.unbounded(color: Colors.white)),
+            Text(text, style: unbounded(color: Colors.white)),
             if (actionText != null && onTap != null) ...[
               const SizedBox(height: 12),
               TextButton(
                 onPressed: onTap,
-                child: Text(actionText, style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
+                child: Text(actionText, style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
               ),
             ],
           ],
@@ -945,7 +944,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(color: AppColors.mutedGold),
         ),
-        child: Text('Уже участвует', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 12, fontWeight: FontWeight.w500)),
+        child: Text('Уже участвует', style: unbounded(color: AppColors.mutedGold, fontSize: 12, fontWeight: FontWeight.w500)),
       );
     }
     if (cannotParticipate) {
@@ -959,7 +958,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             borderRadius: BorderRadius.circular(8),
             border: Border.all(color: Colors.orange),
           ),
-          child: Text('Не может участвовать', style: GoogleFonts.unbounded(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w500)),
+          child: Text('Не может участвовать', style: unbounded(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w500)),
         ),
       );
     }
@@ -1012,11 +1011,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                        Text(name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                         if (dob != null && dob.isNotEmpty)
-                          Text('ДР: $dob', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          Text('ДР: $dob', style: unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
                         if (sportCat != null && sportCat.isNotEmpty)
-                          Text('Разряд: $sportCat', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          Text('Разряд: $sportCat', style: unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
                       ],
                     ),
                   ),
@@ -1057,16 +1056,16 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             Expanded(
               child: Text(
                 'Уже в листе ожидания${setsStr.isNotEmpty ? ' (Сет $setsStr)' : ''}',
-                style: GoogleFonts.unbounded(color: Colors.amber.shade300, fontSize: 13),
+                style: unbounded(color: Colors.amber.shade300, fontSize: 13),
               ),
             ),
             TextButton(
               onPressed: () => _showAddToListPendingSheet(ru, userId, isEdit: true),
-              child: Text('Изменить', style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold)),
+              child: Text('Изменить', style: unbounded(fontSize: 12, color: AppColors.mutedGold)),
             ),
             TextButton(
               onPressed: () => _removeFromListPending(userId),
-              child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.red.shade300, fontSize: 12)),
+              child: Text('Удалить', style: unbounded(color: Colors.red.shade300, fontSize: 12)),
             ),
           ],
         ),
@@ -1078,7 +1077,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         child: OutlinedButton.icon(
           onPressed: () => _showAddToListPendingSheet(ru, userId, isEdit: false),
           icon: const Icon(Icons.add, size: 18),
-          label: Text('Добавить в лист ожидания', style: GoogleFonts.unbounded(fontSize: 13)),
+          label: Text('Добавить в лист ожидания', style: unbounded(fontSize: 13)),
           style: OutlinedButton.styleFrom(
             foregroundColor: AppColors.mutedGold,
             side: const BorderSide(color: AppColors.mutedGold),
@@ -1526,7 +1525,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text('Участник ${index + 1}', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                  child: Text('Участник ${index + 1}', style: unbounded(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
@@ -1545,13 +1544,13 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               },
               decoration: InputDecoration(
                 labelText: 'Имя',
-                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                labelStyle: unbounded(color: AppColors.graphite),
                 filled: true,
                 fillColor: AppColors.rowAlt,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              style: GoogleFonts.unbounded(color: Colors.white),
+              style: unbounded(color: Colors.white),
             ),
             const SizedBox(height: 12),
             TextFormField(
@@ -1564,13 +1563,13 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               },
               decoration: InputDecoration(
                 labelText: 'Фамилия',
-                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                labelStyle: unbounded(color: AppColors.graphite),
                 filled: true,
                 fillColor: AppColors.rowAlt,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              style: GoogleFonts.unbounded(color: Colors.white),
+              style: unbounded(color: Colors.white),
             ),
             if (_isInputBirthday || _needSet) ...[
               const SizedBox(height: 12),
@@ -1578,7 +1577,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 contentPadding: EdgeInsets.zero,
                 title: Text(
                   p.dob != null ? DateFormat('dd.MM.yyyy').format(p.dob!) : 'Дата рождения',
-                  style: GoogleFonts.unbounded(color: p.dob != null ? Colors.white : Colors.white54),
+                  style: unbounded(color: p.dob != null ? Colors.white : Colors.white54),
                 ),
                 trailing: const Icon(Icons.calendar_today, color: Colors.white70),
                 onTap: () async {
@@ -1604,7 +1603,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               const SizedBox(height: 12),
               Row(
                 children: [
-                  Text('Сет', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
+                  Text('Сет', style: unbounded(color: Colors.white70, fontSize: 12)),
                   if (_fetchingSetsIndex == index) ...[
                     const SizedBox(width: 8),
                     const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)),
@@ -1616,14 +1615,14 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   padding: const EdgeInsets.only(bottom: 6),
                   child: Text(
                     'Если все места в сете заняты (лист ожидания), участник будет добавлен в список ожидания.',
-                    style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 11),
+                    style: unbounded(color: Colors.white54, fontSize: 11),
                   ),
                 ),
               const SizedBox(height: 4),
               if (_fetchingSetsIndex == index)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  child: Center(child: Text('Загрузка сетов по дате рождения...', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12))),
+                  child: Center(child: Text('Загрузка сетов по дате рождения...', style: unbounded(color: Colors.white54, fontSize: 12))),
                 )
               else
               DropdownButtonFormField<int>(
@@ -1648,7 +1647,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   final label = 'Сет №${numSet ?? ''} ${m['time'] ?? ''}${listPending ? ' (лист ожид.)' : free != null ? ' ($free)' : ''}';
                   return DropdownMenuItem<int>(
                     value: val ?? 0,
-                    child: Text(label, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
+                    child: Text(label, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
                   );
                 }).toList(),
                 onChanged: (v) async {
@@ -1677,7 +1676,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             ],
             if (_isAutoCategories != 1 && _getCategoriesForNewParticipant(p).isNotEmpty && _fetchingSetsIndex != index) ...[
               const SizedBox(height: 12),
-              Text('Категория', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
+              Text('Категория', style: unbounded(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 isExpanded: true,
@@ -1692,7 +1691,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 items: _getCategoriesForNewParticipant(p).map((c) {
                   final m = c is Map ? c : <String, dynamic>{};
                   final cat = m['category']?.toString() ?? '';
-                  return DropdownMenuItem(value: cat, child: Text(cat, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
+                  return DropdownMenuItem(value: cat, child: Text(cat, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
                 }).toList(),
                 onChanged: (v) {
                   setState(() {
@@ -1704,7 +1703,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             ],
             if (_isNeedSportCategory && (_data?['sport_categories'] is List)) ...[
               const SizedBox(height: 12),
-              Text('Разряд', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
+              Text('Разряд', style: unbounded(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
               DropdownButtonFormField<String>(
                 isExpanded: true,
@@ -1718,7 +1717,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 dropdownColor: AppColors.graphite,
                 items: ((_data?['sport_categories']) as List? ?? []).map((s) {
                   final sc = (s is Map ? s['category'] ?? s['sport_category'] ?? s.toString() : s.toString()).toString();
-                  return DropdownMenuItem<String>(value: sc, child: Text(sc, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
+                  return DropdownMenuItem<String>(value: sc, child: Text(sc, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
                 }).toList(),
                 onChanged: (v) {
                   setState(() {
@@ -1739,13 +1738,13 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               },
               decoration: InputDecoration(
                 labelText: 'Город',
-                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                labelStyle: unbounded(color: AppColors.graphite),
                 filled: true,
                 fillColor: AppColors.rowAlt,
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
               ),
-              style: GoogleFonts.unbounded(color: Colors.white),
+              style: unbounded(color: Colors.white),
             ),
           ],
         ),
@@ -1757,7 +1756,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Пол', style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
+        Text('Пол', style: unbounded(color: Colors.white70, fontSize: 12)),
         const SizedBox(height: 6),
         Row(
           children: [

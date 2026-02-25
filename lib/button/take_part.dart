@@ -11,7 +11,6 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/models/NumberSets.dart';
 import 'dart:convert';
 
-import 'package:google_fonts/google_fonts.dart';
 import '../login.dart';
 import '../models/Category.dart';
 import '../utils/session_error_helper.dart';
@@ -319,7 +318,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
               onPressed: _waitlistButtonDisabled ? null : (widget.onWaitlistTap ?? _makeAddToListPendingRequest),
               child: Text(
                 _waitlistButtonText,
-                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
+                style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -336,7 +335,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
               onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
               child: Text(
                 _buttonText,
-                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -357,7 +356,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           onPressed: _waitlistButtonDisabled ? null : (widget.onWaitlistTap ?? _makeAddToListPendingRequest),
           child: Text(
             _waitlistButtonText,
-            style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
+            style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ),
       );
@@ -378,7 +377,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
               onPressed: _waitlistButtonDisabled ? null : _makeAddToListPendingRequest,
               child: Text(
                 _waitlistButtonText,
-                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
+                style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),
@@ -395,7 +394,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
               onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
               child: Text(
                 _buttonText,
-                style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
           ),

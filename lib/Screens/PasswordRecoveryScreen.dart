@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
 
@@ -73,7 +72,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                     children: [
                       Text(
                         'Восстановление пароля',
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           color: Colors.white,
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
@@ -83,10 +82,10 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
-                        style: GoogleFonts.unbounded(color: Colors.white),
+                        style: unbounded(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'E-mail',
-                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          labelStyle: unbounded(color: AppColors.graphite),
                           filled: true,
                           fillColor: AppColors.rowAlt,
                           border: OutlineInputBorder(
@@ -120,7 +119,7 @@ class _PasswordRecoveryScreenState extends State<PasswordRecoveryScreen> {
                             ),
                             child: _isSubmitting
                                 ? const CircularProgressIndicator(color: Colors.white)
-                                : Text('Отправить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                                : Text('Отправить', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                           ),
                         ),
                       ],

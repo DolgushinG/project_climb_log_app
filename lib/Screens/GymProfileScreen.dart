@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import '../theme/app_theme.dart';
 import 'package:intl/intl.dart';
@@ -86,7 +85,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Скалодром', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Скалодром', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         backgroundColor: AppColors.cardDark,
       ),
       backgroundColor: AppColors.anthracite,
@@ -118,7 +117,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               const SizedBox(height: 16),
               Text(
                 'Скалодром не найден',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   color: Colors.white,
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
@@ -133,7 +132,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
-                child: Text('Вернуться назад', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                child: Text('Вернуться назад', style: unbounded(fontWeight: FontWeight.w600)),
               ),
             ],
           ),
@@ -233,7 +232,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                               )
                             : TextButton(
                                 onPressed: () => _load(jobsPage: _jobsPage + 1),
-                                child: Text('Загрузить ещё', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+                                child: Text('Загрузить ещё', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
                               ),
                       ),
                     ),
@@ -274,7 +273,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               children: [
                 Text(
                   gym.name,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -284,7 +283,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                   const SizedBox(height: 4),
                   Text(
                     gym.city!,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 13,
                       color: Colors.white70,
                     ),
@@ -330,7 +329,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
             children: [
               Text(
                 value,
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -338,7 +337,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               ),
               Text(
                 label,
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 11,
                   color: Colors.white70,
                 ),
@@ -370,7 +369,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
               children: [
                 Text(
                   label,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
                     color: Colors.white70,
@@ -379,7 +378,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 14,
                     color: Colors.white,
                     height: 1.35,
@@ -424,7 +423,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
                       color: Colors.white70,
@@ -436,7 +435,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                       Expanded(
                         child: Text(
                           value,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 14,
                             color: isTappable
                                 ? AppColors.mutedGold
@@ -506,7 +505,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                 children: [
                   Text(
                     'Открыть в картах',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -517,7 +516,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                     gym.address ?? 'Скалодром на карте',
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 12,
                       color: Colors.white70,
                     ),
@@ -539,7 +538,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: GoogleFonts.unbounded(
+      style: unbounded(
         fontSize: 16,
         fontWeight: FontWeight.w600,
         color: Colors.white,
@@ -606,7 +605,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         e.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -616,7 +615,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         const SizedBox(height: 4),
                         Text(
                           dateStr,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 12,
                             color: Colors.white70,
                           ),
@@ -625,7 +624,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Участников: ${e.countParticipant}',
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 11,
                           color: Colors.white60,
                         ),
@@ -642,7 +641,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         ),
                         child: Text(
                           statusText,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: e.isFinished
@@ -656,7 +655,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                         children: [
                           Text(
                             'Подробнее',
-                            style: GoogleFonts.unbounded(
+                            style: unbounded(
                               fontSize: 12,
                               color: AppColors.mutedGold,
                               fontWeight: FontWeight.w600,
@@ -700,7 +699,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
                   Expanded(
                     child: Text(
                       j.title,
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -744,7 +743,7 @@ class _GymProfileScreenState extends State<GymProfileScreen> {
       ),
       child: Text(
         text,
-        style: GoogleFonts.unbounded(
+        style: unbounded(
           fontSize: 11,
           color: Colors.white70,
         ),

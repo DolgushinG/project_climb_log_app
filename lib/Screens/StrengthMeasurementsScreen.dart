@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
@@ -72,7 +71,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
         backgroundColor: AppColors.anthracite,
         title: Text(
           'Наши замеры',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -104,7 +103,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Text(
                         'История',
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -130,7 +129,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                               const SizedBox(height: 16),
                               Text(
                                 'Пока пусто',
-                                style: GoogleFonts.unbounded(
+                                style: unbounded(
                                   fontSize: 16,
                                   color: Colors.white54,
                                 ),
@@ -138,7 +137,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                               const SizedBox(height: 8),
                               Text(
                                 'Добавь первый замер в разделе «Замеры»',
-                                style: GoogleFonts.unbounded(
+                                style: unbounded(
                                   fontSize: 13,
                                   color: Colors.white38,
                                 ),
@@ -202,7 +201,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                   Text(
                     'Пройди тест силы хотя бы дважды,\nчтобы увидеть прогресс',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 14,
                       color: Colors.white70,
                     ),
@@ -221,7 +220,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
           padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
           child: Text(
             'Прогресс по замерам',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -302,7 +301,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
           children: [
             Text(
               title,
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.white,
@@ -326,7 +325,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                         final label = i >= 0 && i < labels.length ? labels[i] : '';
                         return LineTooltipItem(
                           '${s.y.toStringAsFixed(1)}\n$label',
-                          GoogleFonts.unbounded(fontSize: 12, color: Colors.white),
+                          unbounded(fontSize: 12, color: Colors.white),
                         );
                       }).toList(),
                     ),
@@ -346,7 +345,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                               padding: const EdgeInsets.only(top: 6),
                               child: Text(
                                 labels[i],
-                                style: GoogleFonts.unbounded(fontSize: 9, color: Colors.white54),
+                                style: unbounded(fontSize: 9, color: Colors.white54),
                               ),
                             );
                           }
@@ -360,7 +359,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
                         reservedSize: 28,
                         getTitlesWidget: (v, meta) => Text(
                           v.toInt().toString(),
-                          style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54),
+                          style: unbounded(fontSize: 10, color: Colors.white54),
                         ),
                       ),
                     ),
@@ -411,20 +410,20 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Удалить замер?',
-          style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600),
+          style: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         content: Text(
           'Замер от ${s.dateFormatted} будет удалён. Это действие нельзя отменить.',
-          style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+          style: unbounded(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54)),
+            child: Text('Отмена', style: unbounded(color: Colors.white54)),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.red)),
+            child: Text('Удалить', style: unbounded(color: Colors.red)),
           ),
         ],
       ),
@@ -485,7 +484,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
               Expanded(
                 child: Text(
                   s.dateFormatted,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 15,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -508,7 +507,7 @@ class _StrengthMeasurementsScreenState extends State<StrengthMeasurementsScreen>
               children: parts
                   .map((p) => Text(
                         p,
-                        style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                        style: unbounded(fontSize: 13, color: Colors.white70),
                       ))
                   .toList(),
             ),

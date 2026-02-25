@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
@@ -104,7 +103,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 2),
                     Text(
                       subtitle,
-                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                      style: unbounded(fontSize: 12, color: Colors.white54),
                     ),
                   ],
                 ),
@@ -135,7 +134,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (st.hasActiveSubscription && !hadSubscription) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+          content: Text('Подписка оформлена! Спасибо за поддержку.', style: unbounded(color: Colors.white)),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.successMuted,
         ),
@@ -145,7 +144,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // Webhook ещё не обработан — показываем ожидание и опрашиваем
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: GoogleFonts.unbounded(color: Colors.white)),
+        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: unbounded(color: Colors.white)),
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.mutedGold.withOpacity(0.9),
       ),
@@ -159,7 +158,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (st.hasActiveSubscription) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+            content: Text('Подписка оформлена! Спасибо за поддержку.', style: unbounded(color: Colors.white)),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.successMuted,
           ),
@@ -181,18 +180,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
             const SizedBox(width: 12),
             Text(
               'Нет подключения',
-              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),
         content: Text(
           'Проверьте подключение к интернету и нажмите «Повторить», чтобы обновить статус подписки.',
-          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+          style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Закрыть', style: GoogleFonts.unbounded(color: Colors.white54)),
+            child: Text('Закрыть', style: unbounded(color: Colors.white54)),
           ),
           FilledButton(
             onPressed: () async {
@@ -201,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               if (mounted) setState(() => _premiumStatus = st);
             },
             style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-            child: Text('Повторить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            child: Text('Повторить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -336,7 +335,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 20),
               Text(
                 'Добро пожаловать!',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 22,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -350,7 +349,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 '• Отслеживать тренировки и прогресс в скалолазании\n'
                 '• Искать скалодромы и соревнования рядом\n'
                 '• Вести историю залов и трасс',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   color: Colors.white70,
                   height: 1.5,
@@ -370,7 +369,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   child: Text(
                     'Начать',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                   ),
                 ),
               ),
@@ -387,7 +386,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
-        title: Text('Профиль', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+        title: Text('Профиль', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
         actions: [
           IconButton(
             icon: _isRefreshing

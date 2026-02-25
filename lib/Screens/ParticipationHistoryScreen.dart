@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
@@ -181,7 +180,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('История выступлений', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
+        title: Text('История выступлений', style: unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
       ),
       body: RefreshIndicator(
         onRefresh: _onRefresh,
@@ -204,12 +203,12 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(_error!, style: GoogleFonts.unbounded(color: Colors.red.shade300)),
+                Text(_error!, style: unbounded(color: Colors.red.shade300)),
                 const SizedBox(height: 12),
                 ElevatedButton(
                   onPressed: _loadHistory,
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -227,7 +226,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
             child: Center(
               child: Text(
                 'Вы ещё не участвовали в соревнованиях.\nКогда вы примете участие, здесь появится история выступлений.',
-                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
+                style: unbounded(color: Colors.white70, fontSize: 16),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -335,7 +334,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                         c.title,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -344,7 +343,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                       const SizedBox(height: 4),
                       Text(
                         '${c.city} • $dateStr',
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 12,
                           color: Colors.white70,
                         ),
@@ -353,7 +352,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                         const SizedBox(height: 4),
                         Text(
                           'Участников: ${item.countParticipant}',
-                          style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white60),
+                          style: unbounded(fontSize: 11, color: Colors.white60),
                         ),
                       ],
                       const SizedBox(height: 4),
@@ -368,7 +367,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
                         ),
                         child: Text(
                           statusText,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
                             color: isCurrent
@@ -418,7 +417,7 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
       ),
       child: Text(
         text,
-        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white),
+        style: unbounded(fontSize: 11, color: Colors.white),
       ),
     );
   }

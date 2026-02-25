@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../login.dart';
@@ -74,7 +73,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         automaticallyImplyLeading: true,
         title: Text(
           'Изменение пароля',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -107,16 +106,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           children: [
             Text(
               'Изменить пароль',
-              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 20),
             TextFormField(
               controller: _newPasswordController,
               obscureText: true,
-              style: GoogleFonts.unbounded(color: Colors.white),
+              style: unbounded(color: Colors.white),
               decoration: InputDecoration(
                 labelText: 'Новый пароль',
-                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                labelStyle: unbounded(color: AppColors.graphite),
                 filled: true,
                 fillColor: AppColors.rowAlt,
                 border: OutlineInputBorder(
@@ -139,10 +138,10 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: true,
-                style: GoogleFonts.unbounded(color: Colors.white),
+                style: unbounded(color: Colors.white),
                 decoration: InputDecoration(
                 labelText: 'Подтверждение пароля',
-                labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                labelStyle: unbounded(color: AppColors.graphite),
                 filled: true,
                 fillColor: AppColors.rowAlt,
                 border: OutlineInputBorder(
@@ -176,7 +175,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   child: _isLoading
                       ? const CircularProgressIndicator(color: Colors.white)
-                      : Text('Изменить пароль', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.anthracite)),
+                      : Text('Изменить пароль', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.anthracite)),
                 ),
               ),
             ],

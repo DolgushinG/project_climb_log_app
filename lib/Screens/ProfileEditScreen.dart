@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:intl/intl.dart'; // Для форматирования даты
 import 'package:login_app/main.dart';
@@ -143,12 +142,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите пол', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Выберите пол', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: genderOptions.keys.map((genderText) {
                   return RadioListTile<String>(
-                    title: Text(genderText, style: GoogleFonts.unbounded(color: Colors.white)),
+                    title: Text(genderText, style: unbounded(color: Colors.white)),
                     value: genderOptions[genderText]!,
                     groupValue: tempSelectedGender,
                     onChanged: (String? value) {
@@ -162,7 +161,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -170,7 +169,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -191,12 +190,12 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
         return StatefulBuilder(
           builder: (context, setDialogState) {
             return AlertDialog(
-              title: Text('Выберите разряд', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              title: Text('Выберите разряд', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
               content: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: categories.map((category) {
                   return RadioListTile<String>(
-                    title: Text(category, style: GoogleFonts.unbounded(color: Colors.white)),
+                    title: Text(category, style: unbounded(color: Colors.white)),
                     value: category,
                     groupValue: tempSelectedCategory,
                     onChanged: (String? value) {
@@ -210,7 +209,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
                 ),
                 ElevatedButton(
                   onPressed: () {
@@ -218,7 +217,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             );
@@ -233,7 +232,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: Text('Изменение данных профиля', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+        title: Text('Изменение данных профиля', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
       ),
       body: Container(
         margin: const EdgeInsets.all(16.0),
@@ -247,7 +246,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return Center(child: CircularProgressIndicator(color: AppColors.mutedGold));
             } else if (snapshot.hasError) {
-              return Center(child: Text('Ошибка при загрузке данных', style: GoogleFonts.unbounded(color: Colors.white70)));
+              return Center(child: Text('Ошибка при загрузке данных', style: unbounded(color: Colors.white70)));
             } else if (snapshot.hasData) {
               final profile = snapshot.data!;
 
@@ -312,10 +311,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           controller: _textEditingController,
                           readOnly: true,
                           onTap: () => _selectDate(context),
-                          style: GoogleFonts.unbounded(color: Colors.white),
+                          style: unbounded(color: Colors.white),
                           decoration: InputDecoration(
                             labelText: 'Дата рождения',
-                            labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                            labelStyle: unbounded(color: AppColors.graphite),
                             filled: true,
                             fillColor: AppColors.rowAlt,
                             border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -332,7 +331,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Пол',
-                              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                              labelStyle: unbounded(color: AppColors.graphite),
                               filled: true,
                               fillColor: AppColors.rowAlt,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -344,7 +343,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                                   : profile.gender == 'female'
                                       ? 'Женский'
                                       : displayValue(profile.gender),
-                              style: GoogleFonts.unbounded(color: Colors.white),
+                              style: unbounded(color: Colors.white),
                             ),
                           ),
                         ),
@@ -358,7 +357,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Разряд',
-                              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                              labelStyle: unbounded(color: AppColors.graphite),
                               filled: true,
                               fillColor: AppColors.rowAlt,
                               border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
@@ -366,7 +365,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             ),
                             child: Text(
                               displayValue(profile.sportCategory),
-                              style: GoogleFonts.unbounded(color: Colors.white),
+                              style: unbounded(color: Colors.white),
                             ),
                           ),
                         ),
@@ -393,7 +392,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                             ),
                           ),
                           child: Text('Сохранить',
-                              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.anthracite)),
+                              style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.anthracite)),
                         ),
                       ),
                     ],
@@ -401,7 +400,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                 ),
               );
             } else {
-              return Center(child: Text('Нет данных', style: GoogleFonts.unbounded(color: Colors.white70)));
+              return Center(child: Text('Нет данных', style: unbounded(color: Colors.white70)));
             }
           },
         ),
@@ -417,10 +416,10 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       child: TextFormField(
         initialValue: initialValue,
         onChanged: onChanged,
-        style: GoogleFonts.unbounded(color: Colors.white),
+        style: unbounded(color: Colors.white),
         decoration: InputDecoration(
           labelText: label,
-          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+          labelStyle: unbounded(color: AppColors.graphite),
           filled: true,
           fillColor: AppColors.rowAlt,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),

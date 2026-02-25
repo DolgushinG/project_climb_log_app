@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/ClimbingLog.dart';
@@ -331,21 +330,21 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Обновить план',
-            style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18),
+            style: unbounded(color: Colors.white, fontSize: 18),
           ),
           content: Text(
             'Можно изменить длительность, дни недели и другие настройки. Продолжить?',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54)),
+              child: Text('Отмена', style: unbounded(color: Colors.white54)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-              child: Text('Продолжить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+              child: Text('Продолжить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -379,7 +378,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         automaticallyImplyLeading: false,
         title: Text(
           'План тренировок',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         actions: const [],
       ),
@@ -390,7 +389,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                 children: [
                   const CircularProgressIndicator(color: AppColors.mutedGold),
                   const SizedBox(height: 16),
-                  Text('Загрузка...', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54)),
+                  Text('Загрузка...', style: unbounded(fontSize: 14, color: Colors.white54)),
                 ],
               ),
             )
@@ -419,13 +418,13 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             const SizedBox(height: 20),
             Text(
               'Не удалось загрузить план',
-              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 8),
             Text(
               subtitle,
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+              style: unbounded(fontSize: 14, color: Colors.white54),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -475,13 +474,13 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           const SizedBox(height: 24),
           Text(
             'Что такое план тренировок?',
-            style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             shortDesc ?? 'Персональное расписание ОФП и СФП под ваши цели',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+            style: unbounded(fontSize: 14, color: Colors.white54),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 28),
@@ -490,7 +489,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             icon: const Icon(Icons.grid_view_rounded, size: 22),
             label: Text(
               'Готовые планы тренировок',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: AppColors.mutedGold,
@@ -507,7 +506,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             icon: const Icon(Icons.tune_rounded, size: 20),
             label: Text(
               'Создать план',
-              style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w500),
+              style: unbounded(fontSize: 15, fontWeight: FontWeight.w500),
             ),
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.mutedGold,
@@ -578,7 +577,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
           title: Text(
             title,
-            style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
           ),
           iconColor: AppColors.mutedGold,
           collapsedIconColor: AppColors.mutedGold,
@@ -592,12 +591,12 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                         if (e.title != null && e.title!.isNotEmpty)
                           Text(
                             e.title!,
-                            style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                            style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
                           ),
                         if (e.text != null && e.text!.isNotEmpty)
                           Text(
                             e.text!,
-                            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+                            style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
                           ),
                       ],
                     ),
@@ -607,7 +606,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                     padding: const EdgeInsets.only(bottom: 8),
                     child: Text(
                       '• ${(e.label != null && e.label!.isNotEmpty) ? '${e.label}: ' : ''}${e.text ?? ''}',
-                      style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+                      style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
                     ),
                   )),
           ],
@@ -638,14 +637,14 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 18),
           title: Text(
             title,
-            style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
           ),
           iconColor: AppColors.mutedGold,
           collapsedIconColor: AppColors.mutedGold,
           children: [
             Text(
               text,
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+              style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
             ),
           ],
         ),
@@ -696,7 +695,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                 children: [
                   Text(
                     'Прогресс плана',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.mutedGold,
@@ -704,7 +703,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                   ),
                   Text(
                     '$done из $total • ${(pct * 100).round()}%',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
                       color: Colors.white70,
@@ -740,7 +739,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
               const SizedBox(height: 6),
               Text(
                 'Нажмите для календаря',
-                style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
+                style: unbounded(fontSize: 11, color: Colors.white38),
               ),
             ],
           ),
@@ -793,7 +792,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                   children: [
                     Text(
                       'План успешно создан!',
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -802,7 +801,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                     const SizedBox(height: 4),
                     Text(
                       '${plan.startDate} — ${plan.endDate} • ${plan.scheduledWeekdaysDisplay.isNotEmpty ? plan.scheduledWeekdaysDisplay : "Любые дни"}',
-                      style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                      style: unbounded(fontSize: 12, color: Colors.white70),
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
@@ -818,7 +817,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           const SizedBox(height: 18),
           Text(
             'Что делать дальше:',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 14,
               fontWeight: FontWeight.w600,
               color: AppColors.mutedGold,
@@ -849,11 +848,11 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             children: [
               Text(
                 title,
-                style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
               ),
               Text(
                 description,
-                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white60, height: 1.4),
+                style: unbounded(fontSize: 12, color: Colors.white60, height: 1.4),
               ),
             ],
           ),
@@ -894,7 +893,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                     Expanded(
                       child: Text(
                         'Пробный период заканчивается через ${status!.trialDaysLeft} ${_dayWord(status.trialDaysLeft)}. Оформить подписку →',
-                        style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white, height: 1.3),
+                        style: unbounded(fontSize: 13, color: Colors.white, height: 1.3),
                       ),
                     ),
                   ],
@@ -940,7 +939,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                 const SizedBox(width: 8),
                 Text(
                   'Удалить план',
-                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white38),
+                  style: unbounded(fontSize: 12, color: Colors.white38),
                 ),
               ],
             ),
@@ -958,21 +957,21 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Удалить план?',
-          style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18),
+          style: unbounded(color: Colors.white, fontSize: 18),
         ),
         content: Text(
           'План и расписание будут удалены. Вы сможете создать новый план.',
-          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+          style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54)),
+            child: Text('Отмена', style: unbounded(color: Colors.white54)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: Colors.red.shade700),
-            child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            child: Text('Удалить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -1010,7 +1009,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
               Expanded(
                 child: Text(
                   'Настройки плана',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
@@ -1051,12 +1050,12 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           const SizedBox(width: 10),
           Text(
             '$label: ',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+            style: unbounded(fontSize: 12, color: Colors.white54),
           ),
           Expanded(
             child: Text(
               value,
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white),
+              style: unbounded(fontSize: 12, color: Colors.white),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -1097,7 +1096,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
               const SizedBox(width: 12),
               Text(
                 'Добавить лазание',
-                style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
               ),
               const Spacer(),
               Icon(Icons.add_circle_outline, size: 20, color: AppColors.mutedGold),
@@ -1238,7 +1237,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('План выполнен! Добавить лазание?', style: GoogleFonts.unbounded()),
+                  content: Text('План выполнен! Добавить лазание?', style: unbounded()),
                   behavior: SnackBarBehavior.floating,
                   action: SnackBarAction(
                     label: 'Добавить',
@@ -1349,7 +1348,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                                   : (canContinue
                                       ? (remaining == 0 ? 'Завершить тренировку' : 'Продолжить тренировку')
                                       : _todaySessionTitle(day, plan, today)),
-                              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -1361,7 +1360,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                                         ? _todayDoneSummary(total)
                                         : 'Тренировка завершена. Нажмите, чтобы посмотреть детали.')
                                     : _todayCoachMessage(day, plan, remaining, total, canContinue, today),
-                                style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+                                style: unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
                                 maxLines: 4,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -1381,7 +1380,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                                   icon: const Icon(Icons.route, size: 18),
                                   label: Text(
                                     'Добавить лазание',
-                                    style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
+                                    style: unbounded(fontSize: 13, fontWeight: FontWeight.w600),
                                   ),
                                   style: OutlinedButton.styleFrom(
                                     foregroundColor: AppColors.mutedGold,
@@ -1407,7 +1406,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                                     const SizedBox(width: 4),
                                     Text(
                                       _hasClimbingForToday! ? 'Лазание ✓' : 'Лазание +',
-                                      style: GoogleFonts.unbounded(
+                                      style: unbounded(
                                           fontSize: 11, color: _hasClimbingForToday! ? AppColors.successMuted : Colors.white54),
                                     ),
                                   ],
@@ -1435,7 +1434,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                                   isCompletedState
                                       ? 'Подробнее'
                                       : (canContinue ? (remaining == 0 ? 'Завершить' : 'Продолжить') : 'Приступить'),
-                                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600),
+                                  style: unbounded(fontSize: 13, fontWeight: FontWeight.w600),
                                 ),
                         )
                       else if (cardActive && !narrow && showAddClimbing)
@@ -1464,7 +1463,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                                   isCompletedState
                                       ? 'Подробнее'
                                       : (canContinue ? (remaining == 0 ? 'Завершить' : 'Продолжить') : 'Приступить'),
-                                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600),
+                                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600),
                                 ),
                         ),
                       ),

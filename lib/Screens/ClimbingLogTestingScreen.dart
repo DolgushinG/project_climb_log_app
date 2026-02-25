@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:login_app/theme/app_theme.dart';
@@ -435,7 +434,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           title,
-          style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600),
+          style: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         content: SingleChildScrollView(
           child: Column(
@@ -444,7 +443,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             children: [
               Text(
                 text,
-                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                style: unbounded(color: Colors.white70, fontSize: 14),
               ),
               if (proTip != null) ...[
                 const SizedBox(height: 16),
@@ -463,7 +462,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                       Expanded(
                         child: Text(
                           'Подсказка: $proTip',
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             color: AppColors.mutedGold,
                             fontSize: 13,
                             fontWeight: FontWeight.w500,
@@ -480,7 +479,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Ок', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+            child: Text('Ок', style: unbounded(color: AppColors.mutedGold)),
           ),
         ],
       ),
@@ -495,16 +494,16 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Асимметрия',
-          style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600),
+          style: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
         ),
         content: Text(
           'Разрыв больше 10% между руками — риск травмы на долгих кримпах. Добавь эксцентрику на слабую руку.',
-          style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+          style: unbounded(color: Colors.white70, fontSize: 14),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Ок', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+            child: Text('Ок', style: unbounded(color: AppColors.mutedGold)),
           ),
         ],
       ),
@@ -535,7 +534,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                 child: Text(
                   'Замеры',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -687,7 +686,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             const SizedBox(width: 8),
             Text(
               'Последний замер: ${s.dateFormatted}',
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: Colors.white70,
@@ -728,11 +727,11 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             children: [
               Text(
                 label,
-                style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+                style: unbounded(fontSize: 11, color: Colors.white54),
               ),
               Text(
                 value,
-                style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ],
           ),
@@ -756,7 +755,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           const SizedBox(height: 16),
           Text(
             'Пока нет замеров',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -766,7 +765,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           Text(
             'Добавь первый замер, чтобы отслеживать прогресс',
             textAlign: TextAlign.center,
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 14,
               color: Colors.white54,
             ),
@@ -788,7 +787,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         icon: Icon(icon, size: 22, color: AppColors.mutedGold),
         label: Text(
           label,
-          style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+          style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.mutedGold,
@@ -811,7 +810,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         ),
         title: Text(
           'Добавить замер',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -895,7 +894,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               children: [
                 Text(
                   'Твой вес (кг)',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 12,
                     color: Colors.white70,
                     fontWeight: FontWeight.w500,
@@ -905,10 +904,10 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 TextField(
                   controller: _bodyWeightController,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                  style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
                   decoration: InputDecoration(
                     hintText: '70',
-                    hintStyle: GoogleFonts.unbounded(color: Colors.white38),
+                    hintStyle: unbounded(color: Colors.white38),
                     filled: true,
                     fillColor: AppColors.rowAlt,
                     border: OutlineInputBorder(
@@ -953,7 +952,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                   const SizedBox(width: 8),
                   Text(
                     'Черновик сохранён локально',
-                    style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.successMuted),
+                    style: unbounded(fontSize: 13, color: AppColors.successMuted),
                   ),
                 ],
               ),
@@ -965,7 +964,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               icon: const Icon(Icons.check_circle_outline, size: 22),
               label: Text(
                 'Закончить замер',
-                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.successMuted,
@@ -1018,7 +1017,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             Expanded(
               child: Text(
                 'Сделай хотя бы один тест — и узнаешь свой уровень',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+                style: unbounded(fontSize: 14, color: Colors.white54),
                 softWrap: true,
               ),
             ),
@@ -1055,7 +1054,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                   children: [
                     Text(
                       'Ур. ${rank.level} — ${rank.titleRu}',
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -1064,7 +1063,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                     ),
                     Text(
                       '${avg.toStringAsFixed(1)}% от веса — твоя средняя',
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 12,
                         color: Colors.white70,
                       ),
@@ -1079,7 +1078,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             const SizedBox(height: 12),
             Text(
               'До ${next.titleRu} ещё +${gap.toStringAsFixed(1)}%',
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 fontSize: 13,
                 color: AppColors.mutedGold.withOpacity(0.9),
               ),
@@ -1111,7 +1110,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               Expanded(
                 child: Text(
                   'Ачивки',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -1161,7 +1160,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           const SizedBox(width: 6),
           Text(
             a.titleRu,
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 12,
               fontWeight: FontWeight.w500,
               color: unlocked ? Colors.white : Colors.white54,
@@ -1193,7 +1192,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             Expanded(
               child: Text(
                 a.titleRu,
-                style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ),
           ],
@@ -1204,24 +1203,24 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           children: [
             Text(
               a.descriptionRu,
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+              style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
             ),
             const SizedBox(height: 16),
             Text(
               'Как получить:',
-              style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+              style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
             ),
             const SizedBox(height: 4),
             Text(
               a.hintRu ?? 'Выполни замеры в разделе «Тест».',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+              style: unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Понятно', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+            child: Text('Понятно', style: unbounded(color: AppColors.mutedGold)),
           ),
         ],
       ),
@@ -1286,7 +1285,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                   ),
                   child: Text(
                     '$_lockOffElapsedSec сек',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: AppColors.successMuted,
@@ -1305,7 +1304,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    child: Text('Стоп', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                    child: Text('Стоп', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ] else ...[
@@ -1321,7 +1320,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                       minimumSize: const Size(0, 44),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                     ),
-                    label: Text('Старт', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                    label: Text('Старт', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
                   ),
                 ),
               ],
@@ -1356,7 +1355,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -1373,7 +1372,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                   ),
                   child: Text(
                     '?',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
                       color: AppColors.mutedGold,
@@ -1424,7 +1423,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 'Левая тянет слабее — долгий crimp грозит травмой. Качай эксцентрику.',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 12,
                   color: Colors.orange,
                   fontWeight: FontWeight.w500,
@@ -1436,7 +1435,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
               padding: const EdgeInsets.only(bottom: 8),
               child: Text(
                 'Правая тянет слабее — долгий crimp грозит травмой. Качай эксцентрику.',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 12,
                   color: Colors.orange,
                   fontWeight: FontWeight.w500,
@@ -1470,7 +1469,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 if (leftPct != null)
                   Text(
                     'Левая: ${leftPct.toStringAsFixed(1)}%',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 13,
                       color: AppColors.mutedGold,
                       fontWeight: FontWeight.w500,
@@ -1479,7 +1478,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 if (rightPct != null)
                   Text(
                     'Правая: ${rightPct.toStringAsFixed(1)}%',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 13,
                       color: AppColors.mutedGold,
                       fontWeight: FontWeight.w500,
@@ -1507,7 +1506,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         children: [
           Text(
             'Ширина блока',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+            style: unbounded(fontSize: 12, color: Colors.white70),
           ),
           const SizedBox(height: 8),
           Row(
@@ -1613,7 +1612,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             Flexible(
               child: Text(
                 '${relativeStrength.toStringAsFixed(0)}% от веса',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   color: AppColors.mutedGold,
                   fontWeight: FontWeight.w600,
@@ -1625,7 +1624,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
             Flexible(
               child: Text(
                 level,
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 12,
                   color: Colors.white70,
                   fontWeight: FontWeight.w500,
@@ -1680,7 +1679,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 Flexible(
                   child: Text(
                     'Разница: ${diffPct.toStringAsFixed(1)}%',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: diffPct > 10 ? Colors.orange : Colors.white,
@@ -1694,7 +1693,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                     onPressed: _showAsymmetryAlert,
                     child: Text(
                       'Как исправить',
-                      style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 12),
+                      style: unbounded(color: AppColors.mutedGold, fontSize: 12),
                     ),
                   ),
                 ],
@@ -1705,13 +1704,13 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
                   'Эксцентрика на слабую — Offset, однорукие висы',
-                  style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                  style: unbounded(fontSize: 12, color: Colors.white54),
                 ),
               ),
           ] else ...[
             Text(
               'Введи левую и правую в блоке «Вис на пальцах»',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+              style: unbounded(fontSize: 13, color: Colors.white54),
             ),
           ],
         ],
@@ -1733,7 +1732,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
         ),
         child: Text(
           label,
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 13,
             fontWeight: FontWeight.w500,
             color: selected ? AppColors.mutedGold : Colors.white70,
@@ -1754,16 +1753,16 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
       children: [
         Text(
           label,
-          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+          style: unbounded(fontSize: 12, color: Colors.white70),
         ),
         const SizedBox(height: 6),
         TextField(
           controller: controller,
           keyboardType: const TextInputType.numberWithOptions(decimal: true),
-          style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
+          style: unbounded(color: Colors.white, fontSize: 16),
           decoration: InputDecoration(
             hintText: '0',
-            hintStyle: GoogleFonts.unbounded(color: Colors.white38),
+            hintStyle: unbounded(color: Colors.white38),
             filled: true,
             fillColor: hasWarning ? Colors.orange.withOpacity(0.12) : AppColors.rowAlt,
             border: OutlineInputBorder(
@@ -1872,7 +1871,7 @@ class _LevelUpOverlayState extends State<_LevelUpOverlay> {
                         const SizedBox(height: 12),
                         Text(
                           'НОВЫЙ УРОВЕНЬ!',
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 24,
                             fontWeight: FontWeight.w800,
                             color: Colors.white,
@@ -1882,7 +1881,7 @@ class _LevelUpOverlayState extends State<_LevelUpOverlay> {
                         const SizedBox(height: 4),
                         Text(
                           widget.tier.titleRu,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 18,
                             fontWeight: FontWeight.w600,
                             color: AppColors.mutedGold,

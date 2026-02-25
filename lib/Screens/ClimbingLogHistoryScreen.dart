@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:login_app/theme/app_theme.dart';
@@ -153,14 +152,14 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
-        title: Text('Удалить тренировку?', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        title: Text('Удалить тренировку?', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
         content: Text(
           'Тренировка ${_formatDate(session.date)}${session.gymName != 'Не указан' ? ' (${session.gymName})' : ''} будет удалена.',
-          style: GoogleFonts.unbounded(color: Colors.white70),
+          style: unbounded(color: Colors.white70),
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold))),
-          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Удалить', style: GoogleFonts.unbounded(color: Colors.redAccent, fontWeight: FontWeight.w600))),
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: unbounded(color: AppColors.mutedGold))),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Удалить', style: unbounded(color: Colors.redAccent, fontWeight: FontWeight.w600))),
         ],
       ),
     );
@@ -191,7 +190,7 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
                   child: Text(
                     'История',
-                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -220,12 +219,12 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(_error!, textAlign: TextAlign.center, style: GoogleFonts.unbounded(color: Colors.white70)),
+                          Text(_error!, textAlign: TextAlign.center, style: unbounded(color: Colors.white70)),
                           const SizedBox(height: 16),
                           ElevatedButton(
                             onPressed: _load,
                             style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                            child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                            child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
                           ),
                         ],
                       ),
@@ -242,13 +241,13 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
                         const SizedBox(height: 16),
                         Text(
                           _filter == _HistoryFilter.all ? 'Пока нет записей' : 'Нет записей по выбранному фильтру',
-                          style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
+                          style: unbounded(color: Colors.white70, fontSize: 16),
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'Добавляйте тренировки, делайте замеры, выполняйте ОФП/СФП',
                           textAlign: TextAlign.center,
-                          style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 14),
+                          style: unbounded(color: Colors.white54, fontSize: 14),
                         ),
                       ],
                     ),
@@ -279,7 +278,7 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
 
   Widget _filterChip(String label, bool selected, VoidCallback onTap) {
     return FilterChip(
-      label: Text(label, style: GoogleFonts.unbounded(fontSize: 13)),
+      label: Text(label, style: unbounded(fontSize: 13)),
       selected: selected,
       onSelected: (_) => onTap(),
       selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -329,7 +328,7 @@ class _DayCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Text(
                   formatDate(day.date),
-                  style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
+                  style: unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16),
                 ),
               ],
             ),
@@ -361,7 +360,7 @@ class _DayCard extends StatelessWidget {
             children: [
               Icon(Icons.route, size: 18, color: AppColors.mutedGold),
               const SizedBox(width: 8),
-              Text('Лазание', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold)),
+              Text('Лазание', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold)),
               const Spacer(),
               if (canEditDelete)
                 Row(
@@ -380,7 +379,7 @@ class _DayCard extends StatelessWidget {
                 Icon(Icons.place, size: 14, color: Colors.white54),
                 const SizedBox(width: 4),
                 Expanded(
-                  child: Text(s.gymName, style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70), overflow: TextOverflow.ellipsis, maxLines: 1),
+                  child: Text(s.gymName, style: unbounded(fontSize: 13, color: Colors.white70), overflow: TextOverflow.ellipsis, maxLines: 1),
                 ),
               ]),
             ),
@@ -395,10 +394,10 @@ class _DayCard extends StatelessWidget {
                 borderRadius: BorderRadius.circular(6),
                 border: Border.all(color: gradientForGrade(r.grade).first.withOpacity(0.5)),
               ),
-              child: Text('${r.grade} × ${r.count}', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
+              child: Text('${r.grade} × ${r.count}', style: unbounded(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w500)),
             )).toList(),
           ),
-          Text('Всего: $totalCount трасс', style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54)),
+          Text('Всего: $totalCount трасс', style: unbounded(fontSize: 11, color: Colors.white54)),
         ],
       ),
     );
@@ -432,7 +431,7 @@ class _DayCard extends StatelessWidget {
               children: [
                 Icon(Icons.fitness_center, size: 18, color: AppColors.linkMuted),
                 const SizedBox(width: 8),
-                Text('Замер', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.linkMuted)),
+                Text('Замер', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.linkMuted)),
                 const Spacer(),
                 Icon(Icons.arrow_forward_ios, size: 12, color: AppColors.linkMuted),
               ],
@@ -444,7 +443,7 @@ class _DayCard extends StatelessWidget {
               child: Wrap(
                 spacing: 12,
                 runSpacing: 4,
-                children: parts.map((p) => Text(p, style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70))).toList(),
+                children: parts.map((p) => Text(p, style: unbounded(fontSize: 12, color: Colors.white70))).toList(),
               ),
             ),
         ],
@@ -466,18 +465,18 @@ class _DayCard extends StatelessWidget {
             children: [
               Icon(Icons.check_circle_outline, size: 18, color: AppColors.successMuted),
               const SizedBox(width: 8),
-              Text('ОФП/СФП', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.successMuted)),
+              Text('ОФП/СФП', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.successMuted)),
             ],
           ),
           const SizedBox(height: 6),
           Text(
             '$count ${count == 1 ? 'упражнение' : count >= 2 && count <= 4 ? 'упражнения' : 'упражнений'} выполнено',
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+            style: unbounded(fontSize: 13, color: Colors.white70),
           ),
           if (names.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 4),
-              child: Text(names.join(', '), style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54), maxLines: 2, overflow: TextOverflow.ellipsis),
+              child: Text(names.join(', '), style: unbounded(fontSize: 12, color: Colors.white54), maxLines: 2, overflow: TextOverflow.ellipsis),
             ),
         ],
       ),

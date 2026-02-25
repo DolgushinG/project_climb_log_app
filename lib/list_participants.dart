@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:login_app/main.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'models/Category.dart';
 import 'models/NumberSets.dart';
@@ -171,11 +170,11 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
               children: [
                 Text(
                   'Фильтры',
-                  style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600),
+                  style: unbounded(fontSize: 18, fontWeight: FontWeight.w600),
                 ),
                 SizedBox(height: 16),
                 if (categories.isNotEmpty) ...[
-                  Text('Категория (группа)', style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70)),
+                  Text('Категория (группа)', style: unbounded(fontSize: 13, color: Colors.white70)),
                   SizedBox(height: 6),
                   StatefulBuilder(
                     builder: (BuildContext context, StateSetter setState) {
@@ -206,7 +205,7 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
                   SizedBox(height: 16),
                 ],
                 if (setsList.isNotEmpty) ...[
-                  Text('Сет', style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70)),
+                  Text('Сет', style: unbounded(fontSize: 13, color: Colors.white70)),
                   SizedBox(height: 6),
                   StatefulBuilder(
                     builder: (BuildContext context, StateSetter setState) {
@@ -278,7 +277,7 @@ class _ParticipantListScreenState extends State<ParticipantListScreen> {
       appBar: AppBar(
         title: Text(
           'Участники',
-          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18),
+          style: unbounded(fontWeight: FontWeight.w500, fontSize: 18),
         ),
         actions: [
           IconButton(

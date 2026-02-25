@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'CompetitionScreen.dart';
@@ -260,7 +259,7 @@ class _MainScreenState extends State<MainScreen> {
                   fit: BoxFit.scaleDown,
                   child: Text(
                     label,
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 9,
                       fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                       color: color,

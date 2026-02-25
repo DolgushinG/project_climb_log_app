@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'main.dart';
@@ -134,7 +133,7 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
       appBar: AppBar(
         title: Text(
           widget.category.category.split(' ').first,
-          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18),
+          style: unbounded(fontWeight: FontWeight.w500, fontSize: 18),
         ),
         automaticallyImplyLeading: true,
         bottom: PreferredSize(
@@ -155,8 +154,8 @@ class _ResultScreenState extends State<ResultScreen> with SingleTickerProviderSt
                   borderRadius: BorderRadius.circular(999),
                   color: AppColors.mutedGold.withOpacity(0.25),
                 ),
-                labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
-                unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
+                labelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                unselectedLabelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                 labelPadding:
                     const EdgeInsets.symmetric(horizontal: 8.0),
                 tabs: const [

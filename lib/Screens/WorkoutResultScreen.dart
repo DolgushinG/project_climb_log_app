@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:login_app/theme/app_theme.dart';
@@ -37,7 +36,7 @@ class WorkoutResultScreen extends StatelessWidget {
         backgroundColor: AppColors.anthracite,
         title: Text(
           'Тренировка готова',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -156,14 +155,14 @@ class WorkoutResultScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Почему такая интенсивность',
-                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
         ],
       ),
@@ -188,7 +187,7 @@ class WorkoutResultScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'От тренера',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -210,7 +209,7 @@ class WorkoutResultScreen extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         'AI',
-                        style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                        style: unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                       ),
                     ],
                   ),
@@ -226,8 +225,8 @@ class WorkoutResultScreen extends StatelessWidget {
   }
 
   Widget _buildCoachCommentText(String text) {
-    final baseStyle = GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5);
-    final highlightStyle = GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold, height: 1.5, fontWeight: FontWeight.w600);
+    final baseStyle = unbounded(fontSize: 13, color: Colors.white70, height: 1.5);
+    final highlightStyle = unbounded(fontSize: 13, color: AppColors.mutedGold, height: 1.5, fontWeight: FontWeight.w600);
     final spans = <TextSpan>[];
     int lastEnd = 0;
     final pattern = RegExp(_athleteNames.join(r'|'), caseSensitive: false);
@@ -268,7 +267,7 @@ class WorkoutResultScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   'Почему так?',
-                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
+                  style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
                 ),
               ),
               Icon(Icons.chevron_right, color: AppColors.linkMuted, size: 20),
@@ -303,7 +302,7 @@ class WorkoutResultScreen extends StatelessWidget {
                 Expanded(
                   child: Text(
                     'Почему эта тренировка',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -317,7 +316,7 @@ class WorkoutResultScreen extends StatelessWidget {
               child: SingleChildScrollView(
                 child: Text(
                   text,
-                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
                 ),
               ),
             ),
@@ -344,7 +343,7 @@ class WorkoutResultScreen extends StatelessWidget {
         children: [
           Text(
             'Распределение нагрузки',
-            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 10),
           ...entries.map((e) {
@@ -356,7 +355,7 @@ class WorkoutResultScreen extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                    style: unbounded(fontSize: 11, color: Colors.white70),
                     softWrap: true,
                   ),
                   const SizedBox(height: 4),
@@ -374,7 +373,7 @@ class WorkoutResultScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${e.value}%',
-                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+                        style: unbounded(fontSize: 11, color: Colors.white54),
                       ),
                     ],
                   ),
@@ -405,14 +404,14 @@ class WorkoutResultScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Прогрессия',
-                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
+                style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
               ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             text,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
         ],
       ),
@@ -440,7 +439,7 @@ class WorkoutResultScreen extends StatelessWidget {
         children: [
           Text(
             'Распределение нагрузки за неделю',
-            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 10),
           ...entries.map((e) {
@@ -452,7 +451,7 @@ class WorkoutResultScreen extends StatelessWidget {
                 children: [
                   Text(
                     label,
-                    style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                    style: unbounded(fontSize: 11, color: Colors.white70),
                     softWrap: true,
                   ),
                   const SizedBox(height: 4),
@@ -470,7 +469,7 @@ class WorkoutResultScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         '${e.value}%',
-                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+                        style: unbounded(fontSize: 11, color: Colors.white54),
                       ),
                     ],
                   ),
@@ -503,10 +502,10 @@ class WorkoutResultScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(t.$3, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70)),
+              Text(t.$3, style: unbounded(fontSize: 11, color: Colors.white70)),
               Text(
                 display,
-                style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold),
+                style: unbounded(fontSize: 11, color: AppColors.mutedGold),
               ),
             ],
           ),
@@ -519,10 +518,10 @@ class WorkoutResultScreen extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Text('Интенсивность', style: GoogleFonts.unbounded(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+            Text('Интенсивность', style: unbounded(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
             Text(
               '${ss.sessionLoadScore!.toStringAsFixed(1)}/5',
-              style: GoogleFonts.unbounded(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+              style: unbounded(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
             ),
           ],
         ),
@@ -541,7 +540,7 @@ class WorkoutResultScreen extends StatelessWidget {
         children: [
           Text(
             'Профиль сессии',
-            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 8),
           ...rows,
@@ -582,7 +581,7 @@ class WorkoutResultScreen extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 'Состояние атлета',
-                style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ],
           ),
@@ -599,8 +598,8 @@ class WorkoutResultScreen extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(label, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70)),
-          Text(value, style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold)),
+          Text(label, style: unbounded(fontSize: 11, color: Colors.white70)),
+          Text(value, style: unbounded(fontSize: 11, color: AppColors.mutedGold)),
         ],
       ),
     );
@@ -622,7 +621,7 @@ class WorkoutResultScreen extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+              style: unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
             ),
           ),
         ],
@@ -638,7 +637,7 @@ class WorkoutResultScreen extends StatelessWidget {
           children: [
             Text(
               'Тренировка',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ],
         ),
@@ -693,7 +692,7 @@ class WorkoutResultScreen extends StatelessWidget {
           const SizedBox(width: 10),
           Text(
             title,
-            style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
           ),
           const SizedBox(width: 8),
           Container(
@@ -704,7 +703,7 @@ class WorkoutResultScreen extends StatelessWidget {
             ),
             child: Text(
               '$count',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+              style: unbounded(fontSize: 12, color: Colors.white70),
             ),
           ),
         ],
@@ -732,7 +731,7 @@ class WorkoutResultScreen extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                     color: AppColors.mutedGold,
@@ -751,12 +750,12 @@ class WorkoutResultScreen extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             ex.displayName,
-            style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 4),
           Text(
             '${ex.defaultSets} × ${ex.repsDisplay} • отдых ${ex.restDisplay}',
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+            style: unbounded(fontSize: 13, color: Colors.white54),
           ),
         ],
       ),
@@ -769,12 +768,12 @@ class WorkoutResultScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(title, style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
-        content: Text(text, style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5)),
+        title: Text(title, style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(text, style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Понятно', style: GoogleFonts.unbounded(color: AppColors.mutedGold)),
+            child: Text('Понятно', style: unbounded(color: AppColors.mutedGold)),
           ),
         ],
       ),
@@ -795,7 +794,7 @@ class WorkoutResultScreen extends StatelessWidget {
           icon: const Icon(Icons.play_arrow, size: 20),
           label: Text(
             'Выполнить упражнения',
-            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+            style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
           ),
           style: FilledButton.styleFrom(
             backgroundColor: AppColors.successMuted,
@@ -827,22 +826,22 @@ class WorkoutResultScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: Text(
             'Новый план',
-            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           content: Text(
             'У вас отмечено ${completions.length} ${_exerciseWord(completions.length)} за сегодня. '
             'Сгенерированная тренировка — это другой набор. Отметки будут сброшены, начнёте с чистого листа. Продолжить?',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: Text('Отмена', style: GoogleFonts.unbounded(color: Colors.white54)),
+              child: Text('Отмена', style: unbounded(color: Colors.white54)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(ctx, true),
               style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
-              child: Text('Продолжить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+              child: Text('Продолжить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             ),
           ],
         ),

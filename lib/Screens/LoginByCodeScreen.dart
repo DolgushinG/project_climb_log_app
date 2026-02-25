@@ -3,7 +3,6 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../MainScreen.dart';
@@ -186,12 +185,12 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: Text('Ошибка', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-        content: Text(message, style: GoogleFonts.unbounded(color: Colors.white70)),
+        title: Text('Ошибка', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(message, style: unbounded(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('OK', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
+            child: Text('OK', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
           ),
         ],
       ),
@@ -232,7 +231,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                 const SizedBox(height: 24),
                 Text(
                   'Вход по коду',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     color: Colors.white,
                     fontSize: 26,
                     fontWeight: FontWeight.w600,
@@ -243,7 +242,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                   _isEmailStep
                       ? 'Введите email, на который придёт код'
                       : 'Введите код из письма',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     color: Colors.white70,
                     fontSize: 14,
                   ),
@@ -271,10 +270,10 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
           TextField(
             controller: _emailController,
             keyboardType: TextInputType.emailAddress,
-            style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16),
+            style: unbounded(color: Colors.white, fontSize: 16),
             decoration: InputDecoration(
               labelText: 'Email',
-              labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+              labelStyle: unbounded(color: AppColors.graphite),
               filled: true,
               fillColor: AppColors.rowAlt,
               border: OutlineInputBorder(
@@ -303,7 +302,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : Text('Отправить код', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                  : Text('Отправить код', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
         ],
@@ -323,7 +322,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
         children: [
           Text(
             _emailController.text.trim(),
-            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+            style: unbounded(color: Colors.white70, fontSize: 14),
           ),
           const SizedBox(height: 20),
           _CodeInputField(
@@ -351,7 +350,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : Text('Подтвердить', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+                  : Text('Подтвердить', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
             ),
           ),
           const SizedBox(height: 16),
@@ -362,7 +361,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
                 _resendCooldown > 0
                     ? 'Перезапросить код через $_resendCooldown сек'
                     : 'Перезапросить код',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   color: _resendCooldown > 0 ? Colors.white54 : Colors.white,
                   fontSize: 14,
                 ),
@@ -375,7 +374,7 @@ class _LoginByCodeScreenState extends State<LoginByCodeScreen> {
             child: Center(
               child: Text(
                 'Изменить email',
-                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
+                style: unbounded(color: AppColors.mutedGold, fontSize: 14),
               ),
             ),
           ),
@@ -445,7 +444,7 @@ class _CodeInputFieldState extends State<_CodeInputField> {
           child: Center(
             child: Text(
               digit,
-              style: GoogleFonts.unbounded(
+              style: unbounded(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
@@ -480,7 +479,7 @@ class _CodeInputFieldState extends State<_CodeInputField> {
                 LengthLimitingTextInputFormatter(widget.codeLength),
               ],
               textAlign: TextAlign.center,
-              style: GoogleFonts.unbounded(color: Colors.transparent, fontSize: 22),
+              style: unbounded(color: Colors.transparent, fontSize: 22),
               decoration: const InputDecoration(
                 counterText: '',
                 border: InputBorder.none,

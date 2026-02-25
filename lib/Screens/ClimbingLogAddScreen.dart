@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
@@ -644,7 +643,7 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
                           )
                         : Text(
                             _isEditMode ? 'Сохранить изменения' : 'Сохранить тренировку',
-                            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                     ),
                   ),

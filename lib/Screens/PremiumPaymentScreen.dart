@@ -3,7 +3,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -224,7 +223,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
         backgroundColor: AppColors.anthracite,
         title: Text(
           'Premium подписка',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -238,7 +237,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           if (_buildInfo.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(right: 8, top: 16),
-              child: Text(_buildInfo, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38)),
+              child: Text(_buildInfo, style: unbounded(fontSize: 11, color: Colors.white38)),
             ),
           TextButton(
             onPressed: () => Navigator.push(
@@ -247,7 +246,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             ),
             child: Text(
               'История',
-              style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
+              style: unbounded(color: AppColors.mutedGold, fontSize: 14),
             ),
           ),
         ],
@@ -289,7 +288,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                                     Expanded(
                                       child: Text(
                                         _error!,
-                                        style: GoogleFonts.unbounded(color: Colors.redAccent, fontSize: 13),
+                                        style: unbounded(color: Colors.redAccent, fontSize: 13),
                                       ),
                                     ),
                                   ],
@@ -301,12 +300,12 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                                       await Clipboard.setData(ClipboardData(text: _paymentUrlForCopy!));
                                       if (mounted) {
                                         ScaffoldMessenger.of(context).showSnackBar(
-                                          SnackBar(content: Text('Ссылка скопирована', style: GoogleFonts.unbounded(color: Colors.white))),
+                                          SnackBar(content: Text('Ссылка скопирована', style: unbounded(color: Colors.white))),
                                         );
                                       }
                                     },
                                     icon: const Icon(Icons.copy, size: 18, color: AppColors.mutedGold),
-                                    label: Text('Скопировать ссылку и открыть в Safari', style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold)),
+                                    label: Text('Скопировать ссылку и открыть в Safari', style: unbounded(fontSize: 13, color: AppColors.mutedGold)),
                                   ),
                                 ],
                               ],
@@ -342,7 +341,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: Text(
               'Почему отменяете подписку?',
-              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             content: SingleChildScrollView(
               child: Column(
@@ -352,7 +351,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                   ..._cancelReasons.map((r) => RadioListTile<String>(
                     title: Text(
                       r['label']!,
-                      style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white),
+                      style: unbounded(fontSize: 14, color: Colors.white),
                     ),
                     value: r['code']!,
                     groupValue: reasonCode,
@@ -362,7 +361,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                   const SizedBox(height: 12),
                   Text(
                     'Подписка останется активной до конца оплаченного периода.',
-                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54, height: 1.3),
+                    style: unbounded(fontSize: 12, color: Colors.white54, height: 1.3),
                   ),
                 ],
               ),
@@ -370,11 +369,11 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(ctx, null),
-                child: Text('Не отменять', style: GoogleFonts.unbounded(color: Colors.white54)),
+                child: Text('Не отменять', style: unbounded(color: Colors.white54)),
               ),
               TextButton(
                 onPressed: () => Navigator.pop(ctx, {'confirmed': true, 'reason': reasonCode ?? 'prefer_not_say'}),
-                child: Text('Отменить подписку', style: GoogleFonts.unbounded(color: Colors.redAccent)),
+                child: Text('Отменить подписку', style: unbounded(color: Colors.redAccent)),
               ),
             ],
           );
@@ -391,7 +390,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
         SnackBar(
           content: Text(
             'Подписка отменена. Доступ сохранится до конца оплаченного периода.',
-            style: GoogleFonts.unbounded(color: Colors.white),
+            style: unbounded(color: Colors.white),
           ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.successMuted,
@@ -402,7 +401,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
         SnackBar(
           content: Text(
             'Не удалось отменить. Попробуйте позже.',
-            style: GoogleFonts.unbounded(color: Colors.white),
+            style: unbounded(color: Colors.white),
           ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.graphite,
@@ -444,7 +443,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                 const SizedBox(height: 20),
                 Text(
                   cancelled ? 'Подписка отменена' : 'У вас действует подписка',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 20,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -456,7 +455,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                   cancelled
                       ? (dateStr != null ? 'Действует до $dateStr' : 'Осталось $days ${_dayWord(days)}')
                       : 'Осталось $days ${_dayWord(days)}',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 18,
                     fontWeight: FontWeight.w600,
                     color: cancelled ? Colors.white70 : AppColors.successMuted,
@@ -468,7 +467,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                   cancelled
                       ? 'Доступ к Premium сохранится до конца оплаченного периода.'
                       : 'Спасибо за поддержку! Все функции Premium доступны — продолжайте отслеживать тренировки и прогресс.',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 14,
                     color: Colors.white70,
                     height: 1.5,
@@ -489,7 +488,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             ),
             child: Text(
               'Вернуться',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
           ),
           const SizedBox(height: 16),
@@ -500,7 +499,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             ),
             child: Text(
               'История оплат',
-              style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14),
+              style: unbounded(color: AppColors.mutedGold, fontSize: 14),
             ),
           ),
           if (!cancelled) ...[
@@ -509,7 +508,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
               onPressed: _onCancelSubscriptionPressed,
               child: Text(
                 'Отменить подписку',
-                style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 13),
+                style: unbounded(color: Colors.white54, fontSize: 13),
               ),
             ),
           ],
@@ -532,7 +531,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           const SizedBox(height: 12),
           Text(
             'Расширенный функционал тренировок',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -542,7 +541,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           const SizedBox(height: 8),
           Text(
             'Отслеживание прогресса, силовые замеры, персональные рекомендации',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 14,
               color: Colors.white70,
               height: 1.4,
@@ -564,7 +563,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
       children: [
         Text(
           'Что входит в Premium',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 16,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -584,7 +583,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                       children: [
                         Text(
                           e.$1,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontWeight: FontWeight.w600,
                             color: Colors.white,
                             fontSize: 14,
@@ -592,7 +591,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                         ),
                         Text(
                           e.$2,
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             color: Colors.white70,
                             fontSize: 13,
                             height: 1.3,
@@ -626,7 +625,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
               children: [
                 Text(
                   'Подписка на 1 месяц (30 дней)',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -635,7 +634,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                 const SizedBox(height: 4),
                 Text(
                   'Ежемесячная оплата, отмена в любой момент',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 12,
                     color: Colors.white60,
                   ),
@@ -648,7 +647,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           const SizedBox(width: 12),
           Text(
             '$_price ₽',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 22,
               fontWeight: FontWeight.w700,
               color: AppColors.mutedGold,
@@ -679,7 +678,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                 children: [
                   Text(
                     'Публичная оферта',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                       fontSize: 14,
@@ -687,7 +686,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
                   ),
                   Text(
                     'Условия оказания услуг',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       color: Colors.white60,
                       fontSize: 12,
                     ),
@@ -708,7 +707,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
       children: [
         Text(
           'Email для чека',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 14,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -720,10 +719,10 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
           focusNode: _emailFocusNode,
           keyboardType: TextInputType.emailAddress,
           autocorrect: false,
-          style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+          style: unbounded(fontSize: 16, color: Colors.white),
           decoration: InputDecoration(
             hintText: 'user@example.com',
-            hintStyle: GoogleFonts.unbounded(color: Colors.white38),
+            hintStyle: unbounded(color: Colors.white38),
             filled: true,
             fillColor: AppColors.cardDark,
             border: OutlineInputBorder(
@@ -756,7 +755,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
         const SizedBox(height: 6),
         Text(
           'На этот адрес придёт чек об оплате',
-          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+          style: unbounded(fontSize: 12, color: Colors.white54),
         ),
       ],
     );
@@ -782,7 +781,7 @@ class _PremiumPaymentScreenState extends State<PremiumPaymentScreen> {
             )
           : Text(
               'Оплатить $_price ₽',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
     );
   }

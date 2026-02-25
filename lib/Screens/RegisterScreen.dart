@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/login.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:http/http.dart' as http;
@@ -74,7 +73,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     leading: const Icon(Icons.male, color: AppColors.mutedGold),
                     title: Text(
                       'Мужской',
-                      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+                      style: unbounded(fontSize: 16, color: Colors.white),
                     ),
                     onTap: () {
                       setState(() {
@@ -88,7 +87,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     leading: const Icon(Icons.female, color: AppColors.mutedGold),
                     title: Text(
                       'Женский',
-                      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+                      style: unbounded(fontSize: 16, color: Colors.white),
                     ),
                     onTap: () {
                       setState(() {
@@ -116,13 +115,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+        labelStyle: unbounded(color: AppColors.graphite),
         filled: true,
         fillColor: AppColors.rowAlt,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
       ),
-      style: GoogleFonts.unbounded(color: Colors.white),
+      style: unbounded(color: Colors.white),
       keyboardType: keyboardType,
       validator: validator,
     );
@@ -140,14 +139,14 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       obscureText: true,
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+        labelStyle: unbounded(color: AppColors.graphite),
         filled: true,
         fillColor: AppColors.rowAlt,
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
         contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         suffixIcon: Icon(Icons.visibility, color: AppColors.mutedGold),
       ),
-      style: GoogleFonts.unbounded(color: Colors.white),
+      style: unbounded(color: Colors.white),
       keyboardType: keyboardType,
       validator: validator,
     );
@@ -212,7 +211,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
         appBar: AppBar(
           backgroundColor: AppColors.cardDark,
           automaticallyImplyLeading: true,
-          title: Text('Регистрация', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          title: Text('Регистрация', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         ),
         body: SafeArea(
           child: SingleChildScrollView(
@@ -272,7 +271,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 children: [
                                   Text(
                                     _selectedGender ?? 'Выберите пол',
-                                    style: GoogleFonts.unbounded(color: Colors.white),
+                                    style: unbounded(color: Colors.white),
                                   ),
                                   Icon(Icons.arrow_drop_down, color: AppColors.mutedGold),
                                 ],
@@ -314,7 +313,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               Expanded(
                                 child: Text(
                                   'Я соглашаюсь на обработку персональных данных',
-                                  style: GoogleFonts.unbounded(color: Colors.white, fontSize: 14),
+                                  style: unbounded(color: Colors.white, fontSize: 14),
                                 ),
                               ),
                             ],
@@ -332,7 +331,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               ),
                               child: Text(
                                 'Создать аккаунт',
-                                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),
@@ -348,7 +347,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                               },
                               child: Text(
                                 'Назад в логин',
-                                style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
+                                style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                               ),
                             ),
                           ),

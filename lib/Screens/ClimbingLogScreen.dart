@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/main.dart';
@@ -79,7 +78,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     if (_premiumStatus?.hasActiveSubscription == true && !hadAccess) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+          content: Text('Подписка оформлена! Спасибо за поддержку.', style: unbounded(color: Colors.white)),
           behavior: SnackBarBehavior.floating,
           backgroundColor: AppColors.successMuted,
         ),
@@ -89,7 +88,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     // Webhook ещё не обработан — показываем ожидание и опрашиваем
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: GoogleFonts.unbounded(color: Colors.white)),
+        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: unbounded(color: Colors.white)),
         behavior: SnackBarBehavior.floating,
         backgroundColor: AppColors.mutedGold.withOpacity(0.9),
       ),
@@ -102,7 +101,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
       if (_premiumStatus?.hasActiveSubscription == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Подписка оформлена! Спасибо за поддержку.', style: GoogleFonts.unbounded(color: Colors.white)),
+            content: Text('Подписка оформлена! Спасибо за поддержку.', style: unbounded(color: Colors.white)),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.successMuted,
           ),
@@ -154,21 +153,21 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Text(
           'Пробный период',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         content: Text(
           'У вас 7 дней бесплатного доступа ко всем функциям раздела «Тренировки»: план, замеры, история. Нажмите «Начать», чтобы активировать.',
-          style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+          style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Позже', style: GoogleFonts.unbounded(color: Colors.white54)),
+            child: Text('Позже', style: unbounded(color: Colors.white54)),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: Colors.white),
-            child: Text('Начать', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+            child: Text('Начать', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -188,7 +187,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
               : 'Ваша пробная подписка активирована на 7 дней';
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(msg, style: GoogleFonts.unbounded(color: Colors.white)),
+              content: Text(msg, style: unbounded(color: Colors.white)),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.successMuted,
             ),
@@ -223,7 +222,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
           }
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(errorMessage, style: GoogleFonts.unbounded(color: Colors.white)),
+              content: Text(errorMessage, style: unbounded(color: Colors.white)),
               behavior: SnackBarBehavior.floating,
               backgroundColor: AppColors.graphite,
             ),
@@ -246,7 +245,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
         appBar: AppBar(
           backgroundColor: AppColors.anthracite,
           automaticallyImplyLeading: false,
-          title: Text('Тренировки', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          title: Text('Тренировки', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
           bottom: showPaywall
               ? null
               : PreferredSize(
@@ -270,11 +269,11 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                         ),
                         labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                         tabs: [
-                          Tab(child: FittedBox(child: Text('План', style: GoogleFonts.unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Обзор', style: GoogleFonts.unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Прогресс', style: GoogleFonts.unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('История', style: GoogleFonts.unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Тест', style: GoogleFonts.unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('План', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Обзор', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Прогресс', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('История', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Тест', style: unbounded(fontSize: 13)))),
                         ],
                       ),
                     ),
@@ -323,7 +322,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
               const SizedBox(height: 20),
               Text(
                 'Нет подключения к интернету',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 18,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -333,7 +332,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
               const SizedBox(height: 8),
               Text(
                 'Проверьте соединение и нажмите «Повторить»',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+                style: unbounded(fontSize: 14, color: Colors.white54),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),

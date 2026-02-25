@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../MainScreen.dart';
@@ -103,7 +102,7 @@ class _WebViewScreenState extends State<WebViewScreen> {
       appBar: AppBar(
         automaticallyImplyLeading: true,
         backgroundColor: AppColors.cardDark,
-        title: Text('Авторизация', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Авторизация', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
       ),
       body: WebViewWidget(
         controller: _controller, // Контроллер для управления WebView

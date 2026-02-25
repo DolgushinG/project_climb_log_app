@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 
 import '../login.dart';
@@ -121,7 +120,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
         automaticallyImplyLeading: true,
         title: Text(
           'Авторизация',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white),
         ),
         centerTitle: true,
       ),
@@ -155,7 +154,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
         children: [
           Text(
             'Информация о входе',
-            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 12),
           if (widget.socialite != '')
@@ -163,7 +162,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
               children: [
                 Icon(Icons.account_circle, color: AppColors.mutedGold, size: 22),
                 const SizedBox(width: 12),
-                Text('Соц-сеть: ${widget.socialite}', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+                Text('Соц-сеть: ${widget.socialite}', style: unbounded(fontSize: 14, color: Colors.white70)),
               ],
             ),
           if (widget.rememberToken != null)
@@ -171,7 +170,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
               children: [
                 Icon(Icons.email, color: AppColors.mutedGold, size: 22),
                 const SizedBox(width: 12),
-                Text('Email и пароль', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70)),
+                Text('Email и пароль', style: unbounded(fontSize: 14, color: Colors.white70)),
               ],
             ),
         ],
@@ -196,7 +195,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
               const SizedBox(width: 12),
               Text(
                 'Face ID / Touch ID (Passkey)',
-                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
               ),
             ],
           ),
@@ -205,7 +204,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
               _hasPasskey == false
                   ? 'Passkey не добавлен. Добавьте для входа по Face ID / Touch ID.'
                   : 'Добавьте Passkey для входа по биометрии или удалите его.',
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+              style: unbounded(fontSize: 14, color: Colors.white70),
             ),
             const SizedBox(height: 16),
             if (_passkeyLoading)
@@ -325,12 +324,12 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
         children: [
           Text(
             'Выход из аккаунта',
-            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 10),
           Text(
             'Нажмите кнопку ниже, чтобы выйти из текущего аккаунта.',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+            style: unbounded(fontSize: 14, color: Colors.white70),
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -344,7 +343,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              child: Text('Выйти', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
+              child: Text('Выйти', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
             ),
           ),
         ],

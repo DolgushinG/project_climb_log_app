@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/PlanModels.dart';
@@ -260,7 +259,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         ),
         title: Text(
           '${widget.date.day}.${widget.date.month.toString().padLeft(2, '0')}.${widget.date.year} • ${_weekdays[widget.date.weekday % 7]}',
-          style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         actions: [
           IconButton(
@@ -295,7 +294,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 children: [
                   const CircularProgressIndicator(color: AppColors.mutedGold),
                   const SizedBox(height: 16),
-                  Text('Загрузка...', style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54)),
+                  Text('Загрузка...', style: unbounded(fontSize: 14, color: Colors.white54)),
                 ],
               ),
             )
@@ -377,13 +376,13 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           const SizedBox(height: 16),
           Text(
             'Данные по $typeLabel не загружены',
-            style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white54),
+            style: unbounded(fontSize: 16, color: Colors.white54),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 8),
           Text(
             'Проверьте интернет или попробуйте позже. Возможно, бэкенд пока не отдаёт план по этому дню.',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white38),
+            style: unbounded(fontSize: 12, color: Colors.white38),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -418,7 +417,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           Expanded(
             child: Text(
               text,
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
+              style: unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
             ),
           ),
         ],
@@ -443,7 +442,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           Expanded(
             child: Text(
               'Компактный вариант (~$pct%): план подстроен под ваши настройки на сегодня (время, самочувствие)',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
+              style: unbounded(fontSize: 12, color: Colors.white70, height: 1.3),
             ),
           ),
         ],
@@ -505,7 +504,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               const SizedBox(width: 8),
               Text(
                 'От тренера',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -528,7 +527,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               Expanded(
                 child: Text(
                   'Анализирую план и подбираю рекомендации…',
-                  style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+                  style: unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
                 ),
               ),
             ],
@@ -555,7 +554,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               const SizedBox(width: 8),
               Text(
                 'От тренера',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -577,7 +576,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                       const SizedBox(width: 4),
                       Text(
                         'AI',
-                        style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                        style: unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                       ),
                     ],
                   ),
@@ -594,8 +593,8 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
 
   /// Текст с подсветкой имён топ-атлетов (Ondra, Honnold, Garnbret и др.)
   Widget _buildCoachCommentText(String text) {
-    final baseStyle = GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5);
-    final highlightStyle = GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold, height: 1.5, fontWeight: FontWeight.w600);
+    final baseStyle = unbounded(fontSize: 13, color: Colors.white70, height: 1.5);
+    final highlightStyle = unbounded(fontSize: 13, color: AppColors.mutedGold, height: 1.5, fontWeight: FontWeight.w600);
     final spans = <TextSpan>[];
     int lastEnd = 0;
     final pattern = RegExp(_athleteNames.join(r'|'), caseSensitive: false);
@@ -635,7 +634,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               Expanded(
                 child: Text(
                   'Почему так?',
-                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
+                  style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.linkMuted),
                 ),
               ),
               Icon(Icons.chevron_right, color: AppColors.linkMuted, size: 20),
@@ -670,7 +669,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 Expanded(
                   child: Text(
                     'Почему эта тренировка',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -684,7 +683,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               child: SingleChildScrollView(
                 child: Text(
                   text,
-                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
                 ),
               ),
             ),
@@ -737,7 +736,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           Expanded(
             child: Text(
               label,
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
           ),
           if (_day!.completed)
@@ -758,7 +757,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       ),
       label: Text(
         hasParams ? 'Изменить настройки на сегодня' : 'Уточнить на сегодня',
-        style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+        style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
       ),
       style: OutlinedButton.styleFrom(
         side: BorderSide(color: AppColors.mutedGold.withOpacity(0.6)),
@@ -798,7 +797,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                   children: [
                     Text(
                       isClimbingOnly ? 'Лазание' : '1. Лазание',
-                      style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                      style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                     ),
                     Text(
                       hasSession
@@ -806,7 +805,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                           : isClimbingOnly
                               ? 'Только лазание (без ОФП/СФП)'
                               : '1–2 часа, затем ОФП',
-                      style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+                      style: unbounded(fontSize: 13, color: Colors.white54),
                     ),
                   ],
                 ),
@@ -829,7 +828,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   ),
-                  child: Text('Добавить', style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text('Добавить', style: unbounded(fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
             ],
           ),
@@ -848,7 +847,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         icon: Icon(Icons.track_changes, size: 20, color: AppColors.mutedGold),
         label: Text(
           'Твои слабые места',
-          style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+          style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
         ),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.mutedGold.withOpacity(0.5)),
@@ -885,7 +884,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 Expanded(
                   child: Text(
                     'Твои слабые места',
-                    style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -897,7 +896,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             const SizedBox(height: 8),
             Text(
               'Почему они слабые и что делать',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+              style: unbounded(fontSize: 13, color: Colors.white54),
             ),
             const SizedBox(height: 16),
             Flexible(
@@ -934,7 +933,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               Expanded(
                 child: Text(
                   wl.labelRu,
-                  style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                  style: unbounded(fontSize: 15, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                 ),
               ),
             ],
@@ -943,14 +942,14 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             const SizedBox(height: 10),
             Text(
               whyText,
-              style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
             ),
           ],
           if (wl.reason != null && wl.reason!.isNotEmpty && wl.hint.isNotEmpty && wl.hint != wl.reason) ...[
             const SizedBox(height: 8),
             Text(
               'Что делать: ${wl.hint}',
-              style: GoogleFonts.unbounded(fontSize: 13, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
+              style: unbounded(fontSize: 13, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
             ),
           ],
         ],
@@ -968,7 +967,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         icon: Icon(Icons.lightbulb_outline, size: 20, color: AppColors.mutedGold),
         label: Text(
           'На что обратить внимание в следующих тренировках',
-          style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+          style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
         ),
         style: OutlinedButton.styleFrom(
           side: BorderSide(color: AppColors.mutedGold.withOpacity(0.5)),
@@ -993,13 +992,13 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           const SizedBox(height: 12),
           Text(
             'День отдыха',
-            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
             'Сделайте лёгкую растяжку и восстановитесь.',
             textAlign: TextAlign.center,
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+            style: unbounded(fontSize: 14, color: Colors.white54),
           ),
         ],
       ),
@@ -1013,7 +1012,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       children: [
         Text(
           _expectsClimbing ? '2. Упражнения' : 'Упражнения',
-          style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white54),
+          style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white54),
         ),
         const SizedBox(height: 12),
         ..._day!.exercises.asMap().entries.map((e) {
@@ -1082,7 +1081,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                         ? Icon(Icons.remove_circle_outline, size: 16, color: Colors.white54)
                         : Text(
                             '$index',
-                            style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                            style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                           )),
               ),
               const SizedBox(width: 12),
@@ -1095,7 +1094,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                         Expanded(
                           child: Text(
                             ex.name,
-                            style: GoogleFonts.unbounded(
+                            style: unbounded(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
                               color: completed ? Colors.white54 : (skipped ? Colors.white60 : Colors.white),
@@ -1120,7 +1119,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                                   const SizedBox(width: 4),
                                   Text(
                                     weakLinkLabel,
-                                    style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                                    style: unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
                                   ),
                                 ],
                               ),
@@ -1135,7 +1134,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                             ),
                             child: Text(
                               'Пропущено',
-                              style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white54),
+                              style: unbounded(fontSize: 11, color: Colors.white54),
                             ),
                           ),
                       ],
@@ -1143,7 +1142,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     const SizedBox(height: 4),
                     Text(
                       ex.dosageDisplay,
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 13,
                         color: completed || skipped ? Colors.white38 : AppColors.mutedGold,
                         decoration: completed ? TextDecoration.lineThrough : null,
@@ -1165,7 +1164,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                             const SizedBox(width: 6),
                             Text(
                               '~${ex.estimatedMinutes} мин',
-                              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                              style: unbounded(fontSize: 12, color: Colors.white70),
                             ),
                           ],
                         ),
@@ -1181,7 +1180,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                           Expanded(
                             child: Text(
                               ex.comment!,
-                              style: GoogleFonts.unbounded(fontSize: 12, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
+                              style: unbounded(fontSize: 12, color: AppColors.mutedGold.withOpacity(0.9), height: 1.4),
                             ),
                           ),
                         ],
@@ -1221,7 +1220,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             const SizedBox(width: 6),
             Text(
               'Как выполнять',
-              style: GoogleFonts.unbounded(fontSize: fontSize, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+              style: unbounded(fontSize: fontSize, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -1245,7 +1244,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             const SizedBox(width: 6),
             Text(
               'Польза для скалолазания',
-              style: GoogleFonts.unbounded(fontSize: fontSize, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
+              style: unbounded(fontSize: fontSize, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
             ),
           ],
         ),
@@ -1277,7 +1276,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 Expanded(
                   child: Text(
                     'Польза для скалолазания: $title',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -1291,7 +1290,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               child: SingleChildScrollView(
                 child: Text(
                   text,
-                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
                 ),
               ),
             ),
@@ -1325,7 +1324,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 Expanded(
                   child: Text(
                     'Как выполнять: $title',
-                    style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
                 IconButton(
@@ -1339,7 +1338,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               child: SingleChildScrollView(
                 child: Text(
                   hint,
-                  style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
                 ),
               ),
             ),
@@ -1359,7 +1358,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           children: [
             Text(
               'Растяжка',
-              style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white54),
+              style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white54),
             ),
             if (totalMins != null && totalMins > 0) ...[
               const SizedBox(width: 8),
@@ -1377,7 +1376,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     const SizedBox(width: 4),
                     Text(
                       '~$totalMins мин',
-                      style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                      style: unbounded(fontSize: 11, color: Colors.white70),
                     ),
                   ],
                 ),
@@ -1399,7 +1398,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 children: [
                   Text(
                     z.zone,
-                    style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white70),
+                    style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white70),
                   ),
                   const SizedBox(height: 8),
                   ...z.exercises.map((ex) => _buildStretchingExerciseTile(ex)),
@@ -1439,7 +1438,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               else
                 Padding(
                   padding: const EdgeInsets.only(right: 10),
-                  child: Text('•', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+                  child: Text('•', style: unbounded(fontSize: 12, color: Colors.white54)),
                 ),
               Expanded(
                 child: Column(
@@ -1447,7 +1446,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                   children: [
                     Text(
                       ex.name,
-                      style: GoogleFonts.unbounded(
+                      style: unbounded(
                         fontSize: 13,
                         color: completed ? Colors.white54 : Colors.white70,
                         decoration: completed ? TextDecoration.lineThrough : null,
@@ -1469,7 +1468,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                             const SizedBox(width: 4),
                             Text(
                               '~${ex.estimatedMinutes} мин',
-                              style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white70),
+                              style: unbounded(fontSize: 11, color: Colors.white70),
                             ),
                           ],
                         ),
@@ -1590,7 +1589,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
               icon: const Icon(Icons.play_arrow, size: 22),
               label: Text(
                 'Начать выполнение',
-                style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: FilledButton.styleFrom(
                 backgroundColor: AppColors.mutedGold,
@@ -1608,7 +1607,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
             icon: Icon(completed ? Icons.remove_circle_outline : Icons.check_circle_outline, size: 22),
             label: Text(
               completed ? 'Убрать отметку' : 'Отметить выполненным',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
             ),
             style: FilledButton.styleFrom(
               backgroundColor: completed ? AppColors.graphite : AppColors.rowAlt,
@@ -1672,15 +1671,15 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
         children: [
           Text(
             'Уточнить на сегодня',
-            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(
             'План дня подстроится под самочувствие, фокус и время — упражнений станет меньше или легче.',
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54, height: 1.4),
+            style: unbounded(fontSize: 13, color: Colors.white54, height: 1.4),
           ),
           const SizedBox(height: 20),
-          Text('Самочувствие (1–5)', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70)),
+          Text('Самочувствие (1–5)', style: unbounded(fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 8),
           Row(
             children: List.generate(5, (i) {
@@ -1701,7 +1700,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
                       child: Center(
                         child: Text(
                           '$v',
-                          style: GoogleFonts.unbounded(
+                          style: unbounded(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: sel ? AppColors.mutedGold : Colors.white54,
@@ -1715,7 +1714,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
             }),
           ),
           const SizedBox(height: 16),
-          Text('Фокус', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70)),
+          Text('Фокус', style: unbounded(fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -1723,7 +1722,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
             children: _focusOptions.map((e) {
               final sel = _focus == e.$1;
               return ChoiceChip(
-                label: Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text(e.$2, style: unbounded(fontSize: 12)),
                 selected: sel,
                 onSelected: (v) => setState(() => _focus = v ? e.$1 : null),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -1733,7 +1732,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
             }).toList(),
           ),
           const SizedBox(height: 16),
-          Text('Время (мин)', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70)),
+          Text('Время (мин)', style: unbounded(fontSize: 12, color: Colors.white70)),
           const SizedBox(height: 8),
           Wrap(
             spacing: 8,
@@ -1741,7 +1740,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
             children: _timeOptions.map((m) {
               final sel = _minutes == m;
               return ChoiceChip(
-                label: Text('$m', style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text('$m', style: unbounded(fontSize: 12)),
                 selected: sel,
                 onSelected: (v) => setState(() => _minutes = v ? m : null),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -1755,7 +1754,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
             children: [
               TextButton(
                 onPressed: () => Navigator.pop(context, {'feeling': null, 'focus': null, 'available_minutes': null}),
-                child: Text('Сбросить', style: GoogleFonts.unbounded(color: Colors.white54)),
+                child: Text('Сбросить', style: unbounded(color: Colors.white54)),
               ),
               const Spacer(),
               FilledButton(
@@ -1768,7 +1767,7 @@ class _SessionQuickQuestionsSheetState extends State<_SessionQuickQuestionsSheet
                   backgroundColor: AppColors.mutedGold,
                   foregroundColor: Colors.white,
                 ),
-                child: Text('Применить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                child: Text('Применить', style: unbounded(fontWeight: FontWeight.w600)),
               ),
             ],
           ),

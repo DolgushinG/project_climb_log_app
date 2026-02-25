@@ -1,5 +1,73 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+
+/// Шрифт Unbounded из assets (variable font) — без запросов к Google Fonts CDN.
+TextStyle unbounded({
+  TextStyle? textStyle,
+  Color? color,
+  Color? backgroundColor,
+  double? fontSize,
+  FontWeight? fontWeight,
+  FontStyle? fontStyle,
+  double? letterSpacing,
+  double? wordSpacing,
+  TextBaseline? textBaseline,
+  double? height,
+  Locale? locale,
+  Paint? foreground,
+  Paint? background,
+  List<Shadow>? shadows,
+  List<FontFeature>? fontFeatures,
+  TextDecoration? decoration,
+  Color? decorationColor,
+  TextDecorationStyle? decorationStyle,
+  double? decorationThickness,
+}) {
+  final base = textStyle ?? const TextStyle();
+  return base.copyWith(
+    fontFamily: 'Unbounded',
+    color: color ?? base.color,
+    backgroundColor: backgroundColor ?? base.backgroundColor,
+    fontSize: fontSize ?? base.fontSize,
+    fontWeight: fontWeight ?? base.fontWeight,
+    fontStyle: fontStyle ?? base.fontStyle,
+    letterSpacing: letterSpacing ?? base.letterSpacing,
+    wordSpacing: wordSpacing ?? base.wordSpacing,
+    textBaseline: textBaseline ?? base.textBaseline,
+    height: height ?? base.height,
+    locale: locale ?? base.locale,
+    foreground: foreground ?? base.foreground,
+    background: background ?? base.background,
+    shadows: shadows ?? base.shadows,
+    fontFeatures: fontFeatures ?? base.fontFeatures,
+    decoration: decoration ?? base.decoration,
+    decorationColor: decorationColor ?? base.decorationColor,
+    decorationStyle: decorationStyle ?? base.decorationStyle,
+    decorationThickness: decorationThickness ?? base.decorationThickness,
+  );
+}
+
+/// TextTheme с fontFamily: Unbounded — variable font из assets.
+TextTheme unboundedTextTheme(TextTheme base) {
+  TextStyle withFont(TextStyle? s) =>
+      s != null ? s.copyWith(fontFamily: 'Unbounded') : const TextStyle(fontFamily: 'Unbounded');
+  return TextTheme(
+    displayLarge: withFont(base.displayLarge),
+    displayMedium: withFont(base.displayMedium),
+    displaySmall: withFont(base.displaySmall),
+    headlineLarge: withFont(base.headlineLarge),
+    headlineMedium: withFont(base.headlineMedium),
+    headlineSmall: withFont(base.headlineSmall),
+    titleLarge: withFont(base.titleLarge),
+    titleMedium: withFont(base.titleMedium),
+    titleSmall: withFont(base.titleSmall),
+    bodyLarge: withFont(base.bodyLarge),
+    bodyMedium: withFont(base.bodyMedium),
+    bodySmall: withFont(base.bodySmall),
+    labelLarge: withFont(base.labelLarge),
+    labelMedium: withFont(base.labelMedium),
+    labelSmall: withFont(base.labelSmall),
+  );
+}
 
 /// Премиальная монохромная палитра — «тихая роскошь».
 /// Эстетика Hodinkee / премиальных фитнес-приложений.
@@ -62,7 +130,7 @@ String formatDatePremium(DateTime date) {
 class AppTypography {
   /// Крупные тонкие цифры ранга (background) — задают ритм
   static TextStyle rankNumber() {
-    return GoogleFonts.unbounded(
+    return unbounded(
       fontSize: 48,
       fontWeight: FontWeight.w200,
       color: Colors.white.withOpacity(0.06),
@@ -72,7 +140,7 @@ class AppTypography {
 
   /// Имя спортсмена — жирный, с трекингом
   static TextStyle athleteName() {
-    return GoogleFonts.unbounded(
+    return unbounded(
       fontSize: 16,
       fontWeight: FontWeight.w600,
       letterSpacing: 0.5,
@@ -82,7 +150,7 @@ class AppTypography {
 
   /// Badge/баллы — тонкий гротеск
   static TextStyle scoreBadge() {
-    return GoogleFonts.unbounded(
+    return unbounded(
       fontSize: 14,
       fontWeight: FontWeight.w500,
       color: Colors.white.withOpacity(0.9),
@@ -91,7 +159,7 @@ class AppTypography {
 
   /// Город/категория — вторичный текст
   static TextStyle secondary() {
-    return GoogleFonts.unbounded(
+    return unbounded(
       fontSize: 12,
       fontWeight: FontWeight.w400,
       color: Colors.white.withOpacity(0.55),
@@ -100,7 +168,7 @@ class AppTypography {
 
   /// Заголовки секций
   static TextStyle sectionTitle() {
-    return GoogleFonts.unbounded(
+    return unbounded(
       fontSize: 20,
       fontWeight: FontWeight.w500,
       letterSpacing: 0.3,
@@ -110,7 +178,7 @@ class AppTypography {
 
   /// Маленькие метки (T, Z, маршруты)
   static TextStyle smallLabel() {
-    return GoogleFonts.unbounded(
+    return unbounded(
       fontSize: 10,
       fontWeight: FontWeight.w500,
       color: Colors.white.withOpacity(0.5),

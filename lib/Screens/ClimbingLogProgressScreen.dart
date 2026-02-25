@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/theme/app_theme.dart';
@@ -75,7 +74,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
                   child: Text(
                     'Прогресс',
-                    style: GoogleFonts.unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
+                    style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
                   ),
                 ),
               ),
@@ -147,12 +146,12 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                     children: [
                       Text(
                         'Максимальный грейд',
-                        style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
+                        style: unbounded(color: Colors.white70, fontSize: 12),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         p.maxGrade!,
-                        style: GoogleFonts.unbounded(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700),
+                        style: unbounded(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 12),
                       _GradientProgressBar(
@@ -168,7 +167,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                       const SizedBox(height: 6),
                       Text(
                         '${p.progressPercentage}% по шкале',
-                        style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12),
+                        style: unbounded(color: Colors.white54, fontSize: 12),
                       ),
                     ],
                   ),
@@ -177,7 +176,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
               ],
               Text(
                 'Всего трасс: $totalRoutes',
-                style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 16),
+                style: unbounded(color: Colors.white70, fontSize: 16),
               ),
               const SizedBox(height: 12),
             ],
@@ -204,7 +203,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                       width: 44,
                       child: Text(
                         grade,
-                        style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                        style: unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                       ),
                     ),
                     Expanded(
@@ -226,7 +225,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                       ),
                     Text(
                       '$count',
-                      style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
+                      style: unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14),
                     ),
                   ],
                 ),
@@ -257,7 +256,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
           padding: const EdgeInsets.fromLTRB(20, 24, 20, 12),
           child: Text(
             'Графики тренировок',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 18,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -274,7 +273,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
               children: [
                 Text(
                   'Трассы по дням (14 дней)',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
                 ),
                 const SizedBox(height: 12),
                 _buildBarChart(dailyStats!),
@@ -292,7 +291,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
               children: [
                 Text(
                   'Трассы по неделям',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
                 ),
                 const SizedBox(height: 12),
                 _buildBarChart(weeklyStats!),
@@ -310,7 +309,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
               children: [
                 Text(
                   'Распределение по грейдам',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white70),
                 ),
                 const SizedBox(height: 12),
                 _buildGradesPieChart(weeklyStats!),
@@ -473,7 +472,7 @@ class _ClimbingLogProgressScreenState extends State<ClimbingLogProgressScreen>
                     const SizedBox(width: 6),
                     Text(
                       '${e.key}: ${e.value}',
-                      style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12),
+                      style: unbounded(color: Colors.white70, fontSize: 12),
                     ),
                   ],
                 );

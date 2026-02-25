@@ -1,7 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ProfileService.dart';
@@ -80,7 +79,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: true,
-        title: Text('Аналитика и Статистика', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
+        title: Text('Аналитика и Статистика', style: unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
       ),
       body: _buildBody(),
     );
@@ -102,13 +101,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
               const SizedBox(height: 16),
         Text(
           'Не удалось загрузить данные',
-          style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
+          style: unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
           textAlign: TextAlign.center,
         ),
               const SizedBox(height: 8),
               Text(
                 _error ?? 'Не удалось загрузить данные',
-                style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70),
+                style: unbounded(fontSize: 14, color: Colors.white70),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
@@ -158,7 +157,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           'Сводка',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         const SizedBox(height: 12),
         Row(
@@ -221,12 +220,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
           ),
           const SizedBox(height: 4),
           Text(
             title,
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+            style: unbounded(fontSize: 12, color: Colors.white70),
             textAlign: TextAlign.center,
           ),
         ],
@@ -249,7 +248,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
         children: [
         Text(
           'Прогресс по соревнованиям',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         const SizedBox(height: 16),
         Container(
@@ -261,7 +260,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           child: Center(
             child: Text(
               'Пока нет данных о соревнованиях',
-              style: GoogleFonts.unbounded(color: Colors.white70),
+              style: unbounded(color: Colors.white70),
             ),
           ),
         ),
@@ -274,12 +273,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       children: [
         Text(
           'Прогресс по соревнованиям',
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         const SizedBox(height: 8),
         Text(
           'Флеши и редпоинты по последним 30 соревнованиям',
-          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+          style: unbounded(fontSize: 12, color: Colors.white70),
         ),
         const SizedBox(height: 16),
         Row(
@@ -305,7 +304,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(4)),
         ),
         const SizedBox(width: 6),
-        Text(label, style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70)),
+        Text(label, style: unbounded(fontSize: 12, color: Colors.white70)),
       ],
     );
   }

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/PlanModels.dart';
@@ -333,7 +332,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           widget.existingPlan != null
               ? 'Обновить план'
               : (widget.catalogOnly ? 'Готовые планы' : 'Создать план'),
-          style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -349,7 +348,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   const SizedBox(height: 16),
                   Text(
                     'Загрузка шаблонов...',
-                    style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white54),
+                    style: unbounded(fontSize: 14, color: Colors.white54),
                   ),
                 ],
               ),
@@ -362,19 +361,19 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                   if (_data == null) ...[
                     Text(
                       'Шаблоны недоступны',
-                      style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white70),
+                      style: unbounded(fontSize: 16, color: Colors.white70),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Проверьте интернет и войдите в аккаунт. Затем нажмите «Повторить».',
-                      style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+                      style: unbounded(fontSize: 13, color: Colors.white54),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
                     FilledButton.icon(
                       onPressed: _load,
                       icon: const Icon(Icons.refresh, size: 20),
-                      label: Text('Повторить', style: GoogleFonts.unbounded(fontSize: 14)),
+                      label: Text('Повторить', style: unbounded(fontSize: 14)),
                       style: FilledButton.styleFrom(
                         backgroundColor: AppColors.mutedGold,
                         foregroundColor: Colors.white,
@@ -410,7 +409,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     if (_error != null)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 12),
-                        child: Text(_error!, style: GoogleFonts.unbounded(color: Colors.orange, fontSize: 13)),
+                        child: Text(_error!, style: unbounded(color: Colors.orange, fontSize: 13)),
                       ),
                     SizedBox(
                       width: double.infinity,
@@ -426,7 +425,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                           widget.existingPlan != null
                               ? 'Сохранить изменения'
                               : (widget.catalogOnly ? 'Начать план' : 'Создать план'),
-                          style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
@@ -447,14 +446,14 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Что хочешь улучшить?', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        Text('Что хочешь улучшить?', style: unbounded(fontSize: 12, color: Colors.white54)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             ChoiceChip(
-              label: Text('Все цели', style: GoogleFonts.unbounded(fontSize: 13)),
+              label: Text('Все цели', style: unbounded(fontSize: 13)),
               selected: _selectedGoal == null,
               onSelected: (_) {
                 setState(() {
@@ -472,7 +471,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             ...goals.map((g) {
               final selected = _selectedGoal == g.key;
               return ChoiceChip(
-                label: Text(g.labelRu, style: GoogleFonts.unbounded(fontSize: 13)),
+                label: Text(g.labelRu, style: unbounded(fontSize: 13)),
                 selected: selected,
                 onSelected: (_) {
                   setState(() {
@@ -503,7 +502,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Уровень', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        Text('Уровень', style: unbounded(fontSize: 12, color: Colors.white54)),
         const SizedBox(height: 8),
         Wrap(
           spacing: 8,
@@ -511,7 +510,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           children: _data!.audiences.map((a) {
             final selected = _selectedAudience == a.key;
             return ChoiceChip(
-              label: Text(a.nameRu, style: GoogleFonts.unbounded(fontSize: 13)),
+              label: Text(a.nameRu, style: unbounded(fontSize: 13)),
               selected: selected,
               onSelected: (_) {
                 setState(() {
@@ -559,7 +558,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           const SizedBox(height: 12),
           Text(
             'Планов с этой целью пока нет. Выбери другую цель или аудиторию.',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+            style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
           ),
         ],
       ),
@@ -573,7 +572,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Шаблон плана', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+          Text('Шаблон плана', style: unbounded(fontSize: 12, color: Colors.white54)),
           const SizedBox(height: 8),
           _buildEmptyTemplatesState(),
         ],
@@ -582,7 +581,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Шаблон плана', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        Text('Шаблон плана', style: unbounded(fontSize: 12, color: Colors.white54)),
         const SizedBox(height: 8),
         ...filtered.map((t) {
           final selected = _selectedTemplate?.key == t.key;
@@ -619,7 +618,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                               children: [
                                 Text(
                                   t.nameRu,
-                                  style: GoogleFonts.unbounded(
+                                  style: unbounded(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
                                     color: Colors.white,
@@ -635,7 +634,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                     ),
                                     child: Text(
                                       _goalLabel(t.planGoal)!,
-                                      style: GoogleFonts.unbounded(fontSize: 11, color: AppColors.mutedGold),
+                                      style: unbounded(fontSize: 11, color: AppColors.mutedGold),
                                     ),
                                   ),
                                 ],
@@ -648,13 +647,13 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                         const SizedBox(height: 6),
                         Text(
                           t.description!,
-                          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54, height: 1.4),
+                          style: unbounded(fontSize: 12, color: Colors.white54, height: 1.4),
                         ),
                       ],
                       const SizedBox(height: 4),
                       Text(
                         'ОФП ${t.ofpPerWeek}× в неделю, СФП ${t.sfpPerWeek}×',
-                        style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38),
+                        style: unbounded(fontSize: 11, color: Colors.white38),
                       ),
                     ],
                   ),
@@ -674,7 +673,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Длительность', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        Text('Длительность', style: unbounded(fontSize: 12, color: Colors.white54)),
         Slider(
           value: _durationWeeks.toDouble(),
           min: min.toDouble(),
@@ -685,7 +684,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
         ),
         Text(
           '$_durationWeeks ${_weeksLabel(_durationWeeks)}',
-          style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+          style: unbounded(fontSize: 16, color: Colors.white),
         ),
       ],
     );
@@ -701,7 +700,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Дата старта', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54)),
+        Text('Дата старта', style: unbounded(fontSize: 12, color: Colors.white54)),
         const SizedBox(height: 8),
         InkWell(
           onTap: () async {
@@ -737,7 +736,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 Expanded(
                   child: Text(
                     '${_startDate.day.toString().padLeft(2, '0')}.${_startDate.month.toString().padLeft(2, '0')}.${_startDate.year}',
-                    style: GoogleFonts.unbounded(fontSize: 16, color: Colors.white),
+                    style: unbounded(fontSize: 16, color: Colors.white),
                   ),
                 ),
               ],
@@ -760,7 +759,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               ? 'В плане ОФП ${
                   t.ofpPerWeek}× и СФП ${t.sfpPerWeek}× в неделю — выбери $needed дня'
               : 'Дни недели',
-          style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+          style: unbounded(fontSize: 12, color: Colors.white54),
         ),
         const SizedBox(height: 8),
         Wrap(
@@ -775,7 +774,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               'Выберите минимум $needed ${_daysLabel(needed)}',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.orange),
+              style: unbounded(fontSize: 12, color: Colors.orange),
             ),
           ),
       ],
@@ -800,7 +799,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               Expanded(
                 child: Text(
                   'Персонализация',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ],
@@ -821,7 +820,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 'Выберите минимум один день',
-                style: GoogleFonts.unbounded(fontSize: 12, color: Colors.orange),
+                style: unbounded(fontSize: 12, color: Colors.orange),
               ),
             )
           else
@@ -829,7 +828,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 '${_scheduledWeekdays.length} ${_daysLabel(_scheduledWeekdays.length)}',
-                style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white54),
+                style: unbounded(fontSize: 13, color: Colors.white54),
               ),
             ),
           const SizedBox(height: 16),
@@ -841,7 +840,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: Text('Да', style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text('Да', style: unbounded(fontSize: 12)),
                 selected: _includeClimbingInDays,
                 onSelected: (_) => setState(() => _includeClimbingInDays = true),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -849,7 +848,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 labelStyle: TextStyle(color: _includeClimbingInDays ? AppColors.mutedGold : Colors.white70),
               ),
               ChoiceChip(
-                label: Text('Нет, только ОФП/СФП', style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text('Нет, только ОФП/СФП', style: unbounded(fontSize: 12)),
                 selected: !_includeClimbingInDays,
                 onSelected: (_) => setState(() => _includeClimbingInDays = false),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -878,10 +877,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70)),
+                        Text(e.$2, style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70)),
                         if (e.$3.isNotEmpty) ...[
                           const SizedBox(width: 6),
-                          Text(e.$3, style: GoogleFonts.unbounded(fontSize: 10, color: Colors.white54)),
+                          Text(e.$3, style: unbounded(fontSize: 10, color: Colors.white54)),
                         ],
                       ],
                     ),
@@ -899,7 +898,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: (_data?.availableMinutesOptions ?? [15, 30, 45, 60, 90]).map((mins) {
               final selected = _availableMinutes == mins;
               return ChoiceChip(
-                label: Text('~$mins мин', style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text('~$mins мин', style: unbounded(fontSize: 12)),
                 selected: selected,
                 onSelected: (_) => setState(() => _availableMinutes = mins),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -915,7 +914,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             runSpacing: 8,
             children: [
               ChoiceChip(
-                label: Text('Да', style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text('Да', style: unbounded(fontSize: 12)),
                 selected: _hasFingerboard,
                 onSelected: (_) => setState(() => _hasFingerboard = true),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -923,7 +922,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                 labelStyle: TextStyle(color: _hasFingerboard ? AppColors.mutedGold : Colors.white70),
               ),
               ChoiceChip(
-                label: Text('Нет', style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text('Нет', style: unbounded(fontSize: 12)),
                 selected: !_hasFingerboard,
                 onSelected: (_) => setState(() => _hasFingerboard = false),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -940,7 +939,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: _styleOptions.map((e) {
               final selected = _preferredStyle == e.$1;
               return ChoiceChip(
-                label: Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text(e.$2, style: unbounded(fontSize: 12)),
                 selected: selected,
                 onSelected: (_) => setState(() => _preferredStyle = e.$1),
                 selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -973,7 +972,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           ),
           Text(
             '$_experienceMonths мес',
-            style: GoogleFonts.unbounded(fontSize: 14, color: Colors.white),
+            style: unbounded(fontSize: 14, color: Colors.white),
           ),
           const SizedBox(height: 16),
           _buildPersonalizationLabel('Травмы / ограничения', 'Отметьте при необходимости'),
@@ -983,7 +982,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             children: _injuryOptions.map((e) {
               final selected = _injuries.contains(e.$1);
               return FilterChip(
-                label: Text(e.$2, style: GoogleFonts.unbounded(fontSize: 12)),
+                label: Text(e.$2, style: unbounded(fontSize: 12)),
                 selected: selected,
                 onSelected: (v) {
                   setState(() {
@@ -1026,7 +1025,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           runSpacing: 8,
           children: [
             ChoiceChip(
-              label: Text('Автоматически', style: GoogleFonts.unbounded(fontSize: 12)),
+              label: Text('Автоматически', style: unbounded(fontSize: 12)),
               selected: _ofpSfpScheduleMode == 'auto',
               onSelected: (_) => setState(() => _ofpSfpScheduleMode = 'auto'),
               selectedColor: AppColors.mutedGold.withOpacity(0.4),
@@ -1034,7 +1033,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               labelStyle: TextStyle(color: _ofpSfpScheduleMode == 'auto' ? AppColors.mutedGold : Colors.white70),
             ),
             ChoiceChip(
-              label: Text('Указать вручную', style: GoogleFonts.unbounded(fontSize: 12)),
+              label: Text('Указать вручную', style: unbounded(fontSize: 12)),
               selected: _ofpSfpScheduleMode == 'manual',
               onSelected: (_) => setState(() {
                 _ofpSfpScheduleMode = 'manual';
@@ -1064,7 +1063,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             padding: const EdgeInsets.only(top: 8),
             child: Text(
               'ОФП: ${_ofpWeekdays.length}×, СФП: ${_sfpWeekdays.length}×, только лазание: ${_scheduledWeekdays.length - _ofpWeekdays.length - _sfpWeekdays.length}×',
-              style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+              style: unbounded(fontSize: 12, color: Colors.white54),
             ),
           ),
         ],
@@ -1082,7 +1081,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             width: 36,
             child: Text(
               _weekdayNames[weekday],
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+              style: unbounded(fontSize: 13, color: Colors.white70),
             ),
           ),
           Wrap(
@@ -1102,7 +1101,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   Widget _buildSessionTypeChip(int weekday, String type, String label, String current) {
     final selected = current == type;
     return ChoiceChip(
-      label: Text(label, style: GoogleFonts.unbounded(fontSize: 11)),
+      label: Text(label, style: unbounded(fontSize: 11)),
       selected: selected,
       onSelected: (_) => setState(() {
         _ofpWeekdays.remove(weekday);
@@ -1133,9 +1132,9 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label, style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70)),
+          Text(label, style: unbounded(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70)),
           if (hint != null && hint.isNotEmpty)
-            Text(hint, style: GoogleFonts.unbounded(fontSize: 11, color: Colors.white38)),
+            Text(hint, style: unbounded(fontSize: 11, color: Colors.white38)),
         ],
       ),
     );
@@ -1152,7 +1151,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
   Widget _buildWeekdayChip(int weekday) {
     final selected = _scheduledWeekdays.contains(weekday);
     return FilterChip(
-      label: Text(_weekdayNames[weekday], style: GoogleFonts.unbounded(fontSize: 13)),
+      label: Text(_weekdayNames[weekday], style: unbounded(fontSize: 13)),
       selected: selected,
       onSelected: (v) {
         setState(() {
@@ -1198,7 +1197,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               Expanded(
                 child: Text(
                   'Важная информация',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ],
@@ -1208,7 +1207,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             'План и рекомендации носят исключительно информационный характер и не являются медицинской или профессиональной консультацией. '
             'При травмах, болях или сомнениях проконсультируйтесь с врачом или тренером. '
             'Вы самостоятельно несёте ответственность за нагрузку и технику выполнения. Лазание и силовые тренировки несут риск травм.',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 12, color: Colors.white70, height: 1.5),
           ),
           const SizedBox(height: 12),
           CheckboxListTile(
@@ -1220,7 +1219,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
             dense: true,
             title: Text(
               'Ознакомлен(а), принимаю',
-              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white),
+              style: unbounded(fontSize: 13, color: Colors.white),
             ),
           ),
         ],
@@ -1249,7 +1248,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               Expanded(
                 child: Text(
                   'О плане',
-                  style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ],
@@ -1257,7 +1256,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           const SizedBox(height: 10),
           Text(
             shortDesc,
-            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
+            style: unbounded(fontSize: 13, color: Colors.white70, height: 1.5),
           ),
         ],
       ),
@@ -1282,7 +1281,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               Expanded(
                 child: Text(
                   'Рекомендации',
-                  style: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             ],
@@ -1290,7 +1289,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           const SizedBox(height: 8),
           ..._data!.generalRecommendations.map((r) => Padding(
                 padding: const EdgeInsets.only(bottom: 4),
-                child: Text('• $r', style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54, height: 1.4)),
+                child: Text('• $r', style: unbounded(fontSize: 12, color: Colors.white54, height: 1.4)),
               )),
         ],
       ),

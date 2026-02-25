@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../theme/app_theme.dart';
 import '../utils/display_helper.dart';
@@ -116,7 +115,7 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
       appBar: AppBar(
         title: Text(
           widget.category.category,
-          style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18),
+          style: unbounded(fontWeight: FontWeight.w500, fontSize: 18),
         ),
         automaticallyImplyLeading: true,
         bottom: PreferredSize(
@@ -159,8 +158,8 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                       color: AppColors.mutedGold.withOpacity(0.25),
                     ),
                     labelPadding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    labelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w500),
-                    unselectedLabelStyle: GoogleFonts.unbounded(fontSize: 13, fontWeight: FontWeight.w400),
+                    labelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w500),
+                    unselectedLabelStyle: unbounded(fontSize: 13, fontWeight: FontWeight.w400),
                     tabs: const [
                       Tab(text: 'Мужчины'),
                       Tab(text: 'Женщины'),
@@ -488,14 +487,14 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
         children: [
           Text(
             routeId,
-            style: GoogleFonts.unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            style: unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
             softWrap: false,
             overflow: TextOverflow.clip,
           ),
           const SizedBox(height: 2),
           Text(
             top,
-            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
+            style: unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white),
             softWrap: false,
             overflow: TextOverflow.clip,
           ),
@@ -503,13 +502,13 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
             padding: const EdgeInsets.symmetric(vertical: 1),
             child: Text(
               '—',
-              style: GoogleFonts.unbounded(fontSize: 8, color: Colors.white38),
+              style: unbounded(fontSize: 8, color: Colors.white38),
               softWrap: false,
             ),
           ),
           Text(
             zone,
-            style: GoogleFonts.unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white70),
+            style: unbounded(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white70),
             softWrap: false,
             overflow: TextOverflow.clip,
           ),

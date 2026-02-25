@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/theme/app_theme.dart';
 import 'dart:convert';
@@ -288,7 +287,7 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Внесение результата', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+        title: Text('Внесение результата', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
@@ -311,7 +310,7 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
           ),
           onPressed: _submitResults,
           child: Text('Отправить результат',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               color: AppColors.anthracite,
               fontSize: 15,
               fontWeight: FontWeight.w600,
@@ -378,7 +377,7 @@ class _RouteCardState extends State<RouteCard> {
           children: [
             Text(
               'Трасса ${widget.route.routeId}',
-              style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 12),
             Row(
@@ -435,7 +434,7 @@ class _RouteCardState extends State<RouteCard> {
         ),
         child: Text(
           label,
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             color: isSelected && color == AppColors.mutedGold ? AppColors.anthracite : Colors.white,
             fontWeight: FontWeight.w600,
             fontSize: 13,

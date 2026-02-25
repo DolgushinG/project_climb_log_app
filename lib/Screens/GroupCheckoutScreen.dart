@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
@@ -326,7 +325,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(msg, style: GoogleFonts.unbounded(color: Colors.white)),
+        content: Text(msg, style: unbounded(color: Colors.white)),
         backgroundColor: isError ? Colors.red : Colors.green,
       ),
     );
@@ -371,7 +370,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                   child: Text(
                     'Оплата и прикрепление чека',
-                    style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                    style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
                   ),
                 ),
                 Flexible(
@@ -409,7 +408,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Как оплатить', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          Text('Как оплатить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
           const SizedBox(height: 8),
           Text(
             '1. Выберите пакет участия для каждого участника\n'
@@ -417,7 +416,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
             '3. Выбор сохранится автоматически\n'
             '4. Цена обновится автоматически\n'
             '5. После выбора можно перейти к оплате',
-            style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13),
+            style: unbounded(color: Colors.white70, fontSize: 13),
           ),
         ],
       ),
@@ -433,7 +432,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
       ),
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
-        title: Text('Ссылка на оплату', style: GoogleFonts.unbounded(color: Colors.white)),
+        title: Text('Ссылка на оплату', style: unbounded(color: Colors.white)),
         trailing: const Icon(Icons.open_in_new, color: Colors.blue),
         onTap: () async {
           if (uri != null && await canLaunchUrl(uri)) {
@@ -457,7 +456,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
-            Text('QR-код для оплаты', style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            Text('QR-код для оплаты', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
             const SizedBox(height: 12),
             CachedNetworkImage(
               imageUrl: url,
@@ -486,10 +485,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           children: [
             Text(
               groupReceipt ? 'Загрузить чек за всю группу' : 'Загрузить чек',
-              style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600),
+              style: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 8),
-            Text('JPEG, PNG или PDF. Макс. 10 МБ', style: GoogleFonts.unbounded(color: Colors.white54, fontSize: 12)),
+            Text('JPEG, PNG или PDF. Макс. 10 МБ', style: unbounded(color: Colors.white54, fontSize: 12)),
             const SizedBox(height: 12),
             Wrap(
               spacing: 12,
@@ -504,7 +503,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                   icon: _isUploadingReceipt
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                       : const Icon(Icons.photo_library),
-                  label: Text('Галерея', style: GoogleFonts.unbounded(fontSize: 13)),
+                  label: Text('Галерея', style: unbounded(fontSize: 13)),
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.rowAlt, foregroundColor: Colors.white),
                 ),
                 ElevatedButton.icon(
@@ -514,7 +513,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                           ? _pickFile(group: true)
                           : _showReceiptUserPicker(isFile: true),
                   icon: const Icon(Icons.attach_file),
-                  label: Text('Файл', style: GoogleFonts.unbounded(fontSize: 13)),
+                  label: Text('Файл', style: unbounded(fontSize: 13)),
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.rowAlt, foregroundColor: Colors.white),
                 ),
               ],
@@ -553,7 +552,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
             children: [
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: Text('Выберите участника для чека', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+                child: Text('Выберите участника для чека', style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
               ),
               ...unpaid.map((g) {
                 if (g is! Map) return const SizedBox.shrink();
@@ -563,7 +562,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                 final name = '${g['middlename'] ?? ''} ${g['firstname'] ?? ''} ${g['lastname'] ?? ''}'.trim();
                 return ListTile(
                   leading: Icon(Icons.person, color: AppColors.mutedGold),
-                  title: Text(name.isEmpty ? 'Участник #$id' : name, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 15)),
+                  title: Text(name.isEmpty ? 'Участник #$id' : name, style: unbounded(color: Colors.white, fontSize: 15)),
                   onTap: () => Navigator.pop(ctx, id),
                 );
               }),
@@ -589,11 +588,11 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           final ok = await showDialog<bool>(
             context: context,
             builder: (ctx) => AlertDialog(
-              title: Text('Оплата на месте', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-              content: Text('Вы уверены, что хотите оплатить на месте за всю группу?', style: GoogleFonts.unbounded(color: Colors.white70)),
+              title: Text('Оплата на месте', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+              content: Text('Вы уверены, что хотите оплатить на месте за всю группу?', style: unbounded(color: Colors.white70)),
               actions: [
-                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: GoogleFonts.unbounded(color: AppColors.mutedGold))),
-                TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Да', style: GoogleFonts.unbounded(color: AppColors.mutedGold))),
+                TextButton(onPressed: () => Navigator.pop(ctx, false), child: Text('Отмена', style: unbounded(color: AppColors.mutedGold))),
+                TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text('Да', style: unbounded(color: AppColors.mutedGold))),
               ],
             ),
           );
@@ -620,7 +619,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text('Оплатить на месте', style: GoogleFonts.unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
+        child: Text('Оплатить на месте', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -629,25 +628,25 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: Text('Оформление группы', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)), backgroundColor: AppColors.cardDark),
+        appBar: AppBar(title: Text('Оформление группы', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)), backgroundColor: AppColors.cardDark),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
     if (_error != null) {
       return Scaffold(
-        appBar: AppBar(title: Text('Оформление группы', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)), backgroundColor: AppColors.cardDark),
+        appBar: AppBar(title: Text('Оформление группы', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)), backgroundColor: AppColors.cardDark),
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Text(_error!, textAlign: TextAlign.center, style: GoogleFonts.unbounded(color: Colors.white70)),
+                Text(_error!, textAlign: TextAlign.center, style: unbounded(color: Colors.white70)),
                 const SizedBox(height: 16),
                 ElevatedButton(
                   onPressed: _loadData,
                   style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Повторить', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ],
             ),
@@ -666,7 +665,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Оформление группы', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Оформление группы', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
@@ -683,7 +682,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Text(
                   eventTitle,
-                  style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
             Material(
@@ -715,12 +714,12 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                           children: [
                             Text(
                               'Документы участников',
-                              style: GoogleFonts.unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                              style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               'Загрузить документы для участников группы',
-                              style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                              style: unbounded(color: Colors.white70, fontSize: 14),
                             ),
                           ],
                         ),
@@ -738,7 +737,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
             ],
             Text(
               'Участники группы',
-              style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 12),
             ...group.map((g) => _buildParticipantCard(g as Map<String, dynamic>, packages)),
@@ -753,12 +752,12 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
-                    child: Text('Итого (неоплаченные):', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                    child: Text('Итого (неоплаченные):', style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '${_calcTotalSum()} ₽',
-                    style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 20, fontWeight: FontWeight.w700),
+                    style: unbounded(color: AppColors.mutedGold, fontSize: 20, fontWeight: FontWeight.w700),
                   ),
                 ],
               ),
@@ -781,7 +780,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text('Перейти к оплате или прикрепить чек', style: GoogleFonts.unbounded(fontWeight: FontWeight.w600)),
+                  child: Text('Перейти к оплате или прикрепить чек', style: unbounded(fontWeight: FontWeight.w600)),
                 ),
               ),
             ],
@@ -840,15 +839,15 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(name.isEmpty ? 'Участник' : name, style: GoogleFonts.unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
-                    if (setStr.isNotEmpty) Text(setStr, style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
-                    if (catStr.isNotEmpty) Text(catStr, style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 12)),
+                    Text(name.isEmpty ? 'Участник' : name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+                    if (setStr.isNotEmpty) Text(setStr, style: unbounded(color: Colors.white70, fontSize: 12)),
+                    if (catStr.isNotEmpty) Text(catStr, style: unbounded(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),
               if (isPaid)
                 Flexible(
-                  child: Text('Оплачено', style: GoogleFonts.unbounded(color: Colors.green, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                  child: Text('Оплачено', style: unbounded(color: Colors.green, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
                 ),
             ],
           ),
@@ -866,7 +865,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                     icon: _isUploadingReceipt
                         ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
                         : const Icon(Icons.photo_library, size: 18),
-                    label: Text('Чек (галерея)', style: GoogleFonts.unbounded(fontSize: 13)),
+                    label: Text('Чек (галерея)', style: unbounded(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.mutedGold,
                       side: const BorderSide(color: AppColors.mutedGold),
@@ -876,7 +875,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                   OutlinedButton.icon(
                     onPressed: _isUploadingReceipt ? null : () => _pickFile(userId: uid),
                     icon: const Icon(Icons.attach_file, size: 18),
-                    label: Text('Чек (файл)', style: GoogleFonts.unbounded(fontSize: 13)),
+                    label: Text('Чек (файл)', style: unbounded(fontSize: 13)),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.mutedGold,
                       side: const BorderSide(color: AppColors.mutedGold),
@@ -891,7 +890,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                         children: [
                           const Icon(Icons.receipt_long, color: Colors.orange, size: 20),
                           const SizedBox(width: 6),
-                          Text('Чек на проверке', style: GoogleFonts.unbounded(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 13)),
+                          Text('Чек на проверке', style: unbounded(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 13)),
                         ],
                       ),
                     ),
@@ -922,10 +921,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Expanded(
-                            child: Text(pkgName, style: GoogleFonts.unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
+                            child: Text(pkgName, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
                           ),
                           const SizedBox(width: 8),
-                          Text('$price ₽', style: GoogleFonts.unbounded(color: Colors.white70)),
+                          Text('$price ₽', style: unbounded(color: Colors.white70)),
                         ],
                       ),
                       ...merch.map((m) {
@@ -938,24 +937,24 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(merchName, style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 13)),
+                              Text(merchName, style: unbounded(color: Colors.white70, fontSize: 13)),
                               Padding(
                                 padding: const EdgeInsets.only(top: 2),
                                 child: DropdownButtonFormField<String>(
                                   value: currentSizes[merchName],
                                   decoration: InputDecoration(
                                     labelText: 'Размер',
-                                    labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                                    labelStyle: unbounded(color: AppColors.graphite),
                                     filled: true,
                                     fillColor: AppColors.rowAlt,
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
                                   ),
                                   dropdownColor: AppColors.cardDark,
-                                  style: GoogleFonts.unbounded(color: Colors.white, fontSize: 15),
+                                  style: unbounded(color: Colors.white, fontSize: 15),
                                   items: sizes.map((s) {
                                     final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
-                                    return DropdownMenuItem<String>(value: sz, child: Text(sz, style: GoogleFonts.unbounded(color: Colors.white, fontSize: 15)));
+                                    return DropdownMenuItem<String>(value: sz, child: Text(sz, style: unbounded(color: Colors.white, fontSize: 15)));
                                   }).toList(),
                                   onChanged: (v) {
                                     final updatedSizes = Map<String, String>.from(currentSizes);
@@ -992,7 +991,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                             ? ElevatedButton.icon(
                                 onPressed: null,
                                 icon: const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                                label: Text('Выбрано', style: GoogleFonts.unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                                label: Text('Выбрано', style: unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: AppColors.mutedGold,
                                   foregroundColor: Colors.white,
@@ -1014,7 +1013,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
                                       }
                                     : null,
                                 icon: const Icon(Icons.add_shopping_cart, size: 20),
-                                label: Text('Выбрать', style: GoogleFonts.unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
+                                label: Text('Выбрать', style: unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
                                 style: OutlinedButton.styleFrom(
                                   foregroundColor: AppColors.mutedGold,
                                   side: const BorderSide(color: AppColors.mutedGold, width: 2),

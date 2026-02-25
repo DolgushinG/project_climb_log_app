@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:login_app/ResultsEntryScreen.dart';
 import 'package:login_app/theme/app_theme.dart';
 
@@ -64,7 +63,7 @@ class ResultEntryButton extends StatelessWidget {
         ),
         child: Text(
           _buttonText,
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             color: _canEdit ? Colors.white : Colors.white70,
             fontSize: 14,
             fontWeight: FontWeight.w600,

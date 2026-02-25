@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/RegisterScreen.dart';
@@ -101,12 +100,12 @@ class _LoginScreenState extends State<LoginScreen> {
       context: context,
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.cardDark,
-        title: Text('Ошибка входа', style: GoogleFonts.unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-        content: Text(message, style: GoogleFonts.unbounded(color: Colors.white70)),
+        title: Text('Ошибка входа', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
+        content: Text(message, style: unbounded(color: Colors.white70)),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: Text('OK', style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+            child: Text('OK', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -149,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> {
       appBar: AppBar(
         backgroundColor: AppColors.cardDark,
         automaticallyImplyLeading: true,
-        title: Text('Вход', style: GoogleFonts.unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text('Вход', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
       ),
       body: SafeArea(
         child: Center(
@@ -160,7 +159,7 @@ class _LoginScreenState extends State<LoginScreen> {
               children: [
                 Text(
                   'CLIMBING EVENTS.',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     color: Colors.white,
                     fontSize: 28,
                     fontWeight: FontWeight.w600,
@@ -181,11 +180,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     children: [
                       TextFormField(
                         controller: _emailController,
-                        style: GoogleFonts.unbounded(color: Colors.white),
+                        style: unbounded(color: Colors.white),
                         keyboardType: TextInputType.emailAddress,
                         decoration: InputDecoration(
                           labelText: 'Email',
-                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          labelStyle: unbounded(color: AppColors.graphite),
                           prefixIcon: Icon(Icons.email_outlined, color: AppColors.mutedGold, size: 22),
                           filled: true,
                           fillColor: AppColors.rowAlt,
@@ -197,10 +196,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
-                        style: GoogleFonts.unbounded(color: Colors.white),
+                        style: unbounded(color: Colors.white),
                         decoration: InputDecoration(
                           labelText: 'Пароль',
-                          labelStyle: GoogleFonts.unbounded(color: AppColors.graphite),
+                          labelStyle: unbounded(color: AppColors.graphite),
                           prefixIcon: Icon(Icons.lock_outline, color: AppColors.mutedGold, size: 22),
                           filled: true,
                           fillColor: AppColors.rowAlt,
@@ -221,7 +220,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           },
                           child: Text(
                             'Забыл пароль?',
-                            style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
+                            style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                           ),
                         ),
                       ),
@@ -242,7 +241,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   width: 24,
                                   child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.anthracite),
                                 )
-                              : Text('Вход', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
+                              : Text('Вход', style: unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -264,7 +263,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text('Гостевой режим', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
+                          child: Text('Гостевой режим', style: unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -285,7 +284,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text('Вход по коду', style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
+                          child: Text('Вход по коду', style: unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
                       ),
                       const SizedBox(height: 12),
@@ -302,7 +301,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               : const Icon(Icons.fingerprint, color: AppColors.mutedGold, size: 22),
                           label: Text(
                             'Войти по Face ID / Touch ID',
-                            style: GoogleFonts.unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                            style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
                           ),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.mutedGold,
@@ -322,14 +321,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         },
                         child: Text(
                           'Регистрация',
-                          style: GoogleFonts.unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
+                          style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
                         ),
                       ),
                       if (_socialFlags?.hasAny == true) ...[
                         const SizedBox(height: 28),
                         Text(
                           'Или войти с помощью',
-                          style: GoogleFonts.unbounded(color: Colors.white70, fontSize: 14),
+                          style: unbounded(color: Colors.white70, fontSize: 14),
                         ),
                         const SizedBox(height: 20),
                         Row(

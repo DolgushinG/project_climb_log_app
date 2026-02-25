@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
@@ -83,7 +82,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
         backgroundColor: AppColors.anthracite,
         title: Text(
           'План под твои замеры',
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 18,
             fontWeight: FontWeight.w600,
             color: Colors.white,
@@ -125,7 +124,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
   Widget _buildSectionHeader(String title) {
     return Text(
       title,
-      style: GoogleFonts.unbounded(
+      style: unbounded(
         fontSize: 18,
         fontWeight: FontWeight.w600,
         color: Colors.white,
@@ -151,7 +150,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
               const SizedBox(width: 8),
               Text(
                 'Зачем это',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: AppColors.mutedGold,
@@ -162,7 +161,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
           const SizedBox(height: 10),
           Text(
             tip,
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 14,
               color: Colors.white70,
               height: 1.4,
@@ -189,7 +188,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
         children: [
           Text(
             'Ты vs эталон 7b',
-            style: GoogleFonts.unbounded(
+            style: unbounded(
               fontSize: 16,
               fontWeight: FontWeight.w600,
               color: Colors.white,
@@ -220,7 +219,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
                 borderData: FlBorderData(show: false),
                 radarBorderData: const BorderSide(color: Colors.transparent),
                 titlePositionPercentageOffset: 0.18,
-                titleTextStyle: GoogleFonts.unbounded(
+                titleTextStyle: unbounded(
                   color: Colors.white70,
                   fontSize: 11,
                   fontWeight: FontWeight.w500,
@@ -274,7 +273,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
         const SizedBox(width: 6),
         Text(
           label,
-          style: GoogleFonts.unbounded(
+          style: unbounded(
             fontSize: 12,
             color: Colors.white70,
           ),
@@ -301,7 +300,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
               Expanded(
                 child: Text(
                   'Делай по порядку (${plan.weeksPlan} нед., ${plan.sessionsPerWeek}×/нед)',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -314,7 +313,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
           const SizedBox(height: 8),
           Text(
             'Выполни упражнения сверху вниз — каждое по подходам.',
-            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+            style: unbounded(fontSize: 12, color: Colors.white54),
           ),
           const SizedBox(height: 16),
           ...plan.drills.asMap().entries.map((e) => _buildDrillTile(e.key + 1, e.value)),
@@ -346,7 +345,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
             children: [
               Text(
                 'Типы протоколов',
-                style: GoogleFonts.unbounded(
+                style: unbounded(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   color: Colors.white,
@@ -376,7 +375,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
                   ),
                   child: Text(
                     label,
-                    style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white70),
+                    style: unbounded(fontSize: 12, color: Colors.white70),
                   ),
                 ),
               );
@@ -440,7 +439,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
               Expanded(
                 child: Text(
                   'ОФП по твоему уровню ($levelLabel)',
-                  style: GoogleFonts.unbounded(
+                  style: unbounded(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
@@ -463,7 +462,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
                     children: [
                       Text(
                         e.displayName,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: Colors.white,
@@ -471,7 +470,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
                       ),
                       Text(
                         '${e.defaultSets} × ${e.defaultReps}',
-                        style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                        style: unbounded(fontSize: 12, color: Colors.white54),
                       ),
                     ],
                   ),
@@ -494,7 +493,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
               icon: const Icon(Icons.check_circle_outline, size: 18),
               label: Text(
                 'Отметить в «Выполнить упражнения»',
-                style: GoogleFonts.unbounded(fontSize: 13),
+                style: unbounded(fontSize: 13),
               ),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.linkMuted,
@@ -568,7 +567,7 @@ class _DrillTileWithHintState extends State<_DrillTileWithHint> {
                   ),
                   child: Text(
                     '${widget.index}',
-                    style: GoogleFonts.unbounded(
+                    style: unbounded(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
                       color: AppColors.mutedGold,
@@ -582,7 +581,7 @@ class _DrillTileWithHintState extends State<_DrillTileWithHint> {
                     children: [
                       Text(
                         d.name,
-                        style: GoogleFonts.unbounded(
+                        style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
@@ -597,18 +596,18 @@ class _DrillTileWithHintState extends State<_DrillTileWithHint> {
                             const SizedBox(width: 4),
                             Text(
                               '${d.targetWeightKg!.toStringAsFixed(1)} кг',
-                              style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                              style: unbounded(fontSize: 13, color: Colors.white70),
                             ),
                             const SizedBox(width: 12),
                           ],
                           Text(
                             '${d.sets} × ${d.reps}',
-                            style: GoogleFonts.unbounded(fontSize: 13, color: Colors.white70),
+                            style: unbounded(fontSize: 13, color: Colors.white70),
                           ),
                           const SizedBox(width: 8),
                           Text(
                             'отдых ${d.rest}',
-                            style: GoogleFonts.unbounded(fontSize: 12, color: Colors.white54),
+                            style: unbounded(fontSize: 12, color: Colors.white54),
                           ),
                         ],
                       ),
@@ -626,7 +625,7 @@ class _DrillTileWithHintState extends State<_DrillTileWithHint> {
                               const SizedBox(width: 6),
                               Text(
                                 _expanded ? 'Свернуть' : 'Что это?',
-                                style: GoogleFonts.unbounded(
+                                style: unbounded(
                                   fontSize: 12,
                                   color: AppColors.mutedGold,
                                   fontWeight: FontWeight.w500,
@@ -646,7 +645,7 @@ class _DrillTileWithHintState extends State<_DrillTileWithHint> {
                             ),
                             child: Text(
                               d.hint!,
-                              style: GoogleFonts.unbounded(
+                              style: unbounded(
                                 fontSize: 12,
                                 color: Colors.white70,
                                 height: 1.4,
