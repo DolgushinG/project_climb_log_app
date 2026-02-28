@@ -79,6 +79,7 @@
 
 - В `.env` в **WEBAUTHN_ORIGINS** нужно разрешить:
   - веб: `https://climbing-events.ru`, `https://climbing-events.ru.tuna.am`
+  - **веб на поддомене**: `https://app.climbing-events.ru` — если PWA открыт с app.climbing-events.ru, origin будет именно он. Без этого Passkey на **Safari iOS** может не создаваться (422 при register).
   - **Android-приложение**: origin приходит как `android:apk-key-hash:<base64>`. Его нужно добавить в список.
 - Как узнать origin для Android: один раз залогировать на бэке поле `origin` из разобранного `clientDataJSON` из тела POST `/api/profile/webauthn/register` (или посмотреть в логах Laravel при 422). Либо из ответа приложения в запросе видно в `clientDataJSON` (base64) — после декода там будет `"origin": "android:apk-key-hash:ScrVHA7EBNpyUVwp3PB566P3RrV8ReOZX65SAcrolFs"` (значение зависит от ключа подписи APK).
 - Пример значения для текущего debug-сборки (из лога):  
@@ -157,3 +158,28 @@ SHA256: A1:B2:C3:D4:E5:...
 - **Настройки авторизации:** `lib/Screens/AuthSettingScreen.dart` — карточка «Face ID / Touch ID (Passkey)»: кнопки «Добавить Passkey» и «Удалить Passkey».
 
 Используется пакет [passkeys](https://pub.dev/packages/passkeys) (Corbado), совместимый с кастомным Relying Party (ваш Laravel бэкенд).
+
+**Web**: в `web/index.html` подключается `passkeys_bundle.js` — локальная копия из [corbado/flutter-passkeys](https://github.com/corbado/flutter-passkeys/releases). GitHub отдаёт release assets с MIME `application/octet-stream`, что вызывает ошибки в браузере; локальная копия отдаётся сервером с корректным `application/javascript`. При обновлении passkeys перезалейте bundle:
+```bash
+curl -sL -o web/passkeys_bundle.js "https://github.com/corbado/flutter-passkeys/releases/download/2.4.0/bundle.js"
+```
+(подставьте версию bundle, совместимую с вашей версией пакета passkeys)
+
+---
+
+## Отладка Passkey на Safari iOS (web)
+
+Если Passkey создаётся на macOS Safari, но **не на iPhone Safari** (web):
+
+1. **Проверить WEBAUTHN_ORIGINS** — если приложение открыто с `app.climbing-events.ru`, origin будет `https://app.climbing-events.ru`. Добавьте его в WEBAUTHN_ORIGINS на бэкенде.
+
+2. **Смотреть логи** — в `WebAuthnService` добавлено логирование (`debugPrint`). Чтобы увидеть логи на iPhone:
+   - Подключите iPhone к Mac по USB.
+   - На iPhone: Настройки → Safari → Дополнительно → Включить «Веб-инспектор».
+   - На Mac: Safari → Разработка → [ваш iPhone] → выберите вкладку с приложением.
+   - В консоли будут строки `[WebAuthn] ...` — по ним можно понять, на каком шаге ошибка (options, authenticator.register, register POST).
+
+3. **Типичные ошибки на iOS**:
+   - `422` при POST register с телом про origin → добавить `https://app.climbing-events.ru` в WEBAUTHN_ORIGINS.
+   - `DomainNotAssociatedException` → проверить rp.id (должен быть climbing-events.ru или app.climbing-events.ru).
+   - `PlatformException` / `DOM_EXCEPTION` → возможные ограничения Safari iOS (режим инкогнито, и т.п.).

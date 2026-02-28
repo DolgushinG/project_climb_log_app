@@ -635,6 +635,8 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                                     child: Text(
                                       _goalLabel(t.planGoal)!,
                                       style: unbounded(fontSize: 11, color: AppColors.mutedGold),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
                                     ),
                                   ),
                                 ],
@@ -877,10 +879,22 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text(e.$2, style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70)),
+                        Flexible(
+                          child: Text(
+                            e.$2,
+                            style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: selected ? AppColors.mutedGold : Colors.white70),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                         if (e.$3.isNotEmpty) ...[
                           const SizedBox(width: 6),
-                          Text(e.$3, style: unbounded(fontSize: 10, color: Colors.white54)),
+                          Flexible(
+                            child: Text(
+                              e.$3,
+                              style: unbounded(fontSize: 10, color: Colors.white54),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
                         ],
                       ],
                     ),
@@ -997,6 +1011,10 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               );
             }).toList(),
           ),
+          if (_injuries.length >= 2) ...[
+            const SizedBox(height: 12),
+            _buildInjuriesRecoveryHint(),
+          ],
         ],
       ),
     );
@@ -1076,6 +1094,7 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 36,
@@ -1084,14 +1103,16 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
               style: unbounded(fontSize: 13, color: Colors.white70),
             ),
           ),
-          Wrap(
-            spacing: 6,
-            runSpacing: 4,
-            children: [
-              _buildSessionTypeChip(weekday, 'ofp', 'ОФП', current),
-              _buildSessionTypeChip(weekday, 'sfp', 'СФП', current),
-              _buildSessionTypeChip(weekday, 'climbing', 'Лазание', current),
-            ],
+          Expanded(
+            child: Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              children: [
+                _buildSessionTypeChip(weekday, 'ofp', 'ОФП', current),
+                _buildSessionTypeChip(weekday, 'sfp', 'СФП', current),
+                _buildSessionTypeChip(weekday, 'climbing', 'Лазание', current),
+              ],
+            ),
           ),
         ],
       ),
@@ -1135,6 +1156,32 @@ class _PlanSelectionScreenState extends State<PlanSelectionScreen> {
           Text(label, style: unbounded(fontSize: 12, fontWeight: FontWeight.w500, color: Colors.white70)),
           if (hint != null && hint.isNotEmpty)
             Text(hint, style: unbounded(fontSize: 11, color: Colors.white38)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInjuriesRecoveryHint() {
+    final hint = _data?.planGuide?.injuriesRecoveryHint ??
+        'При двух и более травмах дни ОФП и СФП заменяются на режим восстановления (ЛФК) — только мобильность и растяжка.';
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.linkMuted.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.linkMuted.withOpacity(0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.info_outline, color: AppColors.linkMuted, size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              hint,
+              style: unbounded(fontSize: 12, color: Colors.white70, height: 1.4),
+            ),
+          ),
         ],
       ),
     );

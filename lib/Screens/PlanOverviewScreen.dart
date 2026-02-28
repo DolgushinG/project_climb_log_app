@@ -235,7 +235,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         if (cal != null && mounted && _plan?.id == plan.id) {
           for (final d in cal.days) {
             if (!d.inPlanRange || d.sessionType == null) continue;
-            final isTraining = d.sessionType == 'ofp' || d.sessionType == 'sfp' || d.sessionType == 'climbing';
+            final isTraining = d.sessionType == 'ofp' || d.sessionType == 'sfp' || d.sessionType == 'climbing' || d.sessionType == 'recovery';
             if (!isTraining) continue;
             final dateParts = d.date.split('-');
             if (dateParts.length >= 3) {
@@ -911,6 +911,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             _buildAddClimbingRow(),
           ],
           const SizedBox(height: 20),
+          if (plan.injuries != null && plan.injuries!.length >= 2) ...[
+            _buildInjuriesRecoveryHintCard(plan),
+            const SizedBox(height: 16),
+          ],
           _buildPlanSettingsCard(plan),
           const SizedBox(height: 28),
           _buildDeletePlanButton(),
@@ -977,9 +981,14 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
       ),
     );
     if (ok != true || !mounted) return;
-    final deleted = await _api.deleteActivePlan();
+    final plan = _plan;
+    final deleted = await _api.deleteActivePlan(planId: plan?.id);
     if (mounted) {
       if (deleted) {
+        setState(() {
+          _plan = null;
+          _planGuide = plan != null ? _planGuide : null;
+        });
         _load();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -990,6 +999,33 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         );
       }
     }
+  }
+
+  Widget _buildInjuriesRecoveryHintCard(ActivePlan plan) {
+    final hint = plan.injuriesRecoveryHint ??
+        _planGuide?.injuriesRecoveryHint ??
+        'При двух и более травмах дни ОФП и СФП заменяются на режим восстановления (ЛФК).';
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.linkMuted.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.linkMuted.withOpacity(0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(Icons.healing, color: AppColors.linkMuted, size: 22),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              hint,
+              style: unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildPlanSettingsCard(ActivePlan plan) {
@@ -1130,6 +1166,12 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     if (canContinue && remaining == 0) {
       return 'Всё отмечено. Нажмите «Завершить» — день будет засчитан, здесь появится итог и возможность добавить лазание.';
     }
+    if (day.isRecovery) {
+      final rec = day.coachRecommendation;
+      return rec != null && rec.isNotEmpty
+          ? rec
+          : 'Режим ЛФК: мобильность и растяжка. Без силовых упражнений.';
+    }
     if (day.isRest) {
       final rec = day.coachRecommendation;
       return rec != null && rec.isNotEmpty
@@ -1170,6 +1212,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     if (plan != null && _isBeforePlanStart(today, plan)) return 'План начинается';
     if (day == null) return 'Сегодня';
     if (day.isRest) return 'Сегодня день отдыха';
+    if (day.isRecovery) return 'Сегодня восстановление';
     if (day.isClimbing) return 'Сегодня только лазание';
     if (day.isOfp) return 'Сегодня ОФП';
     if (day.isSfp) return 'Сегодня СФП';
@@ -1328,9 +1371,11 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
                               ? Icons.schedule
                               : (isRest
                                   ? Icons.bedtime
-                                  : (isCompletedState
-                                      ? Icons.check_circle
-                                      : (canContinue ? Icons.play_arrow : Icons.fitness_center))),
+                                  : (day?.isRecovery == true
+                                      ? Icons.healing
+                                      : (isCompletedState
+                                          ? Icons.check_circle
+                                          : (canContinue ? Icons.play_arrow : Icons.fitness_center)))),
                           color: beforeStart || isRest
                               ? Colors.white38
                               : (isCompletedState ? AppColors.successMuted : AppColors.mutedGold),

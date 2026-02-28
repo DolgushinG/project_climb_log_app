@@ -327,6 +327,9 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                         _buildWeakLinksPreview(),
                       ],
                     ]
+                    else if (_day!.isRecovery) ...[
+                      _buildRecoveryDay(),
+                    ]
                     else if (_day!.isClimbing) ...[
                       _buildClimbingBlock(isClimbingOnly: true),
                       if ((_day!.weakLinks ?? []).isNotEmpty) ...[
@@ -714,6 +717,11 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         icon = Icons.route;
         color = AppColors.mutedGold;
         break;
+      case 'recovery':
+        label = 'Восстановление';
+        icon = Icons.healing;
+        color = AppColors.linkMuted;
+        break;
       default:
         label = 'Отдых';
         icon = Icons.spa;
@@ -1002,6 +1010,38 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  /// День восстановления (ЛФК): stretching как основной блок, exercises не показываем.
+  Widget _buildRecoveryDay() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: AppColors.linkMuted.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.linkMuted.withOpacity(0.4)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(Icons.healing, color: AppColors.linkMuted, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'Режим восстановления: только мобильность и растяжка. Силовые упражнения исключены.',
+                  style: unbounded(fontSize: 13, color: Colors.white70, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        _buildStretching(),
+      ],
     );
   }
 
@@ -1444,13 +1484,28 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      ex.name,
-                      style: unbounded(
-                        fontSize: 13,
-                        color: completed ? Colors.white54 : Colors.white70,
-                        decoration: completed ? TextDecoration.lineThrough : null,
-                      ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.baseline,
+                      textBaseline: TextBaseline.alphabetic,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            ex.name,
+                            style: unbounded(
+                              fontSize: 13,
+                              color: completed ? Colors.white54 : Colors.white70,
+                              decoration: completed ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                        ),
+                        if (ex.dosageDisplay.isNotEmpty) ...[
+                          const SizedBox(width: 8),
+                          Text(
+                            ex.dosageDisplay,
+                            style: unbounded(fontSize: 12, color: Colors.white54),
+                          ),
+                        ],
+                      ],
                     ),
                     if (ex.estimatedMinutes != null && ex.estimatedMinutes! > 0) ...[
                       const SizedBox(height: 6),

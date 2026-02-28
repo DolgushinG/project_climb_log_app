@@ -10,6 +10,8 @@ class PlanGuide {
   final PlanGuideSection? whatWeConsider;
   final PlanGuideSection? whatYouGet;
   final Map<String, PlanSessionTypeInfo>? sessionTypes;
+  /// Подсказка при 2+ травмах: дни ОФП/СФП заменяются на режим восстановления (ЛФК).
+  final String? injuriesRecoveryHint;
 
   PlanGuide({
     this.shortDescription,
@@ -17,6 +19,7 @@ class PlanGuide {
     this.whatWeConsider,
     this.whatYouGet,
     this.sessionTypes,
+    this.injuriesRecoveryHint,
   });
 
   factory PlanGuide.fromJson(Map<String, dynamic>? json) {
@@ -30,6 +33,7 @@ class PlanGuide {
       sessionTypes: stRaw != null
           ? stRaw.map((k, v) => MapEntry(k, PlanSessionTypeInfo.fromJson(Map<String, dynamic>.from(v as Map))))
           : null,
+      injuriesRecoveryHint: json['injuries_recovery_hint'] as String?,
     );
   }
 
@@ -266,6 +270,8 @@ class ActivePlan {
   final int? experienceMonths;
   final List<int>? ofpWeekdays;
   final List<int>? sfpWeekdays;
+  /// Подсказка при 2+ травмах (от бэкенда при GET plans/active).
+  final String? injuriesRecoveryHint;
 
   ActivePlan({
     required this.id,
@@ -283,6 +289,7 @@ class ActivePlan {
     this.experienceMonths,
     this.ofpWeekdays,
     this.sfpWeekdays,
+    this.injuriesRecoveryHint,
   });
 
   factory ActivePlan.fromJson(Map<String, dynamic> json) {
@@ -307,6 +314,7 @@ class ActivePlan {
       experienceMonths: _parseInt(json['experience_months']),
       ofpWeekdays: ofpRaw?.map((e) => (e as num).toInt()).toList(),
       sfpWeekdays: sfpRaw?.map((e) => (e as num).toInt()).toList(),
+      injuriesRecoveryHint: json['injuries_recovery_hint'] as String?,
     );
   }
 
@@ -400,6 +408,7 @@ class PlanDayResponse {
   bool get isOfp => sessionType == 'ofp';
   bool get isSfp => sessionType == 'sfp';
   bool get isClimbing => sessionType == 'climbing';
+  bool get isRecovery => sessionType == 'recovery';
 
   factory PlanDayResponse.fromJson(Map<String, dynamic> json) {
     final exRaw = json['exercises'] as List<dynamic>? ?? [];
@@ -503,6 +512,10 @@ class PlanStretchingExercise {
   final String? climbingBenefit;
   /// Оценка времени (мин). Бэк: estimated_minutes.
   final int? estimatedMinutes;
+  /// Секунды удержания (ЛФК/восстановление). Бэк: hold_seconds.
+  final int? holdSeconds;
+  /// Подходов (ЛФК/восстановление). Бэк: default_sets.
+  final int? defaultSets;
 
   PlanStretchingExercise({
     required this.name,
@@ -510,7 +523,18 @@ class PlanStretchingExercise {
     this.hint,
     this.climbingBenefit,
     this.estimatedMinutes,
+    this.holdSeconds,
+    this.defaultSets,
   });
+
+  /// Текст дозировки: «2×30 сек» или «30 сек» (если default_sets <= 1).
+  String get dosageDisplay {
+    if (holdSeconds == null || holdSeconds! <= 0) return '';
+    final sets = defaultSets ?? 1;
+    final sec = holdSeconds!;
+    if (sets > 1) return '$sets×$sec сек';
+    return '$sec сек';
+  }
 
   factory PlanStretchingExercise.fromJson(dynamic json) {
     if (json is String) return PlanStretchingExercise(name: json);
@@ -521,6 +545,8 @@ class PlanStretchingExercise {
         hint: json['hint'] as String?,
         climbingBenefit: json['climbing_benefit'] as String?,
         estimatedMinutes: _parseInt(json['estimated_minutes']),
+        holdSeconds: _parseInt(json['hold_seconds']),
+        defaultSets: _parseInt(json['default_sets']),
       );
     }
     return PlanStretchingExercise(name: json.toString());

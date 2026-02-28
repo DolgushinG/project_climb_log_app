@@ -184,12 +184,13 @@ class TrainingPlanApiService {
     return null;
   }
 
-  /// DELETE /api/climbing-logs/plans/active — удаление активного плана (для тестирования).
-  Future<bool> deleteActivePlan() async {
+  /// DELETE /api/climbing-logs/plans/active или /plans/{id} — удаление активного плана.
+  /// [planId] — опционально: если /plans/active не сработал, пробуем DELETE /plans/{id}.
+  Future<bool> deleteActivePlan({int? planId}) async {
     final token = await _getToken();
     if (token == null) return false;
     try {
-      final response = await http.delete(
+      var response = await http.delete(
         Uri.parse('$DOMAIN/api/climbing-logs/plans/active'),
         headers: _headers(token),
       );
@@ -197,6 +198,18 @@ class TrainingPlanApiService {
       if (response.statusCode == 200 || response.statusCode == 204) {
         _invalidatePlanCaches();
         return true;
+      }
+      // Fallback: некоторые бэкенды ожидают DELETE /plans/{id}
+      if (planId != null && planId > 0) {
+        response = await http.delete(
+          Uri.parse('$DOMAIN/api/climbing-logs/plans/$planId'),
+          headers: _headers(token),
+        );
+        if (await redirectIfUnauthorized(response.statusCode)) return false;
+        if (response.statusCode == 200 || response.statusCode == 204 || response.statusCode == 404) {
+          _invalidatePlanCaches();
+          return true;
+        }
       }
     } catch (_) {}
     return false;

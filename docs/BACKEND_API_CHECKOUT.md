@@ -9,6 +9,7 @@
 | POST | `/api/event/{id}/check-promo-code` | Применить промокод |
 | POST | `/api/event/{id}/cancel-promo-code` | Отменить промокод |
 | POST | `/api/event/{id}/cancel-take-part` | Отмена регистрации (при таймере 0) |
+| GET | `/api/event/{id}/get-package` | Выбранный пакет (себя + связанные) |
 | POST | `/api/event/{id}/upload-receipt` | Загрузка чека (multipart) |
 | POST | `/api/event/{id}/payment-to-place` | Оплата на месте |
 
