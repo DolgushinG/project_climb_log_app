@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../services/AICoachService.dart';
 import '../models/ChatMessage.dart';
 import '../utils/app_constants.dart';
+import '../theme/app_theme.dart';
 
 class AICoachScreen extends StatefulWidget {
   const AICoachScreen({super.key});

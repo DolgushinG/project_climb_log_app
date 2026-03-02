@@ -97,7 +97,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         _dateStr,
         feeling: _feeling,
         focus: _focus,
-        availableMinutes: _availableMinutes,
+        availableMinutes: _availableMinutes ?? widget.plan.availableMinutes,
         light: true,
       );
     }
@@ -150,7 +150,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       _dateStr,
       feeling: _feeling,
       focus: _focus,
-      availableMinutes: _availableMinutes,
+      availableMinutes: _availableMinutes ?? widget.plan.availableMinutes,
     ).then((res) {
       if (!mounted) return;
       setState(() {

@@ -125,7 +125,12 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     }
     if (mounted && _plan?.id == plan.id) setState(() => _loadingTodayPlanDay = true);
     final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    final day = await _api.getPlanDay(plan.id, dateStr, light: true);
+    final day = await _api.getPlanDay(
+      plan.id,
+      dateStr,
+      availableMinutes: plan.availableMinutes,
+      light: true,
+    );
     if (day == null || !mounted || _plan?.id != plan.id) {
       if (mounted && _plan?.id == plan.id) setState(() => _loadingTodayPlanDay = false);
       return;

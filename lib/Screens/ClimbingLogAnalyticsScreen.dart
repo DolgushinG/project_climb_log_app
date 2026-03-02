@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
+import 'package:login_app/services/PremiumSubscriptionService.dart';
+import 'package:login_app/theme/app_theme.dart';
 
 /// Экран аналитики (Обзор + Прогресс) внутри ClimbingLogScreen.
 /// Содержит вложенный TabBar с двумя подвкладками.
