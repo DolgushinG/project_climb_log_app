@@ -39,7 +39,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   void _onInputFocusChanged() {
     if (_inputFocusNode.hasFocus && _messages.isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+      // Задержка, чтобы дать клавиатуре время анимироваться
+      Future.delayed(const Duration(milliseconds: 400), _scrollToBottom);
     }
   }
 
@@ -142,7 +143,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     await Future.delayed(const Duration(milliseconds: 100));
     if (mounted && _scrollController.hasClients) {
       _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
+        0,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeOut,
       );
@@ -178,10 +179,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   Widget build(BuildContext context) {
     super.build(context); // для AutomaticKeepAlive
     final theme = Theme.of(context);
-    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
-      resizeToAvoidBottomInset: false,
+      resizeToAvoidBottomInset: true,
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.cardDark,
@@ -194,7 +193,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
           ),
         ],
       ),
-      body: Column(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
         children: [
           Expanded(
             child: _messages.isEmpty && _error == null
@@ -223,12 +225,20 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                   )
                 : ListView.builder(
                     controller: _scrollController,
-                    padding: const EdgeInsets.all(12),
+                    reverse: true,
+                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: EdgeInsets.only(
+                      left: 12,
+                      right: 12,
+                      top: 12 + MediaQuery.viewInsetsOf(context).bottom,
+                      bottom: 12,
+                    ),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
-                      final msg = _messages[index];
+                      final msgIndex = _messages.length - 1 - index;
+                      final msg = _messages[msgIndex];
                       final isUser = msg.role == 'user';
-                      final isHighlighted = index == _highlightMessageIndex && !isUser;
+                      final isHighlighted = msgIndex == _highlightMessageIndex && !isUser;
                       return Align(
                         alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
                         child: AnimatedContainer(
@@ -291,13 +301,11 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                 ],
               ),
             ),
-          Padding(
-            padding: EdgeInsets.only(bottom: bottomInset + bottomPadding),
-            child: Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: AppColors.anthracite),
-              child: Row(
-                children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: AppColors.anthracite),
+            child: Row(
+              children: [
                 Expanded(
                   child: TextField(
                     focusNode: _inputFocusNode,
@@ -332,11 +340,11 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                   onPressed: _isLoading ? null : () => _sendMessage(),
                   child: const Icon(Icons.send),
                 ),
-                ],
-              ),
+              ],
             ),
           ),
         ],
+        ),
       ),
     );
   }
