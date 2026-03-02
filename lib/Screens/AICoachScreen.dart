@@ -178,9 +178,9 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   }
 
   static const List<String> _quickQuestions = [
-    'Как улучшить finger strength?',
-    'Что добавить в мой план тренировок?',
-    'Почему я застрял на 6b?',
+    'Как прокачать силу пальцев?',
+    'Что скажешь насчет моего плана?',
+    'Почему я застрял на категории 6B?',
   ];
 
   Widget _buildQuickActions() {
@@ -238,7 +238,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Задайте вопрос о тренировках, планах или анализе прогресса.',
+                            'Спрашивай про скалолазание, фингер, прогресс на маршрутах.',
                             style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
                             textAlign: TextAlign.center,
                           ),
