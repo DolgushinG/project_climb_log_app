@@ -1,0 +1,20 @@
+# Многоступенчатый Dockerfile для сборки Flutter APK
+# Stage 1: build
+FROM cirrusci/flutter:stable AS build
+
+WORKDIR /app
+
+# Копируем pubspec и кэшируем зависимости
+COPY pubspec.* ./
+RUN flutter pub get
+
+# Копируем весь код
+COPY . .
+
+# Сборка release APK
+RUN flutter build apk --release
+
+# Stage 2: extract artifact
+FROM alpine:latest AS export
+COPY --from=build /app/build/app/outputs/flutter-apk/app-release.apk /app-release.apk
+# В GitHub Actions будем копировать из этого stage
