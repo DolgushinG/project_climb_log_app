@@ -45,7 +45,7 @@
         <!-- RuStore Push: замените на ID проекта из RuStore Консоль → Push-уведомления → Проекты -->
         <meta-data
             android:name="ru.rustore.sdk.pushclient.project_id"
-            android:value="YOUR_PROJECT_ID" />
+            android:value="" />
     </application>
     <!-- Required to query activities that can process text, see:
          https://developer.android.com/training/package-visibility and
@@ -59,4 +59,6 @@
         </intent>
     </queries>
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Android 13+: для отображения push-уведомлений -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 </manifest>
