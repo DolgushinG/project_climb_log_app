@@ -34,10 +34,18 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadHistory();
+    _inputFocusNode.addListener(_onInputFocusChanged);
+  }
+
+  void _onInputFocusChanged() {
+    if (_inputFocusNode.hasFocus && _messages.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    }
   }
 
   @override
   void dispose() {
+    _inputFocusNode.removeListener(_onInputFocusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _inputFocusNode.dispose();
     super.dispose();
@@ -170,7 +178,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   Widget build(BuildContext context) {
     super.build(context); // для AutomaticKeepAlive
     final theme = Theme.of(context);
+    final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
+    final bottomPadding = MediaQuery.paddingOf(context).bottom;
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.cardDark,
@@ -280,11 +291,13 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                 ],
               ),
             ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.anthracite),
-            child: Row(
-              children: [
+          Padding(
+            padding: EdgeInsets.only(bottom: bottomInset + bottomPadding),
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: AppColors.anthracite),
+              child: Row(
+                children: [
                 Expanded(
                   child: TextField(
                     focusNode: _inputFocusNode,
@@ -319,7 +332,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                   onPressed: _isLoading ? null : () => _sendMessage(),
                   child: const Icon(Icons.send),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
