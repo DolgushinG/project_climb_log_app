@@ -23,7 +23,6 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   final AICoachService _coachService = AICoachService();
 
   List<ChatMessage> _messages = [];
-  bool _inputFocused = false;
   bool _isLoading = false;
   String? _error;
   String? _lastFailedMessage; // для retry
@@ -35,13 +34,11 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _loadHistory();
-    _inputFocusNode.addListener(_onInputFocusChanged);
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    _inputFocusNode.removeListener(_onInputFocusChanged);
     _inputFocusNode.dispose();
     super.dispose();
   }
@@ -53,9 +50,6 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     }
   }
 
-  void _onInputFocusChanged() {
-    if (mounted) setState(() => _inputFocused = _inputFocusNode.hasFocus);
-  }
 
   Future<void> _loadHistory() async {
     try {
@@ -136,11 +130,6 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     }
   }
 
-  void _onQuickActionTap(String text) {
-    _inputFocusNode.unfocus();
-    _sendMessage(text);
-  }
-
   Future<void> _scrollToBottom() async {
     await Future.delayed(const Duration(milliseconds: 100));
     if (mounted && _scrollController.hasClients) {
@@ -175,31 +164,6 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         setState(() => _error = 'Не удалось очистить историю.');
       }
     }
-  }
-
-  static const List<String> _quickQuestions = [
-    'Как прокачать силу пальцев?',
-    'Что скажешь насчет моего плана?',
-    'Почему я застрял на категории 6B?',
-  ];
-
-  Widget _buildQuickActions() {
-    if (!_inputFocused || _isLoading) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      child: Wrap(
-        spacing: 8,
-        runSpacing: 8,
-        children: _quickQuestions
-            .map((q) => ActionChip(
-                  label: Text(q, style: unbounded(fontSize: 12)),
-                  onPressed: () => _onQuickActionTap(q),
-                  backgroundColor: AppColors.rowAlt,
-                  side: BorderSide(color: AppColors.mutedGold.withOpacity(0.3)),
-                ))
-            .toList(),
-      ),
-    );
   }
 
   @override
@@ -300,7 +264,6 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                   ),
           ),
           if (_error != null) _buildErrorCard(theme),
-          if (_inputFocused) _buildQuickActions(),
           if (_isLoading)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8),
