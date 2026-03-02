@@ -35,12 +35,3 @@ jobs:
 
       - name: Test
         run: flutter test --no-pub
-
-      - name: Build APK (release)
-        run: flutter build apk --release --no-pub
-
-      - name: Upload APK artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: app-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
