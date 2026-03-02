@@ -6,6 +6,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'CompetitionScreen.dart';
 import 'theme/app_theme.dart';
 import 'ProfileScreen.dart';
+import 'CompetitionScreen.dart';
+import 'theme/app_theme.dart';
+import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ClimbingLogScreen.dart';
 import 'Screens/GymsListScreen.dart';
@@ -13,6 +16,7 @@ import 'Screens/RatingScreen.dart';
 import 'Screens/RegisterScreen.dart';
 import 'login.dart';
 import 'main.dart';
+import 'services/AppConfigService.dart';
 import 'services/connectivity_service.dart';
 import 'services/RustorePushService.dart';
 import 'services/cache_service.dart';
@@ -33,7 +37,7 @@ class MainScreen extends StatefulWidget {
   _MainScreenState createState() => _MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
+class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   /// Для авторизованных — открываем на профиле с приветственным окном; гости — на тренировках.
   late int _selectedIndex;
   late final PageController _pageController;
@@ -76,7 +80,8 @@ class _MainScreenState extends State<MainScreen> {
     return shouldExit == true;
   }
 
-  static const int _pageCount = 5;
+  //late final int _pageCount = 5; // зафиксировано, теперь динамически
+  late final int _pageCount;
 
   Widget _buildPage(int index) {
     if (widget.isGuest) {
@@ -116,6 +121,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _pageCount = widget.isGuest ? 5 : 5;
     final startPage = widget.isGuest ? 0 : (widget.openOnProfile ? 4 : 0);
     _selectedIndex = startPage;
     _pageController = PageController(initialPage: startPage);
@@ -144,6 +151,14 @@ class _MainScreenState extends State<MainScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) => prefetchCompetitionsAndRating());
     if (!widget.isGuest) {
       WidgetsBinding.instance.addPostFrameCallback((_) => RustorePushService.sendStoredTokenToBackend());
+      WidgetsBinding.instance.addPostFrameCallback((_) => AppConfigService().getConfig(forceRefresh: true));
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !widget.isGuest) {
+      AppConfigService().getConfig(forceRefresh: true);
     }
   }
 
@@ -228,6 +243,7 @@ class _MainScreenState extends State<MainScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _connectivitySubscription?.cancel();
     _pageController.dispose();
     super.dispose();

@@ -1,0 +1,33 @@
+name: Flutter CI
+
+on:
+  push:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Cache pub packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            .dart_tool/
+          key: ${{ runner.os }}-flutter-${{ hashFiles('**/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Test
+        run: flutter test --no-pub

@@ -10,6 +10,7 @@ import 'package:login_app/services/cache_service.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/offline_queue_service.dart';
 import 'package:login_app/services/PlanCompletionClearService.dart';
+import 'package:login_app/services/AppConfigService.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -81,6 +82,9 @@ Future<void> clearAllDataOnLogout() async {
   await PremiumSubscriptionService().invalidateStatusCache();
   await prefs.remove('premium_trial_start_iso');
 
+  // Конфиг/фича-флаги
+  await AppConfigService().clearCacheStorage();
+
   // План тренировок, упражнения, отметки
   await PlanCompletionClearService.clearLocalData();
 
@@ -93,6 +97,7 @@ Future<void> clearAllDataOnLogout() async {
 
   // Остальные пользовательские данные в SharedPreferences
   const _userKeys = [
+    'ai_coach_history',
     'strength_measurement_history',
     'strength_last_metrics',
     'training_xp',
@@ -281,6 +286,9 @@ class _TokenCheckerState extends State<TokenChecker> {
     final isGuest = storedToken == null || (storedToken.trim().isEmpty);
     if (isGuest) {
       await clearAllDataOnLogout();
+    } else {
+      // Предзагрузка конфига при заходе
+      AppConfigService().getConfig(forceRefresh: true);
     }
     setState(() {
       token = storedToken;

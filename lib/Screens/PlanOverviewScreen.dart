@@ -13,17 +13,20 @@ import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 import 'package:login_app/Screens/PlanCalendarScreen.dart';
 import 'package:login_app/Screens/PlanDayScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
+import 'package:login_app/Screens/AICoachScreen.dart';
 
 /// Обзор плана: при отсутствии — кнопка создания; при наличии — календарь и «Сегодня».
 class PlanOverviewScreen extends StatefulWidget {
   final bool isTabVisible;
   final PremiumStatus? premiumStatus;
+  final bool aiCoachEnabled;
   final VoidCallback? onPremiumTap;
 
   const PlanOverviewScreen({
     super.key,
     this.isTabVisible = true,
     this.premiumStatus,
+    this.aiCoachEnabled = false,
     this.onPremiumTap,
   });
 
@@ -125,7 +128,12 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     }
     if (mounted && _plan?.id == plan.id) setState(() => _loadingTodayPlanDay = true);
     final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
-    final day = await _api.getPlanDay(plan.id, dateStr, light: true);
+    final day = await _api.getPlanDay(
+      plan.id,
+      dateStr,
+      availableMinutes: plan.availableMinutes,
+      light: true,
+    );
     if (day == null || !mounted || _plan?.id != plan.id) {
       if (mounted && _plan?.id == plan.id) setState(() => _loadingTodayPlanDay = false);
       return;
@@ -871,6 +879,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.aiCoachEnabled) ...[
+            _buildAICoachChatRow(),
+            const SizedBox(height: 20),
+          ],
           _buildPlanProgressBar(),
           const SizedBox(height: 20),
           if (_showPlanCreatedWelcome) _buildPlanCreatedWelcomeCard(plan),
@@ -1104,6 +1116,43 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     if (n == 1) return 'упражнение';
     if (n >= 2 && n <= 4) return 'упражнения';
     return 'упражнений';
+  }
+
+  Widget _buildAICoachChatRow() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const AICoachScreen(),
+            ),
+          );
+        },
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark.withOpacity(0.6),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.graphite),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.auto_awesome, size: 22, color: AppColors.mutedGold.withOpacity(0.9)),
+              const SizedBox(width: 12),
+              Text(
+                'AI Тренер чат',
+                style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+              ),
+              const Spacer(),
+              Icon(Icons.chevron_right, size: 20, color: AppColors.mutedGold),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildAddClimbingRow() {

@@ -29,13 +29,13 @@ void main() {
     test('все ачивки проверяются корректно — Клешни краба', () {
       // Щипок ≥40% от веса. Вес 70 кг → pinch нужно ≥28 кг
       final m = StrengthMetrics(
-        pinchKg: 30,
+        pinch40Kg: 30,
         bodyWeightKg: 70,
       );
       final a = strengthAchievements.firstWhere((e) => e.id == 'crab_claws');
       expect(a.check(m), isTrue);
 
-      final m2 = StrengthMetrics(pinchKg: 20, bodyWeightKg: 70);
+      final m2 = StrengthMetrics(pinch40Kg: 20, bodyWeightKg: 70);
       expect(a.check(m2), isFalse);
     });
 
@@ -98,7 +98,7 @@ void main() {
       final m = StrengthMetrics(
         fingerLeftKg: 42,
         fingerRightKg: 38,
-        pinchKg: 28,
+        pinch40Kg: 28,
         bodyWeightKg: 70,
       );
       expect(m.fingerBestPct, closeTo(60.0, 0.1));
@@ -111,7 +111,7 @@ void main() {
 StrengthMetrics? _metricsForAchievement(String id) {
   switch (id) {
     case 'crab_claws':
-      return StrengthMetrics(pinchKg: 30, bodyWeightKg: 70);
+      return StrengthMetrics(pinch40Kg: 30, bodyWeightKg: 70);
     case 'steel_crimp':
       return StrengthMetrics(fingerLeftKg: 45, fingerRightKg: 40, bodyWeightKg: 70);
     case 'hauler':
