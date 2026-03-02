@@ -12,6 +12,7 @@ import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
 import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
 import 'package:login_app/Screens/PlanOverviewScreen.dart';
+import 'package:login_app/Screens/AICoachScreen.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 
 /// Объединяющий экран трекера трасс.
@@ -43,7 +44,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+    _tabController = TabController(length: 6, vsync: this);
     _tabController.addListener(_onTabChanged);
     _verifyTokenAndLoadPremium();
   }
@@ -274,6 +275,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                           Tab(child: FittedBox(child: Text('Прогресс', style: unbounded(fontSize: 13)))),
                           Tab(child: FittedBox(child: Text('История', style: unbounded(fontSize: 13)))),
                           Tab(child: FittedBox(child: Text('Тест', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('AI Тренер', style: unbounded(fontSize: 13)))),
                         ],
                       ),
                     ),
@@ -305,6 +307,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                   const ClimbingLogProgressScreen(),
                   const ClimbingLogHistoryScreen(),
                   const ClimbingLogTestingScreen(),
+                  const AICoachScreen(),
                 ],
               ),
     );

@@ -11,7 +11,10 @@ class AICoachScreen extends StatefulWidget {
   State<AICoachScreen> createState() => _AICoachScreenState();
 }
 
-class _AICoachScreenState extends State<AICoachScreen> {
+class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveClientMixin {
+  @override
+  bool get wantKeepAlive => true;
+
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final AICoachService _coachService = AICoachService();
@@ -33,8 +36,8 @@ class _AICoachScreenState extends State<AICoachScreen> {
     });
   }
 
-  Future<void> _sendMessage() async {
-    final text = _controller.text.trim();
+  Future<void> _sendMessage([String? prefilled]) async {
+    final text = (prefilled ?? _controller.text).trim();
     if (text.isEmpty) return;
 
     setState(() {
@@ -46,7 +49,9 @@ class _AICoachScreenState extends State<AICoachScreen> {
     setState(() {
       _messages.add(userMessage);
     });
-    _controller.clear();
+    if (prefilled == null) {
+      _controller.clear();
+    }
     await _scrollToBottom();
 
     try {
@@ -80,8 +85,33 @@ class _AICoachScreenState extends State<AICoachScreen> {
     });
   }
 
+  Widget _buildQuickActions() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          ActionChip(
+            label: const Text('Как улучшить finger strength?'),
+            onPressed: () => _sendMessage('Как улучшить finger strength?'),
+          ),
+          ActionChip(
+            label: const Text('Что добавить в план?'),
+            onPressed: () => _sendMessage('Что добавить в мой план тренировок?'),
+          ),
+          ActionChip(
+            label: const Text('Почему я застрял на 6b?'),
+            onPressed: () => _sendMessage('Почему я застрял на 6b?'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    super.build(context); // для AutomaticKeepAlive
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
@@ -155,6 +185,7 @@ class _AICoachScreenState extends State<AICoachScreen> {
                 child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
+          _buildQuickActions(),
           Container(
             padding: const EdgeInsets.all(8),
             child: Row(
@@ -163,7 +194,7 @@ class _AICoachScreenState extends State<AICoachScreen> {
                   child: TextField(
                     controller: _controller,
                     decoration: InputDecoration(
-                      hintText: 'Введите вопрос...',
+                      hintText: 'Спросите о тренировках, планах, силе...',
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                       ),
@@ -177,7 +208,7 @@ class _AICoachScreenState extends State<AICoachScreen> {
                 ),
                 const SizedBox(width: 8),
                 FloatingActionButton(
-                  onPressed: _isLoading ? null : _sendMessage,
+                  onPressed: _isLoading ? null : () => _sendMessage(),
                   child: const Icon(Icons.send),
                 ),
               ],
@@ -186,12 +217,5 @@ class _AICoachScreenState extends State<AICoachScreen> {
         ],
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    _scrollController.dispose();
-    super.dispose();
   }
 }
