@@ -8,11 +8,10 @@ import 'package:login_app/Screens/PremiumPaymentScreen.dart';
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
 import 'package:login_app/Screens/ClimbingLogPremiumStub.dart';
-import 'package:login_app/Screens/ClimbingLogProgressScreen.dart';
-import 'package:login_app/Screens/ClimbingLogSummaryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
 import 'package:login_app/Screens/PlanOverviewScreen.dart';
 import 'package:login_app/Screens/AICoachScreen.dart';
+import 'package:login_app/Screens/ClimbingLogAnalyticsScreen.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 
 /// Объединяющий экран трекера трасс.
@@ -44,7 +43,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 6, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
     _verifyTokenAndLoadPremium();
   }
@@ -247,6 +246,19 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
           backgroundColor: AppColors.anthracite,
           automaticallyImplyLeading: false,
           title: Text('Тренировки', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          actions: [
+            if (!widget.isGuest)
+              IconButton(
+                icon: const Icon(Icons.fitness_center, size: 20),
+                tooltip: 'Тесты силы',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const ClimbingLogTestingScreen()),
+                  );
+                },
+              ),
+          ],
           bottom: showPaywall
               ? null
               : PreferredSize(
@@ -271,10 +283,8 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                         labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                         tabs: [
                           Tab(child: FittedBox(child: Text('План', style: unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Обзор', style: unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Прогресс', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Статистика', style: unbounded(fontSize: 13)))),
                           Tab(child: FittedBox(child: Text('История', style: unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Тест', style: unbounded(fontSize: 13)))),
                           Tab(child: FittedBox(child: Text('AI Тренер', style: unbounded(fontSize: 13)))),
                         ],
                       ),
@@ -297,16 +307,14 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                       MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
                     ).then((paymentSuccess) => _onReturnFromPremiumPayment(paymentSuccess == true)),
                   ),
-                  ClimbingLogSummaryScreen(
+                  ClimbingLogAnalyticsScreen(
                     premiumStatus: _premiumStatus,
                     onPremiumTap: () => Navigator.push(
                       context,
                       MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
                     ).then((paymentSuccess) => _onReturnFromPremiumPayment(paymentSuccess == true)),
                   ),
-                  const ClimbingLogProgressScreen(),
                   const ClimbingLogHistoryScreen(),
-                  const ClimbingLogTestingScreen(),
                   const AICoachScreen(),
                 ],
               ),
