@@ -6,6 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'CompetitionScreen.dart';
 import 'theme/app_theme.dart';
 import 'ProfileScreen.dart';
+import 'Screens/AICoachScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ClimbingLogScreen.dart';
 import 'Screens/GymsListScreen.dart';
@@ -76,7 +77,8 @@ class _MainScreenState extends State<MainScreen> {
     return shouldExit == true;
   }
 
-  static const int _pageCount = 5;
+  //late final int _pageCount = 5; // зафиксировано, теперь динамически
+  late final int _pageCount;
 
   Widget _buildPage(int index) {
     if (widget.isGuest) {
@@ -105,6 +107,8 @@ class _MainScreenState extends State<MainScreen> {
       case 3:
         return const GymsListScreen(key: ValueKey('gyms'));
       case 4:
+        return const AICoachScreen(key: ValueKey('ai_coach'));
+      case 5:
         return KeyedSubtree(key: const ValueKey('profile'), child: ProfileScreen());
       default:
         return const SizedBox.shrink();
@@ -116,7 +120,8 @@ class _MainScreenState extends State<MainScreen> {
   @override
   void initState() {
     super.initState();
-    final startPage = widget.isGuest ? 0 : (widget.openOnProfile ? 4 : 0);
+    _pageCount = widget.isGuest ? 5 : 6;
+    final startPage = widget.isGuest ? 0 : (widget.openOnProfile ? 5 : 0);
     _selectedIndex = startPage;
     _pageController = PageController(initialPage: startPage);
     if (!widget.isGuest && !widget.openOnProfile) {
@@ -307,7 +312,9 @@ class _MainScreenState extends State<MainScreen> {
               _buildNavItem(icon: Icons.emoji_events_outlined, iconActive: Icons.emoji_events_rounded, label: 'Соревнования', index: 2),
               _buildNavItem(icon: Icons.business_outlined, iconActive: Icons.business_rounded, label: 'Скалодромы', index: 3),
               if (!widget.isGuest)
-                _buildNavItem(icon: Icons.person_outline_rounded, iconActive: Icons.person_rounded, label: 'Профиль', index: 4),
+                _buildNavItem(icon: Icons.psychology_outlined, iconActive: Icons.psychology, label: 'AI Тренер', index: 4),
+              if (!widget.isGuest)
+                _buildNavItem(icon: Icons.person_outline_rounded, iconActive: Icons.person_rounded, label: 'Профиль', index: 5),
             ],
           ),
         ),
