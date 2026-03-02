@@ -17,9 +17,9 @@ void main() {
     await tester.tap(find.byType(TextField));
     await tester.pumpAndSettle();
 
-    expect(find.text('Как улучшить finger strength?'), findsOneWidget);
-    expect(find.text('Что добавить в мой план тренировок?'), findsOneWidget);
-    expect(find.text('Почему я застрял на 6b?'), findsOneWidget);
+    expect(find.text('Как прокачать силу пальцев?'), findsOneWidget);
+    expect(find.text('Что скажешь насчет моего плана?'), findsOneWidget);
+    expect(find.text('Почему я застрял на категории 6B?'), findsOneWidget);
   });
 
   testWidgets('AICoachScreen has input field and send button', (tester) async {
