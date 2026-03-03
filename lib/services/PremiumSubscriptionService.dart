@@ -20,6 +20,8 @@ class PremiumStatus {
   final bool isUnauthorized;
   /// Стоимость подписки в рублях (из бэкенда). Fallback 199.
   final int subscriptionPriceRub;
+  /// true — подписка только что истекла (была active → стала нет), показать баннер «Подписка закончилась».
+  final bool subscriptionJustExpired;
 
   PremiumStatus({
     required this.hasActiveSubscription,
@@ -31,6 +33,7 @@ class PremiumStatus {
     this.networkUnavailable = false,
     this.isUnauthorized = false,
     this.subscriptionPriceRub = 199,
+    this.subscriptionJustExpired = false,
   });
 
   bool get isInTrial => trialDaysLeft > 0 && !hasActiveSubscription;
@@ -45,6 +48,19 @@ class PremiumStatus {
     final days = subscriptionEndsAt!.difference(DateTime.now()).inDays;
     return days > 0 ? days : 0;
   }
+
+  PremiumStatus copyWith({bool? subscriptionJustExpired}) => PremiumStatus(
+    hasActiveSubscription: hasActiveSubscription,
+    trialDaysLeft: trialDaysLeft,
+    trialEndsAt: trialEndsAt,
+    trialStarted: trialStarted,
+    subscriptionEndsAt: subscriptionEndsAt,
+    subscriptionCancelled: subscriptionCancelled,
+    networkUnavailable: networkUnavailable,
+    isUnauthorized: isUnauthorized,
+    subscriptionPriceRub: subscriptionPriceRub,
+    subscriptionJustExpired: subscriptionJustExpired ?? this.subscriptionJustExpired,
+  );
 }
 
 /// Один платёж из истории.
@@ -106,6 +122,7 @@ class TrialStartResult {
 class PremiumSubscriptionService {
   static const String _keyTrialStart = 'premium_trial_start_iso';
   static const String _keyStatusCache = 'premium_status_cache';
+  static const String _keyExpiredBannerShown = 'subscription_expired_banner_shown';
   static const int trialDaysTotal = 7;
   /// Кэш статуса при отсутствии сети. TTL 24 часа.
   static const Duration _cacheTtl = Duration(hours: 24);
@@ -122,7 +139,11 @@ class PremiumSubscriptionService {
 
   /// [forceRefresh] — игнорировать кэш и всегда запрашивать с бэкенда.
   Future<PremiumStatus> getStatus({bool forceRefresh = false}) async {
-    if (forceRefresh) await invalidateStatusCache();
+    PremiumStatus? statusBeforeFetch;
+    if (forceRefresh) {
+      statusBeforeFetch = await _peekStatusCache();
+      await invalidateStatusCache();
+    }
     try {
       final token = await getToken();
       if (token != null && token.trim().isNotEmpty) {
@@ -136,6 +157,22 @@ class PremiumSubscriptionService {
             await clearToken();
             await invalidateStatusCache();
             return status;
+          }
+          if (status.hasActiveSubscription) {
+            await _clearExpiredBannerFlag();
+          } else if (!status.networkUnavailable && !status.isUnauthorized) {
+            final justExpired = status.subscriptionJustExpired ||
+                await _detectClientSideExpiry(statusBeforeFetch ?? await _peekStatusCache());
+            if (justExpired) {
+              final bannerShown = await _isExpiredBannerShown();
+              if (!bannerShown) {
+                await _setExpiredBannerShown();
+                _saveStatusCache(status);
+                return status.subscriptionJustExpired
+                    ? status
+                    : status.copyWith(subscriptionJustExpired: true);
+              }
+            }
           }
           _saveStatusCache(status);
           return status;
@@ -209,6 +246,55 @@ class PremiumSubscriptionService {
     return null;
   }
 
+  /// Читает кэш без проверки TTL — для определения перехода active→expired.
+  Future<PremiumStatus?> _peekStatusCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_keyStatusCache);
+      if (raw == null || raw.isEmpty) return null;
+      final json = jsonDecode(raw) as Map<String, dynamic>?;
+      if (json == null) return null;
+      return PremiumStatus(
+        hasActiveSubscription: json['has_active_subscription'] == true,
+        trialDaysLeft: (json['trial_days_left'] as num?)?.toInt() ?? 0,
+        trialEndsAt: json['trial_ends_at'] != null ? DateTime.tryParse(json['trial_ends_at'].toString()) : null,
+        trialStarted: json['trial_started'] != false,
+        subscriptionEndsAt: json['subscription_ends_at'] != null ? DateTime.tryParse(json['subscription_ends_at'].toString()) : null,
+        subscriptionCancelled: json['subscription_cancelled'] == true,
+        isUnauthorized: json['is_unauthorized'] == true,
+        subscriptionPriceRub: (json['subscription_price_rub'] as num?)?.toInt() ?? 199,
+      );
+    } catch (_) {}
+    return null;
+  }
+
+  /// Определяет переход active→expired по кэшу (когда API не отдаёт subscription_recently_expired).
+  Future<bool> _detectClientSideExpiry(PremiumStatus? cached) async {
+    return cached?.hasActiveSubscription == true;
+  }
+
+  Future<bool> _isExpiredBannerShown() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getBool(_keyExpiredBannerShown) == true;
+    } catch (_) {}
+    return false;
+  }
+
+  Future<void> _setExpiredBannerShown() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_keyExpiredBannerShown, true);
+    } catch (_) {}
+  }
+
+  Future<void> _clearExpiredBannerFlag() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_keyExpiredBannerShown);
+    } catch (_) {}
+  }
+
   Future<PremiumStatus?> _getStatusCache() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -244,6 +330,7 @@ class PremiumSubscriptionService {
       if (resp.statusCode == 200) {
         final data = jsonDecode(resp.body) as Map<String, dynamic>?;
         if (data == null) return null;
+        final justExpiredFromApi = data['subscription_recently_expired'] == true;
         return PremiumStatus(
           hasActiveSubscription: data['has_active_subscription'] == true,
           trialDaysLeft: (data['trial_days_left'] as num?)?.toInt() ?? 0,
@@ -256,6 +343,7 @@ class PremiumSubscriptionService {
               : null,
           subscriptionCancelled: data['subscription_cancelled'] == true,
           subscriptionPriceRub: (data['subscription_price_rub'] as num?)?.toInt() ?? 199,
+          subscriptionJustExpired: justExpiredFromApi,
         );
       }
       if (resp.statusCode == 401) {

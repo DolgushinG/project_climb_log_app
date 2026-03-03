@@ -73,6 +73,32 @@ class TopNotificationBanner extends StatelessWidget {
     );
   }
 
+  /// Подписка закончилась — мягкий призыв оформить снова.
+  factory TopNotificationBanner.subscriptionExpired({
+    Key? key,
+    required VoidCallback onSubscribe,
+    VoidCallback? onClose,
+    bool useSafeArea = true,
+    bool fullWidth = false,
+  }) {
+    return TopNotificationBanner(
+      key: key,
+      message: 'Подписка закончилась. Оформите снова',
+      icon: Icons.workspace_premium_rounded,
+      backgroundColor: AppColors.graphite,
+      iconColor: AppColors.mutedGold,
+      textColor: Colors.white,
+      showCloseButton: true,
+      onClose: onClose,
+      useSafeArea: useSafeArea,
+      fullWidth: fullWidth,
+      trailing: TextButton(
+        onPressed: onSubscribe,
+        child: Text('Оформить', style: TextStyle(color: AppColors.mutedGold, fontWeight: FontWeight.w600, fontSize: 14)),
+      ),
+    );
+  }
+
   /// Информация (нейтральный, например «данные из кэша»).
   factory TopNotificationBanner.info({
     Key? key,

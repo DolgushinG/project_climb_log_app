@@ -4,6 +4,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/main.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/Screens/PremiumPaymentScreen.dart';
+import 'package:login_app/widgets/top_notification_banner.dart';
 
 import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
@@ -42,6 +43,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   bool? _aiCoachEnabled;
   /// Если true — родитель передал isGuest=false, но токена нет (устаревшая сессия/рассинхрон). Показываем landing.
   bool _effectivelyGuest = false;
+  bool _expiredBannerDismissed = false;
 
   @override
   void initState() {
@@ -91,7 +93,11 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   }
 
   Future<void> _onReturnFromPremiumPayment(bool paymentSuccess) async {
-    if (!paymentSuccess || !mounted) return;
+    if (!mounted) return;
+    await _premiumService.invalidateStatusCache();
+    await _loadPremiumStatus();
+    if (!mounted) return;
+    if (!paymentSuccess) return; // Просто обновление статуса (назад, отмена подписки)
     final hadAccess = _premiumStatus?.hasAccess ?? false;
     await _premiumService.invalidateStatusCache();
     await _loadPremiumStatus();
@@ -316,7 +322,29 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
         body: networkUnavailable
             ? _buildNetworkUnavailableState()
             : showPaywall
-                ? ClimbingLogPremiumStub(onPurchased: _onReturnFromPremiumPayment)
+                ? Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (_premiumStatus?.subscriptionJustExpired == true && !_expiredBannerDismissed)
+                        TopNotificationBanner.subscriptionExpired(
+                          useSafeArea: true,
+                          fullWidth: true,
+                          onSubscribe: () async {
+                            final paymentSuccess = await Navigator.push<bool>(
+                              context,
+                              MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
+                            );
+                            if (!mounted) return;
+                            await _onReturnFromPremiumPayment(paymentSuccess == true);
+                            if (mounted) setState(() => _expiredBannerDismissed = true);
+                          },
+                          onClose: () => setState(() => _expiredBannerDismissed = true),
+                        ),
+                      Expanded(
+                        child: ClimbingLogPremiumStub(onPurchased: _onReturnFromPremiumPayment),
+                      ),
+                    ],
+                  )
                 : TabBarView(
                 controller: _tabController,
                 children: [

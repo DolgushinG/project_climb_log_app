@@ -42,6 +42,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   PremiumStatus? _premiumStatus;
   bool _isRefreshing = false;
   String? _pushToken;
+  bool _expiredBannerDismissed = false;
 
   bool _pushTokenLoading = false;
 
@@ -157,8 +158,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
             context,
             MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
           );
-          if (mounted && paymentSuccess == true) {
+          if (!mounted) return;
+          if (paymentSuccess == true) {
             await _onPaymentSuccessReturn();
+          } else {
+            // Пользователь вернулся (назад или после отмены подписки) — обновить статус
+            await _refreshPremiumStatusOnReturn();
           }
         },
         borderRadius: BorderRadius.circular(12),
@@ -207,6 +212,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
     if (n == 1) return 'день';
     if (n >= 2 && n <= 4) return 'дня';
     return 'дней';
+  }
+
+  /// Обновление статуса подписки при возврате (назад, после отмены и т.п.).
+  /// Без опроса webhook — достаточно один раз получить свежие данные.
+  Future<void> _refreshPremiumStatusOnReturn() async {
+    await PremiumSubscriptionService().invalidateStatusCache();
+    final st = await PremiumSubscriptionService().getStatus();
+    if (mounted) setState(() => _premiumStatus = st);
   }
 
   /// Вызывается после возврата из PremiumPaymentScreen с paymentSuccess=true.
@@ -507,6 +520,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
             children: [
+              if (_premiumStatus?.subscriptionJustExpired == true && !_expiredBannerDismissed)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8, bottom: 12),
+                  child: TopNotificationBanner.subscriptionExpired(
+                    useSafeArea: false,
+                    fullWidth: true,
+                    onSubscribe: () async {
+                      final paymentSuccess = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(builder: (_) => const PremiumPaymentScreen()),
+                      );
+                      if (!mounted) return;
+                      if (paymentSuccess == true) {
+                        await _onPaymentSuccessReturn();
+                      } else {
+                        await _refreshPremiumStatusOnReturn();
+                      }
+                      if (mounted) setState(() => _expiredBannerDismissed = true);
+                    },
+                    onClose: () => setState(() => _expiredBannerDismissed = true),
+                  ),
+                ),
               if (_loadError != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8, bottom: 12),
