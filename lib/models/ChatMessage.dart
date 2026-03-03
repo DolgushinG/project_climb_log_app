@@ -2,9 +2,10 @@ import 'dart:convert';
 
 /// Статус сообщения (как в мессенджерах).
 enum MessageStatus {
-  sending,   // отправляется
-  sent,     // отправлено
-  failed,   // не отправлено
+  sending,    // отправляется
+  sent,       // одна галочка — отправлено на сервер
+  delivered,  // две галочки — AI ответил
+  failed,     // не отправлено
 }
 
 /// Сообщение в чате с AI-тренером.
@@ -35,21 +36,31 @@ class ChatMessage {
         status: status ?? this.status,
       );
 
-  Map<String, dynamic> toJson() => {
-        'role': role,
-        'content': content,
-        'timestamp': timestamp.toIso8601String(),
-      };
+  Map<String, dynamic> toJson() {
+    final m = {
+      'role': role,
+      'content': content,
+      'timestamp': timestamp.toIso8601String(),
+    };
+    if (status != null) m['status'] = status!.name;
+    return m;
+  }
 
   factory ChatMessage.fromJson(Map<String, dynamic> json) {
     final role = json['role'] is String ? json['role'] as String : 'assistant';
     final rawContent = json['content'] ?? json['coach_comment'] ?? json['text'] ?? json['message'];
     final content = rawContent is String ? rawContent : '';
     final ts = json['timestamp'];
+    MessageStatus? st;
+    final statusStr = json['status'];
+    if (statusStr is String) {
+      st = MessageStatus.values.asNameMap()[statusStr];
+    }
     return ChatMessage(
       role: role,
       content: content,
       timestamp: ts != null && ts is String ? DateTime.tryParse(ts) ?? DateTime.now() : DateTime.now(),
+      status: st,
     );
   }
 

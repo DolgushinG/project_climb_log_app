@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
+import 'package:intl/intl.dart';
 
 import '../models/ChatMessage.dart';
 import '../services/AICoachService.dart';
@@ -81,9 +82,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     }
   }
 
-  /// Отправка сообщения. Ответ сохраняется в SharedPreferences в сервисе — при свёрнутом
-  /// приложении или закрытом экране чата пользователь получит ответ при следующем открытии.
-  /// [retryIndex] — индекс существующего сообщения для retry (не добавляем дубликат).
+  /// Отправка сообщения. Сначала async (polling), при 404 — fallback на sync.
+  /// Сообщение сразу с галочкой, вверху «печатает» пока ждём ответ.
   Future<void> _sendMessage({int? retryIndex}) async {
     final isRetry = retryIndex != null;
     final text = isRetry
@@ -91,13 +91,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         : _controller.text.trim();
     if (text.isEmpty) return;
 
-    // Сбрасываем фокус при отправке — предотвращает iOS-баг с «взлётом» поля ввода
-    // при повторном открытии клавиатуры (связано с flutter/flutter#140501).
     FocusScope.of(context).unfocus();
 
     if (!mounted) return;
     setState(() {
-      _isLoading = true;
       _error = null;
       _lastFailedMessageIndex = null;
       if (isRetry) {
@@ -109,12 +106,65 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     });
     await _scrollToBottom();
 
+    final idx = isRetry ? retryIndex : _messages.length - 1;
+
+    // Пробуем async (без таймаута)
+    String? taskId;
+    try {
+      taskId = await _coachService.sendMessageAsync(text);
+    } catch (e) {
+      _handleSendError(e, idx);
+      return;
+    }
+
+    if (taskId != null) {
+      _isLoading = true;
+      if (mounted) setState(() {});
+      try {
+        final reply = await _coachService.pollChatStatus(
+          taskId,
+          interval: const Duration(seconds: 2),
+          timeout: const Duration(seconds: 180),
+        );
+        if (reply != null) {
+          await _coachService.addToHistory(text, reply); // сохраняем даже если ушли — при следующем открытии подтянется
+        }
+        if (!mounted) return;
+        if (reply != null) {
+          setState(() {
+            _messages[idx] = _messages[idx].copyWith(status: MessageStatus.delivered);
+            _messages.add(reply);
+            _error = null;
+            _highlightMessageIndex = _messages.length - 1;
+          });
+          await _scrollToBottom();
+          _clearHighlightAfterDelay();
+        } else {
+          setState(() {
+            _messages[idx] = _messages[idx].copyWith(status: MessageStatus.failed);
+            _error = 'Превышено время ожидания. Попробуйте ещё раз.';
+            _lastFailedMessageIndex = idx;
+          });
+        }
+      } catch (e) {
+        _handleSendError(e, idx);
+      } finally {
+        if (mounted) {
+          _isLoading = false;
+          setState(() {});
+        }
+      }
+      return;
+    }
+
+    // Fallback: sync (может таймаутить при долгом ответе)
+    _isLoading = true;
+    if (mounted) setState(() {});
     try {
       final reply = await _coachService.sendMessage(text);
       if (!mounted) return;
-      final idx = isRetry ? retryIndex : _messages.length - 1;
       setState(() {
-        _messages[idx] = _messages[idx].copyWith(status: MessageStatus.sent);
+        _messages[idx] = _messages[idx].copyWith(status: MessageStatus.delivered);
         _messages.add(reply);
         _error = null;
         _highlightMessageIndex = _messages.length - 1;
@@ -122,20 +172,24 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
       await _scrollToBottom();
       _clearHighlightAfterDelay();
     } catch (e) {
-      final friendlyMsg = _exceptionToUserMessage(e);
-      if (!mounted) return;
-      final idx = isRetry ? retryIndex : _messages.length - 1;
-      setState(() {
-        _messages[idx] = _messages[idx].copyWith(status: MessageStatus.failed);
-        _error = friendlyMsg;
-        _lastFailedMessageIndex = idx;
-      });
-      await _scrollToBottom();
+      _handleSendError(e, idx);
     } finally {
       if (mounted) {
-        setState(() => _isLoading = false);
+        _isLoading = false;
+        setState(() {});
       }
     }
+  }
+
+  void _handleSendError(Object e, int msgIndex) {
+    if (!mounted) return;
+    final friendlyMsg = _exceptionToUserMessage(e);
+    setState(() {
+      _messages[msgIndex] = _messages[msgIndex].copyWith(status: MessageStatus.failed);
+      _error = friendlyMsg;
+      _lastFailedMessageIndex = msgIndex;
+    });
+    _scrollToBottom();
   }
 
   String _exceptionToUserMessage(Object e) {
@@ -211,6 +265,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         behavior: HitTestBehavior.opaque,
         child: Column(
             children: [
+              if (_isLoading) _buildTypingIndicator(),
               Expanded(
                 child: _buildMessageList(
                   context,
@@ -218,28 +273,30 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                   topPadding: 12,
                 ),
               ),
-            if (_error != null) _buildErrorCard(theme),
-            if (_isLoading) _buildLoadingIndicator(),
-            _buildInputBar(),
+              if (_error != null) _buildErrorCard(theme),
+              _buildInputBar(),
             ],
           ),
       ),
     );
   }
 
-  Widget _buildLoadingIndicator() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+  /// «Печатает» — вверху, пока бэк думает и идёт polling.
+  Widget _buildTypingIndicator() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(color: AppColors.cardDark.withOpacity(0.8)),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisSize: MainAxisSize.min,
         children: [
           SizedBox(
-            width: 20,
-            height: 20,
+            width: 18,
+            height: 18,
             child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
           ),
           const SizedBox(width: 10),
-          Text('Думаю...', style: unbounded(fontSize: 13, color: Colors.white54)),
+          Text('Печатает...', style: unbounded(fontSize: 13, color: Colors.white70)),
         ],
       ),
     );
@@ -359,27 +416,59 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                             constraints: BoxConstraints(
                               maxWidth: MediaQuery.of(context).size.width * 0.78,
                             ),
-                            child: isUser
-                                ? _buildUserMessageContent(msg, msgIndex)
-                                : MarkdownBody(
-                                    data: msg.content,
-                                    styleSheet: MarkdownStyleSheet(
-                                      p: unbounded(color: Colors.white, fontSize: 15, height: 1.5),
-                                      strong: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
-                                      em: unbounded(color: Colors.white70, fontStyle: FontStyle.italic),
-                                      listBullet: unbounded(color: AppColors.mutedGold, fontSize: 15),
-                                      blockquote: unbounded(color: Colors.white70, fontSize: 14),
-                                      h3: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                                    ),
-                                    softLineBreak: true,
-                                    shrinkWrap: true,
+                            child: Column(
+                              crossAxisAlignment: isUser ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                isUser
+                                    ? _buildUserMessageContent(msg, msgIndex)
+                                    : MarkdownBody(
+                                        data: msg.content,
+                                        styleSheet: MarkdownStyleSheet(
+                                          p: unbounded(color: Colors.white, fontSize: 15, height: 1.5),
+                                          strong: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
+                                          em: unbounded(color: Colors.white70, fontStyle: FontStyle.italic),
+                                          listBullet: unbounded(color: AppColors.mutedGold, fontSize: 15),
+                                          blockquote: unbounded(color: Colors.white70, fontSize: 14),
+                                          h3: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                                        ),
+                                        softLineBreak: true,
+                                        shrinkWrap: true,
+                                      ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  isUser
+                                      ? 'Отправлено: ${_formatMessageTime(msg.timestamp)}'
+                                      : 'Ответ: ${_formatMessageTime(msg.timestamp)}',
+                                  style: unbounded(
+                                    fontSize: 11,
+                                    color: isUser ? Colors.black45 : Colors.white38,
                                   ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         ),
                       );
                     },
                   );
+  }
+
+  String _formatMessageTime(DateTime dt) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final msgDate = DateTime(dt.year, dt.month, dt.day);
+    if (msgDate == today) {
+      return DateFormat('HH:mm', 'ru').format(dt);
+    }
+    if (msgDate == today.subtract(const Duration(days: 1))) {
+      return 'вчера ${DateFormat('HH:mm', 'ru').format(dt)}';
+    }
+    if (now.year == dt.year) {
+      return DateFormat('d MMM, HH:mm', 'ru').format(dt);
+    }
+    return DateFormat('d MMM yyyy, HH:mm', 'ru').format(dt);
   }
 
   void _copyMessage(BuildContext context, String text) {
@@ -422,10 +511,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   }
 
   Widget _buildStatusIcon(MessageStatus? status) {
-    // null = из истории, считаем отправленным
-    if (status == null || status == MessageStatus.sent) {
-      return Icon(Icons.done, size: 16, color: Colors.black54);
-    }
+    // На золотом bubble — тёмные иконки, иначе не видно
+    const iconColor = Colors.black54;
     switch (status) {
       case MessageStatus.sending:
         return SizedBox(
@@ -433,11 +520,17 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
           height: 14,
           child: CircularProgressIndicator(
             strokeWidth: 1.5,
-            color: Colors.black54,
+            color: iconColor,
           ),
         );
+      case MessageStatus.sent:
+        return Icon(Icons.done, size: 16, color: iconColor);
+      case MessageStatus.delivered:
+        return Icon(Icons.done_all, size: 16, color: iconColor);
       case MessageStatus.failed:
         return Icon(Icons.error_outline, size: 16, color: Colors.red.shade700);
+      case null:
+        return Icon(Icons.done_all, size: 16, color: iconColor);
     }
   }
 
