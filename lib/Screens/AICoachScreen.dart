@@ -39,9 +39,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   void _onInputFocusChanged() {
     if (_inputFocusNode.hasFocus && _messages.isNotEmpty) {
-      // Задержка, чтобы дать клавиатуре время анимироваться
       Future.delayed(const Duration(milliseconds: 400), _scrollToBottom);
     }
+    // Не делаем setState при потере фокуса — при тапе по галочке над клавиатурой
+    // это вызывало глюк; viewInsets обновятся сами через didChangeMetrics
   }
 
   @override
@@ -58,7 +59,6 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
       _scrollToBottom();
     }
   }
-
 
   Future<void> _loadHistory() async {
     try {
@@ -84,6 +84,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   Future<void> _sendMessage([String? prefilled]) async {
     final text = (prefilled ?? _controller.text).trim();
     if (text.isEmpty) return;
+
+    // Сбрасываем фокус при отправке — предотвращает iOS-баг с «взлётом» поля ввода
+    // при повторном открытии клавиатуры (связано с flutter/flutter#140501).
+    FocusScope.of(context).unfocus();
 
     if (!mounted) return;
     setState(() {
@@ -197,42 +201,126 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         onTap: () => FocusScope.of(context).unfocus(),
         behavior: HitTestBehavior.opaque,
         child: Column(
+            children: [
+              Expanded(
+                child: _buildMessageList(
+                  context,
+                  horizontalPadding: 12,
+                  topPadding: 12,
+                ),
+              ),
+            if (_error != null) _buildErrorCard(theme),
+            if (_isLoading) _buildLoadingIndicator(),
+            _buildInputBar(),
+            ],
+          ),
+      ),
+    );
+  }
+
+  Widget _buildLoadingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
+          ),
+          const SizedBox(width: 10),
+          Text('Думаю...', style: unbounded(fontSize: 13, color: Colors.white54)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInputBar() {
+    return Container(
+      padding: const EdgeInsets.all(8),
+      decoration: BoxDecoration(color: AppColors.anthracite),
+      child: Row(
         children: [
           Expanded(
-            child: _messages.isEmpty && _error == null
-                ? Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 32),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.psychology_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
-                          const SizedBox(height: 20),
-                          Text(
-                            'Начните диалог с AI-тренером',
-                            style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Спрашивай про скалолазание, фингер, прогресс на маршрутах.',
-                            style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
-                            textAlign: TextAlign.center,
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                : ListView.builder(
-                    controller: _scrollController,
-                    reverse: true,
-                    keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-                    padding: EdgeInsets.only(
-                      left: 12,
-                      right: 12,
-                      top: 12 + MediaQuery.viewInsetsOf(context).bottom,
-                      bottom: 12,
-                    ),
+            child: TextField(
+              focusNode: _inputFocusNode,
+              controller: _controller,
+              keyboardType: TextInputType.text,
+              enableSuggestions: true,
+              autocorrect: true,
+              scrollPadding: EdgeInsets.zero,
+              decoration: InputDecoration(
+                hintText: 'Спросите о тренировках, планах, силе...',
+                hintStyle: unbounded(color: Colors.white38, fontSize: 14),
+                filled: true,
+                fillColor: AppColors.rowAlt,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  borderSide: BorderSide.none,
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              ),
+              style: unbounded(color: Colors.white),
+              maxLines: 3,
+              minLines: 1,
+              textInputAction: TextInputAction.send,
+              enabled: !_isLoading,
+              onSubmitted: (_) => _sendMessage(),
+            ),
+          ),
+          const SizedBox(width: 8),
+          FloatingActionButton(
+            mini: true,
+            backgroundColor: AppColors.mutedGold,
+            foregroundColor: AppColors.anthracite,
+            onPressed: _isLoading ? null : () => _sendMessage(),
+            child: const Icon(Icons.send),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMessageList(
+    BuildContext context, {
+    required double horizontalPadding,
+    required double topPadding,
+  }) {
+    return _messages.isEmpty && _error == null
+        ? Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.psychology_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Начните диалог с AI-тренером',
+                    style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Спрашивай про скалолазание, фингер, прогресс на маршрутах.',
+                    style: unbounded(fontSize: 14, color: Colors.white70, height: 1.4),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+          )
+        : ListView.builder(
+            controller: _scrollController,
+            reverse: true,
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+            padding: EdgeInsets.only(
+              left: horizontalPadding,
+              right: horizontalPadding,
+              top: topPadding,
+              bottom: horizontalPadding,
+            ),
                     itemCount: _messages.length,
                     itemBuilder: (context, index) {
                       final msgIndex = _messages.length - 1 - index;
@@ -282,71 +370,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                         ),
                       );
                     },
-                  ),
-          ),
-          if (_error != null) _buildErrorCard(theme),
-          if (_isLoading)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    width: 20,
-                    height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
-                  ),
-                  const SizedBox(width: 10),
-                  Text('Думаю...', style: unbounded(fontSize: 13, color: Colors.white54)),
-                ],
-              ),
-            ),
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: AppColors.anthracite),
-            child: Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    focusNode: _inputFocusNode,
-                    controller: _controller,
-                    keyboardType: TextInputType.text,
-                    enableSuggestions: true,
-                    autocorrect: true,
-                    decoration: InputDecoration(
-                      hintText: 'Спросите о тренировках, планах, силе...',
-                      hintStyle: unbounded(color: Colors.white38, fontSize: 14),
-                      filled: true,
-                      fillColor: AppColors.rowAlt,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(24),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    ),
-                    style: unbounded(color: Colors.white),
-                    maxLines: 3,
-                    minLines: 1,
-                    textInputAction: TextInputAction.send,
-                    enabled: !_isLoading,
-                    onSubmitted: (_) => _sendMessage(),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                FloatingActionButton(
-                  mini: true,
-                  backgroundColor: AppColors.mutedGold,
-                  foregroundColor: AppColors.anthracite,
-                  onPressed: _isLoading ? null : () => _sendMessage(),
-                  child: const Icon(Icons.send),
-                ),
-              ],
-            ),
-          ),
-        ],
-        ),
-      ),
-    );
+                  );
   }
 
   Widget _buildErrorCard(ThemeData theme) {
