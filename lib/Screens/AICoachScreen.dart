@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 
 import '../models/ChatMessage.dart';
@@ -25,7 +26,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
   String? _error;
-  String? _lastFailedMessage; // для retry
+  /// Индекс сообщения для retry (не добавляем дубликат).
+  int? _lastFailedMessageIndex;
   /// Индекс последнего полученного ответа — подсветка. null = не подсвечивать.
   int? _highlightMessageIndex;
 
@@ -81,8 +83,12 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   /// Отправка сообщения. Ответ сохраняется в SharedPreferences в сервисе — при свёрнутом
   /// приложении или закрытом экране чата пользователь получит ответ при следующем открытии.
-  Future<void> _sendMessage([String? prefilled]) async {
-    final text = (prefilled ?? _controller.text).trim();
+  /// [retryIndex] — индекс существующего сообщения для retry (не добавляем дубликат).
+  Future<void> _sendMessage({int? retryIndex}) async {
+    final isRetry = retryIndex != null;
+    final text = isRetry
+        ? _messages[retryIndex].content
+        : _controller.text.trim();
     if (text.isEmpty) return;
 
     // Сбрасываем фокус при отправке — предотвращает iOS-баг с «взлётом» поля ввода
@@ -93,21 +99,22 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     setState(() {
       _isLoading = true;
       _error = null;
-      _lastFailedMessage = null;
+      _lastFailedMessageIndex = null;
+      if (isRetry) {
+        _messages[retryIndex] = _messages[retryIndex].copyWith(status: MessageStatus.sending);
+      } else {
+        _messages.add(ChatMessage(role: 'user', content: text, status: MessageStatus.sending));
+        _controller.clear();
+      }
     });
-
-    final userMessage = ChatMessage(role: 'user', content: text);
-    if (!mounted) return;
-    setState(() => _messages.add(userMessage));
-    if (prefilled == null) {
-      _controller.clear();
-    }
     await _scrollToBottom();
 
     try {
       final reply = await _coachService.sendMessage(text);
       if (!mounted) return;
+      final idx = isRetry ? retryIndex : _messages.length - 1;
       setState(() {
+        _messages[idx] = _messages[idx].copyWith(status: MessageStatus.sent);
         _messages.add(reply);
         _error = null;
         _highlightMessageIndex = _messages.length - 1;
@@ -117,9 +124,11 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     } catch (e) {
       final friendlyMsg = _exceptionToUserMessage(e);
       if (!mounted) return;
+      final idx = isRetry ? retryIndex : _messages.length - 1;
       setState(() {
+        _messages[idx] = _messages[idx].copyWith(status: MessageStatus.failed);
         _error = friendlyMsg;
-        _lastFailedMessage = text;
+        _lastFailedMessageIndex = idx;
       });
       await _scrollToBottom();
     } finally {
@@ -138,8 +147,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   }
 
   void _retryLastMessage() {
-    if (_lastFailedMessage != null) {
-      _sendMessage(_lastFailedMessage);
+    if (_lastFailedMessageIndex != null && !_isLoading) {
+      _sendMessage(retryIndex: _lastFailedMessageIndex);
     }
   }
 
@@ -169,7 +178,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         setState(() {
           _messages.clear();
           _error = null;
-          _lastFailedMessage = null;
+          _lastFailedMessageIndex = null;
         });
       }
     } catch (_) {
@@ -329,7 +338,9 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                       final isHighlighted = msgIndex == _highlightMessageIndex && !isUser;
                       return Align(
                         alignment: isUser ? Alignment.centerRight : Alignment.centerLeft,
-                        child: AnimatedContainer(
+                        child: GestureDetector(
+                          onLongPress: () => _copyMessage(context, msg.content),
+                          child: AnimatedContainer(
                           duration: const Duration(milliseconds: 400),
                           margin: const EdgeInsets.symmetric(vertical: 6),
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -349,10 +360,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                               maxWidth: MediaQuery.of(context).size.width * 0.78,
                             ),
                             child: isUser
-                                ? Text(
-                                    msg.content,
-                                    style: unbounded(color: Colors.black87, fontSize: 15),
-                                  )
+                                ? _buildUserMessageContent(msg, msgIndex)
                                 : MarkdownBody(
                                     data: msg.content,
                                     styleSheet: MarkdownStyleSheet(
@@ -368,9 +376,69 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                                   ),
                           ),
                         ),
+                        ),
                       );
                     },
                   );
+  }
+
+  void _copyMessage(BuildContext context, String text) {
+    if (text.isEmpty) return;
+    Clipboard.setData(ClipboardData(text: text));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Скопировано', style: unbounded(fontSize: 14)),
+        behavior: SnackBarBehavior.floating,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  Widget _buildUserMessageContent(ChatMessage msg, int msgIndex) {
+    final status = msg.status;
+    final canRetry = status == MessageStatus.failed && !_isLoading;
+    Widget content = Row(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Flexible(
+          child: Text(
+            msg.content,
+            style: unbounded(color: Colors.black87, fontSize: 15),
+          ),
+        ),
+        const SizedBox(width: 6),
+        _buildStatusIcon(status),
+      ],
+    );
+    if (canRetry) {
+      content = GestureDetector(
+        onTap: () => _sendMessage(retryIndex: msgIndex),
+        behavior: HitTestBehavior.opaque,
+        child: content,
+      );
+    }
+    return content;
+  }
+
+  Widget _buildStatusIcon(MessageStatus? status) {
+    // null = из истории, считаем отправленным
+    if (status == null || status == MessageStatus.sent) {
+      return Icon(Icons.done, size: 16, color: Colors.black54);
+    }
+    switch (status) {
+      case MessageStatus.sending:
+        return SizedBox(
+          width: 14,
+          height: 14,
+          child: CircularProgressIndicator(
+            strokeWidth: 1.5,
+            color: Colors.black54,
+          ),
+        );
+      case MessageStatus.failed:
+        return Icon(Icons.error_outline, size: 16, color: Colors.red.shade700);
+    }
   }
 
   Widget _buildErrorCard(ThemeData theme) {
@@ -393,7 +461,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
                 style: unbounded(fontSize: 13, color: Colors.red.shade200),
               ),
             ),
-            if (_lastFailedMessage != null) ...[
+            if (_lastFailedMessageIndex != null) ...[
               const SizedBox(width: 8),
               TextButton(
                 onPressed: _isLoading ? null : _retryLastMessage,
