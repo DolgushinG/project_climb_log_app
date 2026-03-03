@@ -20,6 +20,7 @@ import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/utils/url_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final RouteObserver<ModalRoute<dynamic>> routeObserver = RouteObserver<ModalRoute<dynamic>>();
 
 Future<void> main() async {
   runZonedGuarded(() async {
@@ -98,6 +99,7 @@ Future<void> clearAllDataOnLogout() async {
   // Остальные пользовательские данные в SharedPreferences
   const _userKeys = [
     'ai_coach_history',
+    'ai_coach_pending_task_id',
     'strength_measurement_history',
     'strength_last_metrics',
     'training_xp',
@@ -153,6 +155,7 @@ class MyApp extends StatelessWidget {
 
     return MaterialApp(
       navigatorKey: navigatorKey,
+      navigatorObservers: [routeObserver],
       title: 'Climbing App',
       theme: baseTheme.copyWith(
         scaffoldBackgroundColor: AppColors.anthracite,

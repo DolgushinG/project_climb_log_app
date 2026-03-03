@@ -13,6 +13,7 @@ class AICoachService {
   static const String _endpoint = '/api/ai/chat';
   static const String _endpointAsync = '/api/ai/chat/async';
   static const String _historyKey = 'ai_coach_history';
+  static const String _pendingTaskKey = 'ai_coach_pending_task_id';
 
   /// Асинхронная отправка: POST → task_id, затем polling. Не таймаутится.
   /// Возвращает task_id при 202, null если async не поддерживается (404).
@@ -164,7 +165,35 @@ class AICoachService {
     }
   }
 
-  /// Добавить user + assistant в историю (для async-пути).
+  /// Сохранить task_id при старте polling, чтобы при возврате в чат можно было показать «Печатает» и продолжить.
+  Future<void> setPendingTaskId(String? taskId) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (taskId == null) {
+      await prefs.remove(_pendingTaskKey);
+    } else {
+      await prefs.setString(_pendingTaskKey, taskId);
+    }
+  }
+
+  /// Получить pending task_id, если есть (ожидание ответа при уходе из чата).
+  Future<String?> getPendingTaskId() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_pendingTaskKey);
+  }
+
+  /// Сохранить user-сообщение сразу при отправке (до ответа), чтобы при уходе из чата оно не терялось.
+  Future<void> addUserMessageToHistory(String userContent) async {
+    await _addToHistory(ChatMessage(role: 'user', content: userContent, status: MessageStatus.sent));
+  }
+
+  /// Добавить assistant-ответ в историю (user уже сохранён). Идемпотентно — не дублирует, если уже есть.
+  Future<void> addReplyToHistory(ChatMessage assistantReply) async {
+    final history = await _getLocalHistory();
+    if (history.isNotEmpty && history.last.role == 'assistant') return; // уже добавлен (другой экземпляр)
+    await _addToHistory(assistantReply);
+  }
+
+  /// Добавить user + assistant в историю (для sync-пути или когда user ещё не сохранён).
   Future<void> addToHistory(String userContent, ChatMessage assistantReply, {MessageStatus? userStatus}) async {
     await _addToHistory(ChatMessage(role: 'user', content: userContent, status: userStatus ?? MessageStatus.delivered));
     await _addToHistory(assistantReply);
@@ -179,6 +208,7 @@ class AICoachService {
   Future<void> clearHistory() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_historyKey);
+    await prefs.remove(_pendingTaskKey);
   }
 
   // Приватные методы

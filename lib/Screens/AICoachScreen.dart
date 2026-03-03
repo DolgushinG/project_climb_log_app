@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 
+import '../main.dart';
 import '../models/ChatMessage.dart';
 import '../services/AICoachService.dart';
 import '../theme/app_theme.dart';
@@ -15,7 +16,7 @@ class AICoachScreen extends StatefulWidget {
   State<AICoachScreen> createState() => _AICoachScreenState();
 }
 
-class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver {
+class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveClientMixin, WidgetsBindingObserver, RouteAware {
   @override
   bool get wantKeepAlive => true;
 
@@ -40,6 +41,21 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     _inputFocusNode.addListener(_onInputFocusChanged);
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.unsubscribe(this);
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    _loadHistory(); // Перезагрузка при возврате на экран
+  }
+
   void _onInputFocusChanged() {
     if (_inputFocusNode.hasFocus && _messages.isNotEmpty) {
       Future.delayed(const Duration(milliseconds: 400), _scrollToBottom);
@@ -50,6 +66,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _inputFocusNode.removeListener(_onInputFocusChanged);
     WidgetsBinding.instance.removeObserver(this);
     _inputFocusNode.dispose();
@@ -58,8 +75,12 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && _messages.isNotEmpty) {
-      _scrollToBottom();
+    if (state == AppLifecycleState.resumed) {
+      if (ModalRoute.of(context)?.isCurrent == true) {
+        _loadHistory(); // Обновить при возврате из фона (ответ мог прийти пока приложение было свёрнуто)
+      } else if (_messages.isNotEmpty) {
+        _scrollToBottom();
+      }
     }
   }
 
@@ -71,6 +92,9 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
           _messages = history;
           _error = null;
         });
+        if (history.isNotEmpty) _scrollToBottom();
+        // Если последнее — user и есть pending task, показываем «Печатает» и продолжаем polling
+        await _resumePendingPollingIfNeeded();
       }
     } catch (e) {
       if (mounted) {
@@ -98,15 +122,18 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
       _error = null;
       _lastFailedMessageIndex = null;
       if (isRetry) {
-        _messages[retryIndex] = _messages[retryIndex].copyWith(status: MessageStatus.sending);
+        _messages[retryIndex] = _messages[retryIndex].copyWith(status: MessageStatus.sent);
       } else {
-        _messages.add(ChatMessage(role: 'user', content: text, status: MessageStatus.sending));
+        _messages.add(ChatMessage(role: 'user', content: text, status: MessageStatus.sent));
         _controller.clear();
       }
     });
     await _scrollToBottom();
 
     final idx = isRetry ? retryIndex : _messages.length - 1;
+
+    // Сохраняем user-сообщение сразу, чтобы при уходе из чата оно не терялось
+    if (!isRetry) await _coachService.addUserMessageToHistory(text);
 
     // Пробуем async (без таймаута)
     String? taskId;
@@ -118,6 +145,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     }
 
     if (taskId != null) {
+      await _coachService.setPendingTaskId(taskId); // для возобновления при возврате в чат
       _isLoading = true;
       if (mounted) setState(() {});
       try {
@@ -126,8 +154,9 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
           interval: const Duration(seconds: 2),
           timeout: const Duration(seconds: 180),
         );
+        await _coachService.setPendingTaskId(null); // ответ получен или таймаут
         if (reply != null) {
-          await _coachService.addToHistory(text, reply); // сохраняем даже если ушли — при следующем открытии подтянется
+          await _coachService.addReplyToHistory(reply); // user уже сохранён при отправке
         }
         if (!mounted) return;
         if (reply != null) {
@@ -147,6 +176,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
           });
         }
       } catch (e) {
+        await _coachService.setPendingTaskId(null);
         _handleSendError(e, idx);
       } finally {
         if (mounted) {
@@ -198,6 +228,53 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
       return str.substring(11);
     }
     return networkErrorMessage(e, 'Не удалось получить ответ. Повторите попытку.');
+  }
+
+  /// Возобновить polling, если вернулись в чат до ответа (есть pending task_id).
+  Future<void> _resumePendingPollingIfNeeded() async {
+    if (_messages.isEmpty || _messages.last.role != 'user') return;
+    final taskId = await _coachService.getPendingTaskId();
+    if (taskId == null) return;
+    final idx = _messages.length - 1;
+    _isLoading = true;
+    if (!mounted) return;
+    setState(() {});
+    try {
+      final reply = await _coachService.pollChatStatus(
+        taskId,
+        interval: const Duration(seconds: 2),
+        timeout: const Duration(seconds: 180),
+      );
+      await _coachService.setPendingTaskId(null);
+      if (reply != null) {
+        await _coachService.addReplyToHistory(reply);
+      }
+      if (!mounted) return;
+      if (reply != null) {
+        setState(() {
+          _messages[idx] = _messages[idx].copyWith(status: MessageStatus.delivered);
+          _messages.add(reply);
+          _error = null;
+          _highlightMessageIndex = _messages.length - 1;
+        });
+        _scrollToBottom();
+        _clearHighlightAfterDelay();
+      } else {
+        setState(() {
+          _messages[idx] = _messages[idx].copyWith(status: MessageStatus.failed);
+          _error = 'Превышено время ожидания. Попробуйте ещё раз.';
+          _lastFailedMessageIndex = idx;
+        });
+      }
+    } catch (e) {
+      await _coachService.setPendingTaskId(null);
+      _handleSendError(e, idx);
+    } finally {
+      if (mounted) {
+        _isLoading = false;
+        setState(() {});
+      }
+    }
   }
 
   void _retryLastMessage() {
@@ -281,23 +358,30 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     );
   }
 
-  /// «Печатает» — вверху, пока бэк думает и идёт polling.
+  /// «Печатает» — по центру, с иконкой, пока бэк думает и идёт polling.
   Widget _buildTypingIndicator() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(color: AppColors.cardDark.withOpacity(0.8)),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          SizedBox(
-            width: 18,
-            height: 18,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
-          ),
-          const SizedBox(width: 10),
-          Text('Печатает...', style: unbounded(fontSize: 13, color: Colors.white70)),
-        ],
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark.withOpacity(0.8),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.edit_note, size: 20, color: AppColors.mutedGold),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 18,
+              height: 18,
+              child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
+            ),
+            const SizedBox(width: 10),
+            Text('Думаю...', style: unbounded(fontSize: 13, color: Colors.white70)),
+          ],
+        ),
       ),
     );
   }
