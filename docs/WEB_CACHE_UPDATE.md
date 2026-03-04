@@ -7,9 +7,9 @@
 ## 1. Что уже сделано в проекте
 
 ### `scripts/web_version_bump.sh`
-Перед `flutter build web` скрипт:
-- Добавляет `?v=BUILD` к `flutter_bootstrap.js` в `index.html`
-- Добавляет `?v=BUILD` в `start_url` в `manifest.json` (PWA при открытии получает «новый» URL)
+Перед `flutter build web` скрипт добавляет `?v=BUILD` (build-number из pubspec) ко всем entry-point файлам:
+- `flutter_bootstrap.js`, `manifest.json`, `passkeys_bundle.js` в `index.html`
+- `start_url` в `manifest.json` (PWA при открытии получает «новый» URL)
 
 В GitHub Actions это вызывается автоматически перед билдом (`.github/workflows/deploy-web.yml`).
 
@@ -58,6 +58,11 @@ server {
         add_header Cache-Control "no-cache, no-store, must-revalidate";
     }
 
+    # version.json — откуда package_info_plus берёт версию (1.0.0+3) для UI. Без no-cache PWA показывает старую версию.
+    location = /version.json {
+        add_header Cache-Control "no-cache, no-store, must-revalidate";
+    }
+
     # Остальные ассеты можно кэшировать надолго (hash в имени)
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         expires 1y;
@@ -79,7 +84,7 @@ nginx -t && systemctl reload nginx
 ## 3. Если используется CDN (Cloudflare и т.п.)
 
 - После деплоя **очищайте кэш CDN** вручную (Purge Cache).
-- Либо настройте Page Rule: для `app.climbing-events.ru/index.html`, `manifest.json`, `flutter_service_worker.js`, `flutter_bootstrap.js` — bypass cache.
+- Либо настройте Page Rule: для `app.climbing-events.ru/index.html`, `manifest.json`, `flutter_service_worker.js`, `flutter_bootstrap.js`, `version.json` — bypass cache.
 - Либо включайте Development Mode на время деплоя.
 
 ---
@@ -98,6 +103,6 @@ version: 1.0.0+4   # было +3, стало +4
 
 ## 5. Краткий чеклист
 
-- [ ] Nginx: `Cache-Control: no-cache` для `index.html`, `manifest.json`, `flutter_service_worker.js`, `flutter_bootstrap.js`, `flutter.js`
+- [ ] Nginx: `Cache-Control: no-cache` для `index.html`, `manifest.json`, `flutter_service_worker.js`, `flutter_bootstrap.js`, `flutter.js`, `version.json`
 - [ ] CDN: Purge Cache после деплоя или bypass cache для entry points
 - [ ] При каждом релизе — `version: X.Y.Z+BUILD` в pubspec и деплой через Actions (bump запускается автоматически)

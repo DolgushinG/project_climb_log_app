@@ -99,6 +99,8 @@ Future<void> clearAllDataOnLogout() async {
   // Остальные пользовательские данные в SharedPreferences
   const _userKeys = [
     'ai_coach_history',
+    'ai_chat_memory_consent',
+    'ai_conversation_id',
     'ai_coach_pending_task_id',
     'strength_measurement_history',
     'strength_last_metrics',

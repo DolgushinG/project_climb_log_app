@@ -8,6 +8,8 @@ class UserProfile {
   String sportCategory;
   String gender;
   String email;
+  /// Согласие на обработку данных AI-чата. null = не задано на сервере.
+  bool? aiMemoryConsent;
 
   UserProfile({
     required this.firstName,
@@ -19,6 +21,7 @@ class UserProfile {
     required this.sportCategory,
     required this.gender,
     required this.email,
+    this.aiMemoryConsent,
   });
 
   // Метод для создания объекта UserProfile из JSON
@@ -33,6 +36,7 @@ class UserProfile {
       sportCategory: json['sport_category'] ?? '',
       gender: json['gender'] ?? '',
       email: json['email'],
+      aiMemoryConsent: json['ai_memory_consent'] as bool?,
     );
   }
 

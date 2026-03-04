@@ -16,19 +16,27 @@ if [ -z "$BUILD" ] || [ "$BUILD" = "0" ]; then
   BUILD=1
 fi
 
-# Заменяем ?v=ЧИСЛО в flutter_bootstrap.js (macOS и Linux)
+# Заменяем ?v=ЧИСЛО во всех entry-point файлах (cache busting)
 if [[ "$OSTYPE" == "darwin"* ]]; then
   sed -i '' "s/flutter_bootstrap\.js?v=[0-9]*/flutter_bootstrap.js?v=$BUILD/" "$INDEX"
+  sed -i '' "s/manifest\.json?v=[0-9]*/manifest.json?v=$BUILD/" "$INDEX"
+  sed -i '' "s/passkeys_bundle\.js?v=[0-9]*/passkeys_bundle.js?v=$BUILD/" "$INDEX"
+  sed -i '' "s/manifest\.json\"/manifest.json?v=$BUILD\"/" "$INDEX"  # если ?v= ещё не было
+  sed -i '' "s/passkeys_bundle\.js\"/passkeys_bundle.js?v=$BUILD\"/" "$INDEX"
   # manifest.json: start_url с ?v= — при открытии PWA браузер получит «новый» URL (идемпотентно)
   if [ -f "$MANIFEST" ]; then
     sed -i '' 's/"start_url"[[:space:]]*:[[:space:]]*"\.[^"]*"/"start_url":".\/?v='$BUILD'"/' "$MANIFEST"
   fi
 else
   sed -i "s/flutter_bootstrap\.js?v=[0-9]*/flutter_bootstrap.js?v=$BUILD/" "$INDEX"
+  sed -i "s/manifest\.json?v=[0-9]*/manifest.json?v=$BUILD/" "$INDEX"
+  sed -i "s/passkeys_bundle\.js?v=[0-9]*/passkeys_bundle.js?v=$BUILD/" "$INDEX"
+  sed -i "s/manifest\.json\"/manifest.json?v=$BUILD\"/" "$INDEX"
+  sed -i "s/passkeys_bundle\.js\"/passkeys_bundle.js?v=$BUILD\"/" "$INDEX"
   if [ -f "$MANIFEST" ]; then
     sed -i 's/"start_url"[[:space:]]*:[[:space:]]*"\.[^"]*"/"start_url":".\/?v='$BUILD'"/' "$MANIFEST"
   fi
 fi
 
-echo "web/index.html: flutter_bootstrap.js?v=$BUILD"
+echo "web/index.html: flutter_bootstrap.js?v=$BUILD, manifest.json?v=$BUILD, passkeys_bundle.js?v=$BUILD"
 [ -f "$MANIFEST" ] && echo "web/manifest.json: start_url=./?v=$BUILD"

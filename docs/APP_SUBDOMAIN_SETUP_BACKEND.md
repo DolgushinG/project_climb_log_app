@@ -84,6 +84,7 @@ server {
     location = /flutter_service_worker.js { add_header Cache-Control "no-cache, no-store, must-revalidate"; }
     location = /flutter_bootstrap.js { add_header Cache-Control "no-cache, no-store, must-revalidate"; }
     location = /flutter.js { add_header Cache-Control "no-cache, no-store, must-revalidate"; }
+    location = /version.json { add_header Cache-Control "no-cache, no-store, must-revalidate"; }
 
     location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff|woff2)$ {
         expires 1y;
@@ -110,7 +111,7 @@ systemctl reload nginx
 ```nginx
 # Внутри server { ... } для climbing-events.ru (НЕ app)
 # Редирект Flutter-ассетов на app-поддомен (PWA и кэш могут стучаться с основного домена)
-location ~ ^/(flutter_service_worker\.js|flutter_bootstrap\.js|flutter\.js|main\.dart\.js|manifest\.json)$ {
+location ~ ^/(flutter_service_worker\.js|flutter_bootstrap\.js|flutter\.js|main\.dart\.js|manifest\.json|version\.json)$ {
     return 301 https://app.climbing-events.ru$request_uri;
 }
 location ~ ^/(assets|canvaskit|icons)/ {

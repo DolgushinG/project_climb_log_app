@@ -5,12 +5,21 @@ import 'package:intl/intl.dart';
 
 import '../main.dart';
 import '../models/ChatMessage.dart';
+import '../models/SendMessageResult.dart';
 import '../services/AICoachService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 
 class AICoachScreen extends StatefulWidget {
-  const AICoachScreen({super.key});
+  /// ID чата (из списка). null — новый чат.
+  final int? conversationId;
+  /// Заголовок для appBar (при открытии существующего чата).
+  final String? title;
+  const AICoachScreen({
+    super.key,
+    this.conversationId,
+    this.title,
+  });
 
   @override
   State<AICoachScreen> createState() => _AICoachScreenState();
@@ -27,7 +36,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   List<ChatMessage> _messages = [];
   bool _isLoading = false;
+  bool _loadingHistory = true;
   String? _error;
+  /// Текущий ID чата (может обновиться после первого ответа в новом чате).
+  int? _conversationId;
   /// Индекс сообщения для retry (не добавляем дубликат).
   int? _lastFailedMessageIndex;
   /// Индекс последнего полученного ответа — подсветка. null = не подсвечивать.
@@ -36,6 +48,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   @override
   void initState() {
     super.initState();
+    _conversationId = widget.conversationId;
     WidgetsBinding.instance.addObserver(this);
     _loadHistory();
     _inputFocusNode.addListener(_onInputFocusChanged);
@@ -85,21 +98,35 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
   }
 
   Future<void> _loadHistory() async {
+    setState(() {
+      _loadingHistory = true;
+      _error = null;
+    });
     try {
-      final history = await _coachService.getHistory();
-      if (mounted) {
-        setState(() {
-          _messages = history;
-          _error = null;
-        });
-        if (history.isNotEmpty) _scrollToBottom();
-        // Если последнее — user и есть pending task, показываем «Печатает» и продолжаем polling
-        await _resumePendingPollingIfNeeded();
+      if (_conversationId != null) {
+        final result = await _coachService.getConversationMessages(_conversationId!);
+        if (mounted) {
+          setState(() {
+            _messages = result.messages;
+            _loadingHistory = false;
+          });
+          if (result.messages.isNotEmpty) _scrollToBottom();
+        }
+      } else {
+        // Новый чат — пустое состояние (не грузим старую локальную историю)
+        if (mounted) {
+          setState(() {
+            _messages = [];
+            _loadingHistory = false;
+          });
+        }
       }
+      if (mounted) await _resumePendingPollingIfNeeded();
     } catch (e) {
       if (mounted) {
         setState(() {
           _messages = [];
+          _loadingHistory = false;
           _error = networkErrorMessage(e, 'Не удалось загрузить историю чата.');
         });
       }
@@ -132,13 +159,15 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
     final idx = isRetry ? retryIndex : _messages.length - 1;
 
-    // Сохраняем user-сообщение сразу, чтобы при уходе из чата оно не терялось
-    if (!isRetry) await _coachService.addUserMessageToHistory(text);
+    // Сохраняем user-сообщение в локальную историю только при новом чате (без conversation_id)
+    if (!isRetry && _conversationId == null) {
+      await _coachService.addUserMessageToHistory(text);
+    }
 
     // Пробуем async (без таймаута)
     String? taskId;
     try {
-      taskId = await _coachService.sendMessageAsync(text);
+      taskId = await _coachService.sendMessageAsync(text, explicitConversationId: _conversationId);
     } catch (e) {
       _handleSendError(e, idx);
       return;
@@ -156,13 +185,16 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         );
         await _coachService.setPendingTaskId(null); // ответ получен или таймаут
         if (reply != null) {
-          await _coachService.addReplyToHistory(reply); // user уже сохранён при отправке
+          if (_conversationId == null) await _coachService.addReplyToHistory(reply.message);
+          setState(() {
+            if (reply.conversationId != null) _conversationId = reply.conversationId;
+          });
         }
         if (!mounted) return;
         if (reply != null) {
           setState(() {
             _messages[idx] = _messages[idx].copyWith(status: MessageStatus.delivered);
-            _messages.add(reply);
+            _messages.add(reply!.message);
             _error = null;
             _highlightMessageIndex = _messages.length - 1;
           });
@@ -191,11 +223,12 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     _isLoading = true;
     if (mounted) setState(() {});
     try {
-      final reply = await _coachService.sendMessage(text);
+      final result = await _coachService.sendMessage(text, explicitConversationId: _conversationId);
       if (!mounted) return;
       setState(() {
+        if (result.conversationId != null) _conversationId = result.conversationId;
         _messages[idx] = _messages[idx].copyWith(status: MessageStatus.delivered);
-        _messages.add(reply);
+        _messages.add(result.message);
         _error = null;
         _highlightMessageIndex = _messages.length - 1;
       });
@@ -247,13 +280,16 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
       );
       await _coachService.setPendingTaskId(null);
       if (reply != null) {
-        await _coachService.addReplyToHistory(reply);
+        if (_conversationId == null) await _coachService.addReplyToHistory(reply.message);
+        setState(() {
+          if (reply.conversationId != null) _conversationId = reply.conversationId;
+        });
       }
       if (!mounted) return;
       if (reply != null) {
         setState(() {
           _messages[idx] = _messages[idx].copyWith(status: MessageStatus.delivered);
-          _messages.add(reply);
+          _messages.add(reply!.message);
           _error = null;
           _highlightMessageIndex = _messages.length - 1;
         });
@@ -275,6 +311,13 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         setState(() {});
       }
     }
+  }
+
+  String _appBarTitle() {
+    if (widget.title != null && widget.title!.isNotEmpty) {
+      return widget.title!.length > 30 ? '${widget.title!.substring(0, 30)}…' : widget.title!;
+    }
+    return 'AI Тренер';
   }
 
   void _retryLastMessage() {
@@ -302,21 +345,55 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     });
   }
 
-  Future<void> _clearHistory() async {
-    try {
-      await _coachService.clearHistory();
-      if (mounted) {
-        setState(() {
-          _messages.clear();
-          _error = null;
-          _lastFailedMessageIndex = null;
-        });
-      }
-    } catch (_) {
-      if (mounted) {
-        setState(() => _error = 'Не удалось очистить историю.');
+  /// Удалить чат, очистить кэш и вернуться к списку.
+  Future<void> _deleteChatAndGoBack() async {
+    final id = _conversationId;
+    if (id != null) {
+      try {
+        await _coachService.deleteConversation(id);
+      } catch (e) {
+        if (mounted) {
+          setState(() => _error = _exceptionToUserMessage(e));
+        }
+        return;
       }
     }
+    await _coachService.clearHistory();
+    if (mounted) {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _onDeletePressed() {
+    if (_messages.isEmpty && _conversationId == null) {
+      // Пустой новый чат — просто возврат
+      Navigator.of(context).pop();
+      return;
+    }
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Удалить чат?', style: unbounded(fontSize: 18)),
+        content: Text(
+          'Чат будет удалён. Это действие нельзя отменить.',
+          style: unbounded(fontSize: 14, color: Colors.white70),
+        ),
+        backgroundColor: AppColors.cardDark,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Отмена', style: unbounded(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _deleteChatAndGoBack();
+            },
+            child: Text('Удалить', style: unbounded(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -328,12 +405,15 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.cardDark,
-        title: Text('AI Тренер', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600)),
+        title: Text(
+          _appBarTitle(),
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600),
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.delete_outline, color: AppColors.mutedGold),
-            tooltip: 'Очистить историю',
-            onPressed: _messages.isEmpty ? null : () => _clearHistory(),
+            tooltip: 'Удалить чат',
+            onPressed: () => _onDeletePressed(),
           ),
         ],
       ),
@@ -437,6 +517,11 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     required double horizontalPadding,
     required double topPadding,
   }) {
+    if (_loadingHistory) {
+      return const Center(
+        child: CircularProgressIndicator(color: AppColors.mutedGold),
+      );
+    }
     return _messages.isEmpty && _error == null
         ? Center(
             child: Padding(

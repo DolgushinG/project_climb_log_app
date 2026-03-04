@@ -44,6 +44,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
   /// Если true — родитель передал isGuest=false, но токена нет (устаревшая сессия/рассинхрон). Показываем landing.
   bool _effectivelyGuest = false;
   bool _expiredBannerDismissed = false;
+  bool _networkRetryLoading = false;
 
   @override
   void initState() {
@@ -148,9 +149,10 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     await _loadPremiumStatus();
   }
 
-  Future<void> _loadPremiumStatus() async {
+  /// [forceRefresh] — при нажатии «Повторить» в состоянии «Нет интернета» всегда делать новый запрос.
+  Future<void> _loadPremiumStatus({bool forceRefresh = false}) async {
     if (widget.isGuest) return;
-    final status = await _premiumService.getStatus();
+    final status = await _premiumService.getStatus(forceRefresh: forceRefresh);
     if (!mounted) return;
     if (status.isUnauthorized) {
       await redirectToLoginOnSessionError(context, 'Сессия истекла. Войдите снова.');
@@ -371,6 +373,13 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     );
   }
 
+  Future<void> _onNetworkRetry() async {
+    if (_networkRetryLoading) return;
+    setState(() => _networkRetryLoading = true);
+    await _loadPremiumStatus(forceRefresh: true);
+    if (mounted) setState(() => _networkRetryLoading = false);
+  }
+
   Widget _buildNetworkUnavailableState() {
     return SafeArea(
       child: Center(
@@ -398,9 +407,11 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
-                onPressed: _loadPremiumStatus,
-                icon: const Icon(Icons.refresh, size: 20),
-                label: const Text('Повторить'),
+                onPressed: _networkRetryLoading ? null : _onNetworkRetry,
+                icon: _networkRetryLoading
+                    ? SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Icon(Icons.refresh, size: 20),
+                label: Text(_networkRetryLoading ? 'Загрузка...' : 'Повторить'),
                 style: FilledButton.styleFrom(
                   backgroundColor: AppColors.mutedGold,
                   foregroundColor: Colors.white,

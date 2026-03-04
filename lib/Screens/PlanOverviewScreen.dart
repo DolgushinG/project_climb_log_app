@@ -13,7 +13,7 @@ import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 import 'package:login_app/Screens/PlanCalendarScreen.dart';
 import 'package:login_app/Screens/PlanDayScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
-import 'package:login_app/Screens/AICoachScreen.dart';
+import 'package:login_app/Screens/AIChatListScreen.dart';
 
 /// Обзор плана: при отсутствии — кнопка создания; при наличии — календарь и «Сегодня».
 class PlanOverviewScreen extends StatefulWidget {
@@ -438,8 +438,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
             const SizedBox(height: 24),
             FilledButton.icon(
               onPressed: () {
+                TrainingPlanApiService.invalidatePlanCaches();
                 setState(() {
                   _loading = true;
+                  _loadError = false;
                   _loadErrorMessage = null;
                 });
                 _load();
@@ -466,6 +468,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (widget.aiCoachEnabled) ...[
+            _buildAICoachChatRow(),
+            const SizedBox(height: 24),
+          ],
           const SizedBox(height: 32),
           Center(
             child: Container(
@@ -1126,7 +1132,7 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => const AICoachScreen(),
+              builder: (_) => const AIChatListScreen(),
             ),
           );
         },

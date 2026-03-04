@@ -50,7 +50,7 @@ class ChatMessage {
     final role = json['role'] is String ? json['role'] as String : 'assistant';
     final rawContent = json['content'] ?? json['coach_comment'] ?? json['text'] ?? json['message'];
     final content = rawContent is String ? rawContent : '';
-    final ts = json['timestamp'];
+    final ts = json['timestamp'] ?? json['created_at'];
     MessageStatus? st;
     final statusStr = json['status'];
     if (statusStr is String) {
