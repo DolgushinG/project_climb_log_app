@@ -12,10 +12,12 @@ import 'button/result_entry_button.dart';
 import 'button/take_part.dart';
 import 'list_participants.dart';
 import 'main.dart';
+import 'Screens/AISupportScreen.dart';
 import 'Screens/CheckoutScreen.dart';
 import 'Screens/GymProfileScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/GroupRegisterScreen.dart';
+import 'services/AISupportService.dart';
 import 'services/GymService.dart';
 import 'models/Category.dart';
 import 'services/ProfileService.dart';
@@ -244,12 +246,16 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   String? _selectedCity;
   String? _error;
   bool _fromCache = false;
+  bool _supportEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadCompetitions();
+    AISupportService().getStatus().then((v) {
+      if (mounted) setState(() => _supportEnabled = v);
+    });
   }
 
   /// Сначала показываем кэш (если есть), затем подгружаем с сети.
@@ -392,6 +398,19 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text('Соревнования', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
+        actions: [
+          if (_supportEnabled)
+            IconButton(
+              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              tooltip: 'Поддержка',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AISupportScreen(page: 'main'),
+                ),
+              ),
+            ),
+        ],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
@@ -741,6 +760,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   bool _statsLoading = false;
   String? _statsError;
   String? _userBirthday; // день рождения из профиля
+  bool _supportEnabled = false;
   final TextEditingController _textEditingController = TextEditingController();
   final FocusNode _focusNode = AlwaysDisabledFocusNode();
 
@@ -2376,6 +2396,21 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         title: Text('Детали соревнования', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         actions: [
+          if (_supportEnabled)
+            IconButton(
+              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              tooltip: 'Поддержка',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AISupportScreen(
+                    eventId: _competitionDetails.id,
+                    page: 'event',
+                    pageTitle: _competitionDetails.title,
+                  ),
+                ),
+              ),
+            ),
           IconButton(
             icon: _isRefreshing
                 ? const SizedBox(
@@ -3057,6 +3092,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     super.initState();
     _competitionDetails = widget.competition;
     fetchCompetition(); // _fetchInitialParticipationStatus = fetchCompetition, один вызов
+    AISupportService().getStatus().then((v) {
+      if (mounted) setState(() => _supportEnabled = v);
+    });
   }
 
 // Обновить детали соревнования

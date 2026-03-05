@@ -10,9 +10,11 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../services/AISupportService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
+import 'AISupportScreen.dart';
 import 'GroupDocumentsScreen.dart';
 
 class GroupCheckoutScreen extends StatefulWidget {
@@ -34,11 +36,15 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
   /// Выбранные пакеты и размеры по user_id
   final Map<int, String?> _selectedPackageByUser = {};
   final Map<int, Map<String, String>> _selectedSizesByUser = {};
+  bool _supportEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
+    AISupportService().getStatus().then((v) {
+      if (mounted) setState(() => _supportEnabled = v);
+    });
   }
 
   String get _baseUrl => DOMAIN.startsWith('http') ? DOMAIN : 'https://$DOMAIN';
@@ -671,6 +677,23 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          if (_supportEnabled)
+            IconButton(
+              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              tooltip: 'Поддержка',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AISupportScreen(
+                    eventId: widget.eventId,
+                    page: 'group-checkout',
+                    pageTitle: 'Оформление группы',
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Container(
         color: AppColors.anthracite,

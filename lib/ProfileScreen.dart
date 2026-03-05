@@ -19,6 +19,8 @@ import 'Screens/PremiumPaymentScreen.dart';
 import 'services/PremiumSubscriptionService.dart';
 import 'login.dart';
 import 'main.dart';
+import 'services/AISupportService.dart';
+import 'Screens/AISupportScreen.dart';
 import 'utils/display_helper.dart';
 import 'utils/session_error_helper.dart';
 import 'services/cache_service.dart';
@@ -43,6 +45,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isRefreshing = false;
   String? _pushToken;
   bool _expiredBannerDismissed = false;
+  bool _supportEnabled = false;
 
   bool _pushTokenLoading = false;
 
@@ -384,6 +387,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadProfileAndPremium();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcomeModal());
+    AISupportService().getStatus().then((v) {
+      if (mounted) setState(() => _supportEnabled = v);
+    });
     if (kDebugMode) {
       RustorePushService.getStoredToken().then((token) {
         if (mounted) setState(() => _pushToken = token);
@@ -496,6 +502,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
         automaticallyImplyLeading: false,
         title: Text('Профиль', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
         actions: [
+          if (_supportEnabled)
+            IconButton(
+              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              tooltip: 'Поддержка',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const AISupportScreen(page: 'profile'),
+                ),
+              ),
+            ),
           IconButton(
             icon: _isRefreshing
                 ? SizedBox(

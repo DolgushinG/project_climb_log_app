@@ -8,9 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../services/AISupportService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
+import 'AISupportScreen.dart';
 import 'GroupCheckoutScreen.dart';
 import 'GroupDocumentsScreen.dart';
 import 'ProfileEditScreen.dart';
@@ -44,10 +46,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
   Timer? _debounce;
   static const Duration _debounceDuration = Duration(milliseconds: 500);
+  bool _supportEnabled = false;
+
   @override
   void initState() {
     super.initState();
     _loadData();
+    AISupportService().getStatus().then((v) {
+      if (mounted) setState(() => _supportEnabled = v);
+    });
   }
 
   @override
@@ -699,6 +706,23 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             Navigator.pop(context);
           },
         ),
+        actions: [
+          if (_supportEnabled)
+            IconButton(
+              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              tooltip: 'Поддержка',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AISupportScreen(
+                    eventId: widget.eventId,
+                    page: 'group-register',
+                    pageTitle: 'Заявить группу',
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Container(
         color: AppColors.anthracite,

@@ -11,6 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
+import '../services/AISupportService.dart';
+import '../Screens/AISupportScreen.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
@@ -38,6 +40,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isUploadingReceipt = false;
   bool _isSavingPackage = false;
   bool _isApplyingPromo = false;
+  bool _supportEnabled = false;
 
   @override
   void initState() {
@@ -47,6 +50,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } else {
       _loadCheckout();
     }
+    AISupportService().getStatus().then((v) {
+      if (mounted) setState(() => _supportEnabled = v);
+    });
   }
 
   void _applyData(Map<String, dynamic> data) {
@@ -667,6 +673,23 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           onPressed: () => Navigator.pop(context),
           tooltip: 'Вернуться к событию',
         ),
+        actions: [
+          if (_supportEnabled)
+            IconButton(
+              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              tooltip: 'Поддержка',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AISupportScreen(
+                    eventId: widget.eventId,
+                    page: 'checkout',
+                    pageTitle: 'Оформление',
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
       body: Container(
         color: AppColors.anthracite,
