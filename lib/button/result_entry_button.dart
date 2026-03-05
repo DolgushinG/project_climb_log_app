@@ -8,8 +8,10 @@ class ResultEntryButton extends StatelessWidget {
   final int eventId;
   final bool isParticipantActive;
   final bool isAccessUserEditResult;
-  final bool isOpenSendResultState;
   final bool isRoutesExists;
+  final bool isZoneShow;
+  final bool isHideColor;
+  final bool isHideGrades;
   final Future<void> Function() onResultSubmitted;
 
   const ResultEntryButton({
@@ -17,15 +19,15 @@ class ResultEntryButton extends StatelessWidget {
     required this.eventId,
     required this.isParticipantActive,
     required this.isAccessUserEditResult,
-    required this.isOpenSendResultState,
     required this.onResultSubmitted,
     this.isRoutesExists = true,
+    this.isZoneShow = true,
+    this.isHideColor = false,
+    this.isHideGrades = false,
   });
 
-  /// Кнопка активна: до отправки — is_open_send_result_state; после — только is_access_user_edit_result
-  bool get _canEdit =>
-      (isParticipantActive ? isAccessUserEditResult : (isOpenSendResultState || isAccessUserEditResult)) &&
-      isRoutesExists;
+  /// Кнопка активна, когда есть доступ на редактирование результатов (is_access_user_edit_result) и есть трассы.
+  bool get _canEdit => isAccessUserEditResult && isRoutesExists;
 
   String get _buttonText {
     if (!isParticipantActive) return 'Внести результаты';
@@ -45,6 +47,9 @@ class ResultEntryButton extends StatelessWidget {
                     builder: (context) => ResultEntryPage(
                       eventId: eventId,
                       isParticipantActive: isParticipantActive,
+                      isZoneShow: isZoneShow,
+                      isHideColor: isHideColor,
+                      isHideGrades: isHideGrades,
                     ),
                   ),
                 );

@@ -30,8 +30,17 @@ Future<List<Routes>> getRoutesData({
 class ResultEntryPage extends StatefulWidget {
   final int eventId;
   final bool isParticipantActive;
+  final bool isZoneShow;
+  final bool isHideColor;
+  final bool isHideGrades;
 
-  ResultEntryPage({required this.eventId, this.isParticipantActive = false});
+  ResultEntryPage({
+    required this.eventId,
+    this.isParticipantActive = false,
+    this.isZoneShow = true,
+    this.isHideColor = false,
+    this.isHideGrades = false,
+  });
 
   @override
   _ResultEntryPageState createState() => _ResultEntryPageState();
@@ -295,6 +304,9 @@ class _ResultEntryPageState extends State<ResultEntryPage> {
           route: route,
           selectedAttempts: selectedAttempts,
           onAttemptSelected: _updateSelectedAttempts,
+          isZoneShow: widget.isZoneShow,
+          isHideColor: widget.isHideColor,
+          isHideGrades: widget.isHideGrades,
         )).toList(),
       ),
       bottomNavigationBar: Padding(
@@ -327,12 +339,18 @@ class RouteCard extends StatefulWidget {
   final Routes route;
   final List<Map<String, dynamic>> selectedAttempts;
   final Function(int routeId, int attempt) onAttemptSelected;
+  final bool isZoneShow;
+  final bool isHideColor;
+  final bool isHideGrades;
 
   const RouteCard({
     Key? key,
     required this.route,
     required this.selectedAttempts,
     required this.onAttemptSelected,
+    this.isZoneShow = true,
+    this.isHideColor = false,
+    this.isHideGrades = false,
   }) : super(key: key);
 
   @override
@@ -380,21 +398,25 @@ class _RouteCardState extends State<RouteCard> {
               style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
             ),
             const SizedBox(height: 12),
-            Row(
-              children: [
-                Text('Цвет: ', style: AppTypography.secondary()),
-                Container(
-                  width: 20,
-                  height: 20,
-                  decoration: BoxDecoration(
-                    color: widget.route.color ?? AppColors.graphite,
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text('Категория: ${displayValue(widget.route.grade)}', style: AppTypography.secondary()),
-              ],
-            ),
+            if (!widget.isHideColor || !widget.isHideGrades)
+              Row(
+                children: [
+                  if (!widget.isHideColor) ...[
+                    Text('Цвет: ', style: AppTypography.secondary()),
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        color: widget.route.color ?? AppColors.graphite,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    if (!widget.isHideGrades) const SizedBox(width: 16),
+                  ],
+                  if (!widget.isHideGrades)
+                    Text('Категория: ${displayValue(widget.route.grade)}', style: AppTypography.secondary()),
+                ],
+              ),
             const SizedBox(height: 20),
             Text('Попытка:', style: AppTypography.secondary()),
             const SizedBox(height: 10),
@@ -405,7 +427,8 @@ class _RouteCardState extends State<RouteCard> {
                 _buildAttemptIcon(0, 'X', AppColors.graphite, widget.route.routeId),
                 _buildAttemptIcon(1, 'Flash', AppColors.successMuted, widget.route.routeId),
                 _buildAttemptIcon(2, 'Redpoint', AppColors.mutedGold, widget.route.routeId),
-                _buildAttemptIcon(3, 'Zone', AppColors.graphite.withOpacity(0.8), widget.route.routeId),
+                if (widget.isZoneShow)
+                  _buildAttemptIcon(3, 'Zone', AppColors.graphite.withOpacity(0.8), widget.route.routeId),
               ],
             ),
           ],

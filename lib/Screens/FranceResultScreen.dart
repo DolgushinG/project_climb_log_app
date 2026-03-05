@@ -360,7 +360,9 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                     child: Center(
                       child: Text(
                         formatPlace(place),
-                        style: AppTypography.rankNumber(),
+                        style: AppTypography.rankNumber().copyWith(
+                          color: Colors.white.withOpacity(0.12),
+                        ),
                       ),
                     ),
                   ),
@@ -370,18 +372,26 @@ class _FranceResultsPageState extends State<FranceResultsPage> with SingleTicker
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         SizedBox(
-                          width: 36,
+                          width: isMedal ? 36 : 44,
                           child: isMedal
                               ? Icon(
                                   Icons.emoji_events_outlined,
                                   size: 20,
                                   color: AppColors.mutedGold,
                                 )
-                              : Text(
-                                  formatPlace(place),
-                                  style: AppTypography.scoreBadge().copyWith(
-                                    fontSize: 12,
-                                    color: Colors.white.withOpacity(0.4),
+                              : Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.mutedGold.withOpacity(0.25),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    formatPlace(place),
+                                    style: AppTypography.scoreBadge().copyWith(
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.mutedGold,
+                                    ),
                                   ),
                                 ),
                         ),

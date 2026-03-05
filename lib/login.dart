@@ -344,7 +344,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             if (_socialFlags!.telegram)
                               SocialLoginButton(
                                 imageUrl: "assets/icon-telegram.png",
-                                loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=${Uri.parse(DOMAIN).host}&embed=1&request_access=write&return_to=${Uri.encodeComponent('$DOMAIN/auth/telegram/redirect?client=${kIsWeb ? 'webapp' : 'mobile'}')}",
+                                loginUrl: "https://oauth.telegram.org/auth?bot_id=6378620522&origin=${Uri.parse(DOMAIN).host}&embed=1&request_access=write&return_to=${Uri.encodeComponent('$DOMAIN/auth/telegram/callback?client=${kIsWeb ? 'webapp' : 'mobile'}')}",
                               ),
                             if (_socialFlags!.telegram && _socialFlags!.yandex)
                               const SizedBox(width: 16),

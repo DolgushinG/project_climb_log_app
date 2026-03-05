@@ -104,6 +104,9 @@ class Competition {
   final bool? is_send_result_state;
   final bool? is_open_send_result_state;
   final bool is_need_pay_for_reg;
+  final bool is_zone_show;
+  final bool is_hide_color;
+  final bool is_hide_grades;
   final bool is_in_list_pending;
   final List<int>? list_pending_number_sets;
 
@@ -138,6 +141,9 @@ class Competition {
     this.is_need_pay_for_reg = false,
     this.is_in_list_pending = false,
     this.list_pending_number_sets,
+    this.is_zone_show = true,
+    this.is_hide_color = false,
+    this.is_hide_grades = false,
     required this.is_need_send_birthday,
     required this.is_need_sport_category,
     required this.info_payment,
@@ -195,6 +201,9 @@ class Competition {
       is_open_send_result_state: _jsonToBool(json['is_open_send_result_state']),
       is_need_pay_for_reg: _jsonToBool(json['is_need_pay_for_reg']),
       is_in_list_pending: _jsonToBool(json['is_in_list_pending']),
+      is_zone_show: _jsonToBool(json['is_zone_show']),
+      is_hide_color: _jsonToBool(json['is_hide_color']),
+      is_hide_grades: _jsonToBool(json['is_hide_grades']),
       list_pending_number_sets: _parseListPendingNumberSets(json['list_pending_number_sets']),
       description: json['description'] ?? '',
       categories: (categoriesRaw is List)
@@ -2176,14 +2185,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               // Кнопка внесения/обновления результатов
               if (_competitionDetails.is_participant) ...[
                 // Условия показа по бизнес-логике:
-                // 1) Глобальный запрет выключен (is_open_send_result_state == true)
-                // 2) Пользователь зарегистрирован (is_participant == true)
-                // 3) Оплата подтверждена (для платных событий) или не требуется (для бесплатных)
-                // 4) Если результат уже есть и редактирование запрещено — кнопку не показываем.
+                // 1) Пользователь зарегистрирован (is_participant == true)
+                // 2) Оплата подтверждена (для платных событий) или не требуется (для бесплатных)
+                // 3) Если результат уже есть и редактирование запрещено — кнопку не показываем.
                 Builder(
                   builder: (context) {
-                    final bool globalAllowed =
-                        _jsonToBool(_competitionDetails.is_open_send_result_state);
                     final bool registered = _competitionDetails.is_participant;
                     // для платных: нужна подтверждённая оплата; для бесплатных: считаем, что ок
                     final bool paymentConfirmed = !_competitionDetails.is_need_pay_for_reg ||
@@ -2195,8 +2201,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     final bool editAllowed =
                         _jsonToBool(_competitionDetails.is_access_user_edit_result);
 
-                    final bool baseConditionsOk =
-                        globalAllowed && registered && paymentConfirmed;
+                    final bool baseConditionsOk = registered && paymentConfirmed;
 
                     // по правилам:
                     // - если нет результата → достаточно baseConditionsOk
@@ -2217,8 +2222,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                 // is_participant_active: true → результат существует
                                 isParticipantActive: resultExists,
                                 isAccessUserEditResult: editAllowed,
-                                isOpenSendResultState: globalAllowed,
                                 isRoutesExists: _competitionDetails.is_routes_exists,
+                                isZoneShow: _competitionDetails.is_zone_show,
+                                isHideColor: _competitionDetails.is_hide_color,
+                                isHideGrades: _competitionDetails.is_hide_grades,
                                 onResultSubmitted: _refreshParticipationStatus,
                               ),
                             if (_competitionDetails.is_routes_exists &&

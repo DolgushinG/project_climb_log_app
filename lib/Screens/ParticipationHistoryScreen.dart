@@ -410,14 +410,15 @@ class _ParticipationHistoryScreenState extends State<ParticipationHistoryScreen>
 
   Widget _buildResultChip(String text, Color bgColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: bgColor,
         borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.white.withOpacity(0.15)),
       ),
       child: Text(
         text,
-        style: unbounded(fontSize: 11, color: Colors.white),
+        style: unbounded(fontSize: 13, fontWeight: FontWeight.w500, color: Colors.white),
       ),
     );
   }
