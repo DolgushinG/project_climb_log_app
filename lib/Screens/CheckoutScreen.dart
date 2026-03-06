@@ -676,7 +676,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         actions: [
           if (_supportEnabled)
             IconButton(
-              icon: const Icon(Icons.support_agent, color: AppColors.mutedGold),
+              icon: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
+              ),
               tooltip: 'Поддержка',
               onPressed: () => Navigator.push(
                 context,

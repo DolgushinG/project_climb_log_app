@@ -14,7 +14,10 @@ import 'package:login_app/models/TrainingPlan.dart';
 import 'package:login_app/models/Workout.dart';
 import 'package:login_app/services/TrainingPlanGenerator.dart';
 import 'package:login_app/services/StrengthDashboardService.dart';
+import 'package:login_app/services/PendingSyncService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
+import 'package:login_app/services/AICoachService.dart';
+import 'package:login_app/Screens/AICoachScreen.dart';
 
 /// Экран «Выполнить упражнения» — упражнения из плана + ОФП по уровню с чекбоксами.
 /// Сохранение через API с fallback на локальное хранилище.
@@ -89,6 +92,13 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   int _restTotal = 180;
   Timer? _restTimer;
 
+  /// Таймер для растяжки (удержание позиции).
+  Timer? _stretchTimer;
+  int? _stretchSecondsRemaining;
+  int _stretchTotal = 30;
+  String? _stretchExerciseName;
+  bool _stretchTimerVisible = false;
+
   bool _showSwipeHint = false;
   AnimationController? _swipeHintController;
 
@@ -97,6 +107,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   Timer? _longPressTimer;
   String? _longPressExerciseId;
   double _longPressProgress = 0.0;
+  Offset? _longPressStartPosition;
 
   @override
   void initState() {
@@ -108,9 +119,167 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   @override
   void dispose() {
     _restTimer?.cancel();
+    _stretchTimer?.cancel();
     _longPressTimer?.cancel();
     _swipeHintController?.dispose();
     super.dispose();
+  }
+
+  /// Парсит дозировку растяжки в секунды: "30-40", "30 сек", "2×30 сек", "~2 мин".
+  int? _parseStretchSecondsFromDosage(String? dosage) {
+    if (dosage == null || dosage.isEmpty) return 30;
+    final s = dosage.trim().toLowerCase();
+    // "30-40" или "30-40 сек"
+    final rangeMatch = RegExp(r'(\d+)\s*[-–]\s*(\d+)').firstMatch(s);
+    if (rangeMatch != null) {
+      final a = int.tryParse(rangeMatch.group(1) ?? '') ?? 30;
+      final b = int.tryParse(rangeMatch.group(2) ?? '') ?? 40;
+      return ((a + b) / 2).round();
+    }
+    // "30 сек", "30s", "2×30 сек"
+    final secMatch = RegExp(r'(?:(\d+)\s*[×x]\s*)?(\d+)\s*(?:сек|s|sec)?').firstMatch(s);
+    if (secMatch != null) {
+      return int.tryParse(secMatch.group(2) ?? '') ?? 30;
+    }
+    // "~2 мин", "2 мин"
+    final minMatch = RegExp(r'~?\s*(\d+)\s*(?:мин|min|m)').firstMatch(s);
+    if (minMatch != null) {
+      final m = int.tryParse(minMatch.group(1) ?? '') ?? 1;
+      return m * 60;
+    }
+    return 30;
+  }
+
+  void _showStretchTimerDialog(CatalogExercise e) {
+    final defaultSec = _parseStretchSecondsFromDosage(e.dosage) ?? 30;
+    int seconds = defaultSec.clamp(10, 120);
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx2, setDialogState) => AlertDialog(
+          backgroundColor: AppColors.cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Таймер: ${e.displayName}',
+            style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                'Длительность удержания (сек)',
+                style: unbounded(fontSize: 13, color: Colors.white70),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.remove, color: Colors.white70),
+                    onPressed: () {
+                      if (seconds > 10) {
+                        seconds -= 10;
+                        setDialogState(() {});
+                      }
+                    },
+                  ),
+                  Expanded(
+                    child: Slider(
+                      value: seconds.clamp(10, 120).toDouble(),
+                      min: 10,
+                      max: 120,
+                      divisions: 11,
+                      activeColor: AppColors.mutedGold,
+                      onChanged: (v) {
+                        seconds = v.round().clamp(10, 120);
+                        setDialogState(() {});
+                      },
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.add, color: Colors.white70),
+                    onPressed: () {
+                      if (seconds < 120) {
+                        seconds += 10;
+                        setDialogState(() {});
+                      }
+                    },
+                  ),
+                ],
+              ),
+              Center(
+                child: Text(
+                  '$seconds сек',
+                  style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Отмена', style: unbounded(color: Colors.white54)),
+            ),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _startStretchTimer(e.displayName, seconds);
+              },
+              style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+              child: Text('Запустить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _startStretchTimer(String exerciseName, int seconds) {
+    _restTimer?.cancel();
+    _restTimer = null;
+    if (mounted) setState(() {
+      _restExerciseKey = null;
+      _restSecondsRemaining = null;
+      _restTimerVisible = false;
+    });
+    _stretchTimer?.cancel();
+    setState(() {
+      _stretchExerciseName = exerciseName;
+      _stretchTotal = seconds;
+      _stretchSecondsRemaining = seconds;
+      _stretchTimerVisible = false;
+    });
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _stretchSecondsRemaining != null && _stretchSecondsRemaining! > 0) {
+        setState(() => _stretchTimerVisible = true);
+      }
+    });
+    _stretchTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (!mounted) return;
+      setState(() {
+        _stretchSecondsRemaining = (_stretchSecondsRemaining ?? 0) - 1;
+        if (_stretchSecondsRemaining! <= 0) {
+          t.cancel();
+          _stretchTimer = null;
+          _stretchExerciseName = null;
+          _stretchSecondsRemaining = null;
+          _stretchTimerVisible = false;
+          SystemSound.play(SystemSoundType.alert);
+        }
+      });
+    });
+  }
+
+  void _skipStretchTimer() {
+    _stretchTimer?.cancel();
+    _stretchTimer = null;
+    if (mounted) {
+      setState(() {
+        _stretchExerciseName = null;
+        _stretchSecondsRemaining = null;
+        _stretchTimerVisible = false;
+      });
+    }
   }
 
   /// Парсит строку отдыха "180s", "90s", "2m" в секунды.
@@ -127,6 +296,13 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   bool _restTimerVisible = false;
 
   void _startRestTimer(String exerciseKey, int seconds) {
+    _stretchTimer?.cancel();
+    _stretchTimer = null;
+    if (mounted) setState(() {
+      _stretchExerciseName = null;
+      _stretchSecondsRemaining = null;
+      _stretchTimerVisible = false;
+    });
     _restTimer?.cancel();
     setState(() {
       _restExerciseKey = exerciseKey;
@@ -335,6 +511,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
 
   Future<void> _loadWorkoutMode() async {
     final api = StrengthTestApiService();
+    await api.syncPendingExerciseCompletions();
     final completions = await api.getExerciseCompletions(date: _dateKey);
     final skips = await api.getExerciseSkips(date: _dateKey);
     Map<String, bool> completed = {};
@@ -393,6 +570,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
       plan = gen.generatePlan(m, analysis);
     }
 
+    await api.syncPendingExerciseCompletions();
     final completions = await api.getExerciseCompletions(date: _dateKey);
     final skips = await api.getExerciseSkips(date: _dateKey);
     Map<String, bool> completed = {};
@@ -521,6 +699,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     _longPressTimer?.cancel();
     _longPressTimer = null;
     _longPressExerciseId = null;
+    _longPressStartPosition = null;
     if (_longPressProgress > 0) {
       _longPressProgress = 0;
       if (mounted) setState(() {});
@@ -531,9 +710,10 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     if (_isSwipeSupported) return child;
     final isHolding = _longPressExerciseId == exerciseId;
     return Listener(
-      onPointerDown: (_) {
+      onPointerDown: (event) {
         _cancelLongPressTimer();
         _longPressExerciseId = exerciseId;
+        _longPressStartPosition = event.position;
         _longPressProgress = 0.0;
         if (mounted) setState(() {});
         _longPressTimer = Timer.periodic(const Duration(milliseconds: 50), (t) {
@@ -548,11 +728,21 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               t.cancel();
               _longPressTimer = null;
               _longPressExerciseId = null;
+              _longPressStartPosition = null;
               _longPressProgress = 0.0;
               HapticFeedback.mediumImpact();
             }
           });
         });
+      },
+      onPointerMove: (event) {
+        if (_longPressStartPosition != null) {
+          final delta = (event.position - _longPressStartPosition!).distance;
+          // Если пользователь начал скроллить/двигать палец — считаем, что это не попытка пропуска.
+          if (delta > 12) {
+            _cancelLongPressTimer();
+          }
+        }
       },
       onPointerUp: (_) => _cancelLongPressTimer(),
       onPointerCancel: (_) => _cancelLongPressTimer(),
@@ -560,7 +750,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         clipBehavior: Clip.none,
         children: [
           child,
-          if (isHolding && _longPressProgress > 0)
+          // Небольшая задержка перед появлением полосы, чтобы не мигала при случайных тачах.
+          if (isHolding && _longPressProgress > 0.2)
             Positioned(
               left: 0,
               right: 0,
@@ -613,6 +804,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     await _toggleExerciseCompleted(e.id, value, setsDone: e.defaultSets, weightKg: null);
   }
 
+  static const int _pendingCompletionId = -1;
+
   Future<void> _toggleExerciseCompleted(
     String exerciseId,
     bool value, {
@@ -631,6 +824,16 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     final api = StrengthTestApiService();
     if (value) {
       if (sid != null) await api.deleteExerciseSkip(sid);
+      // Офлайн-первый: сначала в очередь, затем отправка.
+      await PendingSyncService.addPendingExerciseCompletion(
+        date: _dateKey,
+        exerciseId: exerciseId,
+        setsDone: setsDone,
+        weightKg: weightKg,
+      );
+      setState(() => _completionIds[exerciseId] = _pendingCompletionId);
+      StrengthTestApiService.invalidateCompletionsCacheForDate(_dateKey);
+
       final id = await api.saveExerciseCompletion(
         date: _dateKey,
         exerciseId: exerciseId,
@@ -638,15 +841,21 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         weightKg: weightKg,
       );
       if (id != null && mounted) {
+        await PendingSyncService.removePendingExerciseCompletion(_dateKey, exerciseId);
         setState(() => _completionIds[exerciseId] = id);
-      } else {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('${_keyCompleted}_$_dateKey', jsonEncode(_completed));
+      } else if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Сохранено локально. Будет отправлено при появлении сети.'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
       }
       if (mounted) _maybeShowAllDoneCelebration();
     } else {
       final cid = _completionIds[exerciseId];
-      if (cid != null) {
+      if (cid != null && cid != _pendingCompletionId) {
         final ok = await api.deleteExerciseCompletion(cid);
         if (ok && mounted) {
           setState(() => _completionIds.remove(exerciseId));
@@ -654,6 +863,10 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('${_keyCompleted}_$_dateKey', jsonEncode(_completed));
         }
+      } else if (cid == _pendingCompletionId) {
+        await PendingSyncService.removePendingExerciseCompletion(_dateKey, exerciseId);
+        StrengthTestApiService.invalidateCompletionsCacheForDate(_dateKey);
+        if (mounted) setState(() => _completionIds.remove(exerciseId));
       } else {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('${_keyCompleted}_$_dateKey', jsonEncode(_completed));
@@ -936,6 +1149,31 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                               borderRadius: BorderRadius.circular(16),
                               color: Colors.transparent,
                               child: _buildRestTimer(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_stretchSecondsRemaining != null && _stretchSecondsRemaining! > 0)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: SafeArea(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+                        child: IgnorePointer(
+                          ignoring: !_stretchTimerVisible,
+                          child: AnimatedOpacity(
+                            opacity: _stretchTimerVisible ? 1 : 0,
+                            duration: const Duration(milliseconds: 200),
+                            curve: Curves.easeOut,
+                            child: Material(
+                              elevation: 8,
+                              borderRadius: BorderRadius.circular(16),
+                              color: Colors.transparent,
+                              child: _buildStretchTimer(),
                             ),
                           ),
                         ),
@@ -1347,6 +1585,187 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     );
   }
 
+  Widget _buildStretchTimer() {
+    final remain = _stretchSecondsRemaining ?? 0;
+    final progress = _stretchTotal > 0 ? 1 - (remain / _stretchTotal) : 1.0;
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.cardDark,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.linkMuted.withOpacity(0.5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.self_improvement, color: AppColors.linkMuted, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '${_stretchExerciseName ?? 'Растяжка'}: ${remain ~/ 60}:${(remain % 60).toString().padLeft(2, '0')}',
+                  style: unbounded(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: _skipStretchTimer,
+                child: Text(
+                  'Пропустить',
+                  style: unbounded(
+                    fontSize: 13,
+                    color: AppColors.mutedGold,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 6,
+              backgroundColor: AppColors.rowAlt,
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.linkMuted),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showAskAIConfirmDialog(CatalogExercise e) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Спросить об упражнении у AI?',
+          style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        content: Text(
+          'AI-тренер расскажет, что это за упражнение, как его выполнять и на что обратить внимание.',
+          style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Отмена', style: unbounded(color: Colors.white54)),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+            child: Text('Спросить', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    ).then((ok) async {
+      if (ok != true || !mounted) return;
+      final comment = await AICoachService().getExerciseAiComment(e.id);
+      if (!mounted) return;
+      if (comment != null && comment.isNotEmpty) {
+        _showCachedAiCommentModal(e, comment);
+      } else {
+        _openAICoachForExercise(e);
+      }
+    });
+  }
+
+  void _showCachedAiCommentModal(CatalogExercise e, String comment) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => Container(
+        constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.cardDark,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+          border: Border.all(color: AppColors.graphite),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.chat_bubble_outline, color: AppColors.mutedGold, size: 24),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Подсказка от AI: ${e.displayName}',
+                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.white54),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Flexible(
+              child: SingleChildScrollView(
+                child: Text(
+                  comment,
+                  style: unbounded(fontSize: 14, color: Colors.white70, height: 1.6),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+            FilledButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                _openAICoachForExercise(e);
+              },
+              style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+              child: Text('Спросить снова', style: unbounded(color: Colors.black87, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _openAICoachForExercise(CatalogExercise e) {
+    // Дозировку не передаём — по запросу пользователя.
+    final parts = <String>[
+      'Что это за упражнение «${e.displayName}»? Как выполнять, типичные ошибки. Пиши коротко, 2–3 предложения.',
+    ];
+    if (e.description != null && e.description!.isNotEmpty) {
+      parts.add(e.description!);
+    }
+    final msg = parts.join(' ');
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => AICoachScreen(
+          conversationId: null,
+          title: 'AI Тренер',
+          exerciseName: e.displayName,
+          exerciseDescription: e.description,
+          exerciseId: e.id,
+          initialMessage: msg,
+        ),
+      ),
+    );
+  }
+
+  void _openAICoach() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => const AICoachScreen(conversationId: null, title: null),
+      ),
+    );
+  }
+
   Widget _buildDrillsListContent() {
     final drills = _plan?.drills ?? [];
     return Column(
@@ -1596,6 +2015,24 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                         '${e.dosageDisplay} • отдых ${e.defaultRest}',
                         style: unbounded(fontSize: 12, color: Colors.white54),
                       ),
+                      if (!done && !skipped) ...[
+                        const SizedBox(height: 8),
+                        InkWell(
+                          onTap: () => _showStretchTimerDialog(e),
+                          borderRadius: BorderRadius.circular(8),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.timer_outlined, size: 16, color: AppColors.linkMuted),
+                              const SizedBox(width: 6),
+                              Text(
+                                'Таймер',
+                                style: unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                       if (e.description != null && e.description!.isNotEmpty) ...[
                         const SizedBox(height: 6),
                         _CollapsibleBenefitRow(
@@ -1607,6 +2044,15 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     ],
                   ),
                 ),
+                if (!done && !skipped)
+                  IconButton(
+                    icon: const Icon(Icons.chat_bubble_outline, size: 22),
+                    color: AppColors.mutedGold,
+                    tooltip: 'Спросить об упражнении у AI',
+                    onPressed: () => _showAskAIConfirmDialog(e),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  ),
                 if (_isSkipButtonVisible(e.id, done: done, skipped: skipped)) ...[
                   const SizedBox(width: 8),
                   _buildSkipButton(e.id),
@@ -1988,6 +2434,15 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     ],
                   ),
                 ),
+                if (!done && !skipped)
+                  IconButton(
+                    icon: const Icon(Icons.chat_bubble_outline, size: 22),
+                    color: AppColors.mutedGold,
+                    tooltip: 'Спросить об упражнении у AI',
+                    onPressed: () => _showAskAIConfirmDialog(e),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  ),
                 if (_isSkipButtonVisible(e.id, done: done, skipped: skipped)) ...[
                   const SizedBox(width: 8),
                   _buildSkipButton(e.id),

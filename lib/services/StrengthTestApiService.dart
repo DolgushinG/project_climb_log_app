@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:login_app/main.dart';
 import 'package:login_app/models/StrengthAchievement.dart';
+import 'package:login_app/services/PendingSyncService.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
@@ -33,6 +34,11 @@ class StrengthTestApiService {
     } else {
       _completionsCache.clear();
     }
+  }
+
+  /// Сбросить кэш выполнений за дату (после офлайн-добавления в очередь).
+  static void invalidateCompletionsCacheForDate(String? date) {
+    _invalidateCompletionsCache(date);
   }
 
   static void _invalidateSkipsCache([String? date]) {
@@ -340,14 +346,74 @@ class StrengthTestApiService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final list = json?['completions'] as List<dynamic>? ?? [];
-        final result = list
+        var result = list
             .map((e) => ExerciseCompletion.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
+        if (date != null) {
+          final pending = await PendingSyncService.getPendingExerciseCompletionsForDate(date!);
+          for (final p in pending) {
+            result.add(ExerciseCompletion(
+              id: -1,
+              date: p['date'] as String? ?? date!,
+              exerciseId: p['exercise_id'] as String? ?? '',
+              setsDone: p['sets_done'] as int? ?? 1,
+              weightKg: (p['weight_kg'] as num?)?.toDouble(),
+            ));
+          }
+        }
         _completionsCache[key] = _CacheEntry(result, DateTime.now());
         return result;
       }
     } catch (_) {}
+    if (date != null) {
+      final pending = await PendingSyncService.getPendingExerciseCompletionsForDate(date!);
+      return pending
+          .map((p) => ExerciseCompletion(
+                id: -1,
+                date: p['date'] as String? ?? date!,
+                exerciseId: p['exercise_id'] as String? ?? '',
+                setsDone: p['sets_done'] as int? ?? 1,
+                weightKg: (p['weight_kg'] as num?)?.toDouble(),
+              ))
+          .toList();
+    }
     return [];
+  }
+
+  /// Отправить замеры из очереди офлайн-сохранений.
+  Future<int> syncPendingStrengthTests() async {
+    final list = await PendingSyncService.getPendingStrengthTests();
+    int synced = 0;
+    for (var i = list.length - 1; i >= 0; i--) {
+      final id = await saveStrengthTest(list[i]);
+      if (id != null) {
+        await PendingSyncService.removePendingStrengthTestAt(i);
+        synced++;
+      }
+    }
+    return synced;
+  }
+
+  /// Отправить выполнения упражнений из очереди.
+  Future<int> syncPendingExerciseCompletions() async {
+    final list = await PendingSyncService.getAllPendingExerciseCompletionsRaw();
+    int synced = 0;
+    for (final item in List.from(list)) {
+      final id = await saveExerciseCompletion(
+        date: item['date'] as String,
+        exerciseId: item['exercise_id'] as String,
+        setsDone: item['sets_done'] as int? ?? 1,
+        weightKg: (item['weight_kg'] as num?)?.toDouble(),
+        notes: item['notes'] as String? ?? '',
+      );
+      if (id != null) {
+        await PendingSyncService.removePendingExerciseCompletion(
+            item['date'] as String, item['exercise_id'] as String);
+        synced++;
+      }
+    }
+    if (synced > 0) _invalidateCompletionsCache();
+    return synced;
   }
 
   /// POST /api/climbing-logs/exercise-completions

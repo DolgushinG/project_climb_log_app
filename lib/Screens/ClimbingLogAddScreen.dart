@@ -7,6 +7,7 @@ import 'package:login_app/utils/climbing_log_colors.dart';
 import 'package:login_app/models/Gym.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/GymService.dart';
+import 'package:login_app/services/PendingSyncService.dart';
 import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 
@@ -133,50 +134,75 @@ class _ClimbingLogAddScreenState extends State<ClimbingLogAddScreen> {
       date: dateStr,
       gymId: _selectedGym?.id,
     );
-    final ok = _isEditMode && widget.session?.id != null
-        ? await _service.updateSession(widget.session!.id!, request)
-        : await _service.saveSession(request);
-    if (!mounted) return;
-    setState(() => _saving = false);
 
-    if (ok) {
-      if (!_isEditMode) {
-        var xpGained = 0;
-        final apiResult = await StrengthTestApiService().addSessionXp();
-        if (apiResult != null) {
-          xpGained = apiResult.xpGained;
-        } else {
-          xpGained = await TrainingGamificationService().addSessionXp();
-        }
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Тренировка сохранена! +$xpGained опыт'),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.mutedGold,
-            ),
-          );
-        }
-      } else {
+    if (_isEditMode && widget.session?.id != null) {
+      final ok = await _service.updateSession(widget.session!.id!, request);
+      if (!mounted) return;
+      setState(() => _saving = false);
+      if (ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Изменения сохранены!'),
+          const SnackBar(
+            content: Text('Изменения сохранены!'),
             behavior: SnackBarBehavior.floating,
             backgroundColor: AppColors.mutedGold,
           ),
         );
+        widget.onSaved?.call();
+        if (mounted) Navigator.of(context).pop();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Ошибка сохранения. Проверьте интернет и авторизацию.'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
       }
-      widget.onSaved?.call();
+      return;
+    }
+
+    // Новая сессия: сначала в очередь (офлайн-первый), потом отправка.
+    await PendingSyncService.addPendingClimbingSession(
+      request.toJson(),
+      gymName: _selectedGym?.name,
+    );
+    final ok = await _service.saveSession(request);
+    if (ok) {
+      await PendingSyncService.removePendingClimbingSessionMatching(request.toJson());
+    }
+    if (!mounted) return;
+    setState(() => _saving = false);
+
+    if (ok) {
+      var xpGained = 0;
+      final apiResult = await StrengthTestApiService().addSessionXp();
+      if (apiResult != null) {
+        xpGained = apiResult.xpGained;
+      } else {
+        xpGained = await TrainingGamificationService().addSessionXp();
+      }
       if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Тренировка сохранена! +$xpGained опыт'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.mutedGold,
+          ),
+        );
+        widget.onSaved?.call();
         Navigator.of(context).pop();
       }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Ошибка сохранения. Проверьте интернет и авторизацию.'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Сохранено локально. Будет отправлено при появлении сети.'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        widget.onSaved?.call();
+        Navigator.of(context).pop();
+      }
     }
   }
 

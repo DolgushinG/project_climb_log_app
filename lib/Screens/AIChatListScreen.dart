@@ -234,7 +234,7 @@ class _AIChatListScreenState extends State<AIChatListScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.psychology_outlined, size: 20, color: AppColors.mutedGold.withOpacity(0.8)),
+                Icon(Icons.fitness_center, size: 20, color: AppColors.mutedGold.withOpacity(0.8)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Text(

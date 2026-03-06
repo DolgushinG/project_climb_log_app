@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 
 import 'package:login_app/main.dart';
 import 'package:login_app/models/ClimbingLog.dart';
+import 'package:login_app/services/PendingSyncService.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 import 'package:login_app/models/Gym.dart';
 
@@ -329,17 +330,59 @@ class ClimbingLogService {
       if (response.statusCode == 200) {
         final raw = jsonDecode(response.body);
         if (raw is List) {
-          final list = raw
+          var list = raw
               .map((e) =>
                   HistorySession.fromJson(Map<String, dynamic>.from(e as Map)))
               .toList();
+          final pending = await PendingSyncService.getPendingClimbingSessionsAsHistory();
+          if (pending.isNotEmpty) {
+            list = [...list, ...pending];
+            list.sort((a, b) => b.date.compareTo(a.date));
+          }
           _historyCache = list;
           _historyCacheTime = now;
           return list;
         }
       }
     } catch (_) {}
+    final pending = await PendingSyncService.getPendingClimbingSessionsAsHistory();
+    if (pending.isNotEmpty) return pending;
     return [];
+  }
+
+  /// Отправить тренировки из очереди офлайн-сохранений.
+  static Future<int> syncPendingSessions(ClimbingLogService service) async {
+    final list = await PendingSyncService.getPendingClimbingSessions();
+    int synced = 0;
+    for (var i = list.length - 1; i >= 0; i--) {
+      final req = list[i]['request'] as Map<String, dynamic>?;
+      if (req == null) continue;
+      final request = ClimbingSessionRequest(
+        routes: (req['routes'] as List<dynamic>?)
+            ?.map((e) {
+                  final m = Map<String, dynamic>.from(e as Map);
+                  return RouteEntry(
+                    grade: m['grade'] as String? ?? '',
+                    count: (m['count'] is int)
+                        ? (m['count'] as int)
+                        : int.tryParse(m['count']?.toString() ?? '') ?? 0,
+                  );
+                })
+            .toList() ?? [],
+        date: req['date'] as String?,
+        gymId: req['gym_id'] as int?,
+      );
+      final ok = await service.saveSession(request);
+      if (ok) {
+        await PendingSyncService.removePendingClimbingSessionAt(i);
+        synced++;
+      }
+    }
+    if (synced > 0) {
+      _invalidateHistoryCache();
+      invalidateAllCaches();
+    }
+    return synced;
   }
 
   /// Сессия лазания за указанную дату (YYYY-MM-DD). Для связи плана с лазанием.

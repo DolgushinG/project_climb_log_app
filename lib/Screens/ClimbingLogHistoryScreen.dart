@@ -56,6 +56,8 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
       _error = null;
     });
     try {
+      await ClimbingLogService.syncPendingSessions(_climbingService);
+      if (!mounted) return;
       final results = await Future.wait([
         _climbingService.getHistory(),
         _strengthApi.getStrengthTestsHistory(periodDays: 365),

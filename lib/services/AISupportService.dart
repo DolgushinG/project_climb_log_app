@@ -32,7 +32,9 @@ class AISupportService {
     return headers;
   }
 
-  /// Проверка доступности AI Support. Кэш 5 минут.
+  /// Проверка доступности AI Support.
+  /// Открыли приложение → проверяем (если кэш валиден — из кэша, иначе запрос).
+  /// После успешного ответа → кэшируем. Закрыли, удалили кэш, открыли → запрашиваем снова.
   Future<bool> getStatus() async {
     final prefs = await SharedPreferences.getInstance();
     final cachedTime = prefs.getInt(_statusCacheTimeKey);
@@ -183,10 +185,4 @@ class AISupportService {
     }
   }
 
-  /// Сброс кэша status (для тестирования или принудительной перепроверки).
-  Future<void> invalidateStatusCache() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_statusCacheKey);
-    await prefs.remove(_statusCacheTimeKey);
-  }
 }

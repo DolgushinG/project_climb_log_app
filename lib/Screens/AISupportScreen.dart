@@ -157,42 +157,12 @@ class _AISupportScreenState extends State<AISupportScreen> {
     }
   }
 
-  /// Оборачивает голые URL в markdown-ссылки, чтобы они были кликабельны.
-  static String _linkifyBareUrls(String text) {
-    final urlRegex = RegExp(r'(?<![(\[])(https?://[^\s\)\]\>\"\']+)(?![)\]])');
-    return text.replaceAllMapped(urlRegex, (m) {
-      final url = m.group(1)!;
-      return '[$url]($url)';
-    });
-  }
-
-  Future<void> _launchUrlFromMessage(String href) async {
-    try {
-      final uri = Uri.parse(href);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть ссылку', style: unbounded(fontSize: 14))),
-        );
-      }
-    }
-  }
-
   void _clearHighlightAfterDelay() {
     Future.delayed(const Duration(seconds: 2), () {
       if (mounted && _highlightMessageIndex != null) {
         setState(() => _highlightMessageIndex = null);
       }
     });
-  }
-
-  /// Оборачивает голые URL в markdown-ссылки, чтобы они стали кликабельными.
-  static String _linkifyBareUrls(String text) {
-    final urlRegex = RegExp(r'(?<![(\[])(https?://[^\s\)\]\>\"]+)(?![)\]])');
-    return text.replaceAllMapped(urlRegex, (m) => '[${m.group(1)}](${m.group(1)})');
   }
 
   Future<void> _launchUrl(String url) async {
@@ -315,52 +285,6 @@ class _AISupportScreenState extends State<AISupportScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Скопировано', style: unbounded(fontSize: 14)), behavior: SnackBarBehavior.floating),
     );
-  }
-
-  /// Оборачивает голые URL в markdown-ссылки, чтобы они стали кликабельными.
-  String _linkifyBareUrls(String text) {
-    return text.replaceAllMapped(
-      RegExp(r'(?<![(\[])(https?://[^\s\)\]\>\"\']+)'),
-      (m) => '[${m.group(1)}](${m.group(1)})',
-    );
-  }
-
-  Future<void> _launchUrlFromMessage(String href) async {
-    try {
-      final uri = Uri.parse(href);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть ссылку', style: unbounded(fontSize: 14))),
-        );
-      }
-    }
-  }
-
-  /// Оборачивает голые URL в markdown-ссылки, чтобы они стали кликабельными.
-  static String _linkifyBareUrls(String text) {
-    return text.replaceAllMapped(
-      RegExp(r'(?<![(\[])(https?://[^\s\)\]\>\"\']+)(?![)\]])'),
-      (m) => '[${m.group(1)}](${m.group(1)})',
-    );
-  }
-
-  Future<void> _launchUrlFromMessage(String href) async {
-    try {
-      final uri = Uri.parse(href);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
-    } catch (_) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Не удалось открыть ссылку', style: unbounded(fontSize: 14))),
-        );
-      }
-    }
   }
 
   @override
@@ -541,8 +465,7 @@ class _AISupportScreenState extends State<AISupportScreen> {
                                         p: unbounded(color: Colors.white, fontSize: 15, height: 1.5),
                                         strong: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
                                         listBullet: unbounded(color: AppColors.mutedGold, fontSize: 15),
-                                        linkDecoration: const TextDecoration.underline,
-                                        linkColor: AppColors.mutedGold,
+                                        a: unbounded(color: AppColors.mutedGold, decoration: TextDecoration.underline),
                                       ),
                                       softLineBreak: true,
                                       shrinkWrap: true,

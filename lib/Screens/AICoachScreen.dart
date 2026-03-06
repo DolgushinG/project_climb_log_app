@@ -15,10 +15,21 @@ class AICoachScreen extends StatefulWidget {
   final int? conversationId;
   /// Заголовок для appBar (при открытии существующего чата).
   final String? title;
+  /// Контекст упражнения — при открытии с экрана выполнения (спросить про конкретное упражнение).
+  final String? exerciseName;
+  final String? exerciseDescription;
+  /// ID упражнения — для передачи в context и сохранения AI-комментария на бэкенде.
+  final String? exerciseId;
+  /// Сообщение, которое сразу добавляется в чат и отправляется (например, при тапе на упражнение).
+  final String? initialMessage;
   const AICoachScreen({
     super.key,
     this.conversationId,
     this.title,
+    this.exerciseName,
+    this.exerciseDescription,
+    this.exerciseId,
+    this.initialMessage,
   });
 
   @override
@@ -119,6 +130,15 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
             _messages = [];
             _loadingHistory = false;
           });
+          // Если передан initialMessage — сразу добавляем в чат и отправляем
+          final msg = widget.initialMessage?.trim();
+          if (msg != null && msg.isNotEmpty) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted && _messages.isEmpty && !_isLoading) {
+                _sendMessage(initialText: msg);
+              }
+            });
+          }
         }
       }
       if (mounted) await _resumePendingPollingIfNeeded();
@@ -135,11 +155,12 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
 
   /// Отправка сообщения. Сначала async (polling), при 404 — fallback на sync.
   /// Сообщение сразу с галочкой, вверху «печатает» пока ждём ответ.
-  Future<void> _sendMessage({int? retryIndex}) async {
+  /// [initialText] — при открытии с упражнением: сообщение добавляется в чат и отправляется.
+  Future<void> _sendMessage({int? retryIndex, String? initialText}) async {
     final isRetry = retryIndex != null;
     final text = isRetry
         ? _messages[retryIndex].content
-        : _controller.text.trim();
+        : (initialText ?? _controller.text.trim());
     if (text.isEmpty) return;
 
     FocusScope.of(context).unfocus();
@@ -152,7 +173,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
         _messages[retryIndex] = _messages[retryIndex].copyWith(status: MessageStatus.sent);
       } else {
         _messages.add(ChatMessage(role: 'user', content: text, status: MessageStatus.sent));
-        _controller.clear();
+        if (initialText == null) _controller.clear();
       }
     });
     await _scrollToBottom();
@@ -165,9 +186,10 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     }
 
     // Пробуем async (без таймаута)
+    final apiContext = widget.exerciseId != null ? {'exercise_id': widget.exerciseId} : null;
     String? taskId;
     try {
-      taskId = await _coachService.sendMessageAsync(text, explicitConversationId: _conversationId);
+      taskId = await _coachService.sendMessageAsync(text, explicitConversationId: _conversationId, context: apiContext);
     } catch (e) {
       _handleSendError(e, idx);
       return;
@@ -223,7 +245,8 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     _isLoading = true;
     if (mounted) setState(() {});
     try {
-      final result = await _coachService.sendMessage(text, explicitConversationId: _conversationId);
+      final apiContext = widget.exerciseId != null ? {'exercise_id': widget.exerciseId} : null;
+      final result = await _coachService.sendMessage(text, explicitConversationId: _conversationId, context: apiContext);
       if (!mounted) return;
       setState(() {
         if (result.conversationId != null) _conversationId = result.conversationId;
@@ -481,7 +504,9 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
               autocorrect: true,
               scrollPadding: EdgeInsets.zero,
               decoration: InputDecoration(
-                hintText: 'Спросите о тренировках, планах, силе...',
+                hintText: widget.exerciseName != null
+                    ? 'Спросите про «${widget.exerciseName}» — технику, дозировку...'
+                    : 'Спросите о тренировках, планах, силе...',
                 hintStyle: unbounded(color: Colors.white38, fontSize: 14),
                 filled: true,
                 fillColor: AppColors.rowAlt,
@@ -529,7 +554,7 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.psychology_outlined, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
+                  Icon(Icons.fitness_center, size: 64, color: AppColors.mutedGold.withOpacity(0.5)),
                   const SizedBox(height: 20),
                   Text(
                     'Начните диалог с AI-тренером',

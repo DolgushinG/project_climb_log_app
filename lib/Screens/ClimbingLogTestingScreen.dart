@@ -12,7 +12,9 @@ import 'package:login_app/services/TrainingGamificationService.dart';
 import 'package:login_app/services/StrengthHistoryService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/MeasurementReminderService.dart';
+import 'package:login_app/services/PendingSyncService.dart';
 import 'package:login_app/models/StrengthMeasurementSession.dart';
+import 'package:login_app/utils/smooth_dialog.dart';
 
 /// Экран «Тестирование» — замеры силы: тяга пальцами, щипок, подтягивания.
 /// Вес тела — ключевая переменная. Ранги (Climbing Archetypes) и ачивки.
@@ -51,6 +53,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   DateTime? _lockOffStart;
   Timer? _lockOffTimer;
   int _lockOffElapsedSec = 0;
+  bool _savingMeasurement = false;
 
   @override
   void initState() {
@@ -60,6 +63,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     });
     _loadLastRank();
     _loadLastSession();
+    _syncPendingMeasurementsInBackground();
     _pullRepsController.addListener(_onMetricsChanged);
     _fingerLeftController.addListener(_onMetricsChanged);
     _fingerRightController.addListener(_onMetricsChanged);
@@ -237,6 +241,24 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
     });
   }
 
+  /// В фоне отправить замеры из очереди (после появления сети).
+  Future<void> _syncPendingMeasurementsInBackground() async {
+    final api = StrengthTestApiService();
+    final synced = await api.syncPendingStrengthTests();
+    if (synced > 0 && mounted) {
+      await _loadLastSession();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Отправлено замеров на сервер: $synced'),
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: AppColors.successMuted,
+          ),
+        );
+      }
+    }
+  }
+
   Future<Map<int, double>> _getPinchValuesForSave() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('${_keyDraft}_pinch_$_pinchBlockWidth', _pinchWeightController.text.trim());
@@ -248,6 +270,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   Future<void> _saveMeasurement({bool silent = false}) async {
+    if (_savingMeasurement) return;
     final pinches = await _getPinchValuesForSave();
     final m = _buildMetrics(pinches: pinches);
     if (m.bodyWeightKg == null || m.bodyWeightKg! <= 0) {
@@ -261,6 +284,8 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
       }
       return;
     }
+    if (mounted) setState(() => _savingMeasurement = true);
+    try {
     final now = DateTime.now();
     final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
     final api = StrengthTestApiService();
@@ -271,7 +296,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
       currentRank: rank?.titleEn,
       unlockedBadges: badges.isNotEmpty ? badges : null,
     );
-    await api.saveStrengthTest(body);
+    // Сначала сохраняем локально (офлайн-первый сценарий).
     await StrengthHistoryService().saveSession(m);
     await StrengthDashboardService().saveMetrics(m);
     await TrainingGamificationService().recordMeasurement();
@@ -296,11 +321,29 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           ),
         );
         if (prevSession != null) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+          WidgetsBinding.instance.addPostFrameCallback((_) async {
+            await Future.delayed(const Duration(milliseconds: 400));
             if (mounted) _showComparisonDialog(prev: prevSession, current: newSession);
           });
         }
       }
+    }
+    // Потом отправка на бэк; при ошибке — в очередь на синхронизацию.
+    final savedId = await api.saveStrengthTest(body);
+    if (savedId == null) {
+      await PendingSyncService.addPendingStrengthTest(body);
+      if (!silent && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Сохранено локально. Будет отправлено при появлении сети.'),
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+    } finally {
+      if (mounted) setState(() => _savingMeasurement = false);
     }
   }
 
@@ -339,7 +382,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
 
     if (lines.isEmpty) return;
 
-    showDialog(
+    showSmoothDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
@@ -502,7 +545,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   void _showInstruction(String title, String text, {String? proTip}) {
-    showDialog(
+    showSmoothDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
@@ -562,7 +605,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   void _showAsymmetryAlert() {
-    showDialog(
+    showSmoothDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,
@@ -1065,10 +1108,19 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
           SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: () => _saveMeasurement(silent: false),
-              icon: const Icon(Icons.check_circle_outline, size: 22),
+              onPressed: _savingMeasurement ? null : () => _saveMeasurement(silent: false),
+              icon: _savingMeasurement
+                  ? SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : const Icon(Icons.check_circle_outline, size: 22),
               label: Text(
-                'Закончить замер',
+                _savingMeasurement ? 'Сохранение…' : 'Закончить замер',
                 style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: FilledButton.styleFrom(
@@ -1285,7 +1337,7 @@ class _ClimbingLogTestingScreenState extends State<ClimbingLogTestingScreen>
   }
 
   void _showAchievementHint(StrengthAchievement a) {
-    showDialog<void>(
+    showSmoothDialog<void>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.cardDark,

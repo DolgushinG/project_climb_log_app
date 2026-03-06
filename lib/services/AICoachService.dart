@@ -164,6 +164,30 @@ class AICoachService {
     return c == true;
   }
 
+  /// Получить сохранённый AI-комментарий к упражнению. null если нет или endpoint не поддерживается.
+  /// Экономит токены при повторном вопросе — показываем кэш вместо нового запроса.
+  Future<String?> getExerciseAiComment(String exerciseId) async {
+    final token = await getToken();
+    if (token == null || token.isEmpty) return null;
+    try {
+      final url = Uri.parse('${AppConstants.domain}/api/ai/exercise-comments')
+          .replace(queryParameters: {'exercise_id': exerciseId});
+      final response = await http.get(
+        url,
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      ).timeout(const Duration(seconds: 10));
+      if (response.statusCode != 200) return null;
+      final data = jsonDecode(response.body) as Map<String, dynamic>?;
+      final comment = data?['comment'] as String?;
+      return (comment != null && comment.trim().isNotEmpty) ? comment.trim() : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   /// Асинхронная отправка: POST → task_id, затем polling. Не таймаутится.
   /// Возвращает task_id при 202, null если async не поддерживается (404).
   /// [explicitConversationId] — ID чата (при открытии из списка). null — новый чат (не подставлять сохранённый).
