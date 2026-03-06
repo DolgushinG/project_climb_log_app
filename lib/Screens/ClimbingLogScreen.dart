@@ -275,19 +275,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
           backgroundColor: AppColors.anthracite,
           automaticallyImplyLeading: false,
           title: Text('Тренировки', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
-          actions: [
-            if (!widget.isGuest)
-              IconButton(
-                icon: const Icon(Icons.fitness_center, size: 20),
-                tooltip: 'Тесты силы',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const ClimbingLogTestingScreen()),
-                  );
-                },
-              ),
-          ],
+          actions: const [],
           bottom: showPaywall
               ? null
               : PreferredSize(

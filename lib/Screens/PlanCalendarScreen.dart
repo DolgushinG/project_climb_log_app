@@ -195,7 +195,7 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
     final sessionType = _sessionTypeFor(today, dayData);
     final inRange = _isInPlanRange(today);
 
-    if (!inRange || sessionType == null) {
+    if (!inRange || sessionType == null || sessionType == 'measurement') {
       return const SizedBox.shrink();
     }
 
@@ -209,11 +209,6 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
       subtitle = 'Восстановление и лёгкая активность. Не перегружайте организм.';
       icon = Icons.spa;
       accentColor = AppColors.successMuted;
-    } else if (sessionType == 'measurement') {
-      title = 'Сегодня день замеров';
-      subtitle = 'Замеры силы: пальцы, щипок, тяга, lock-off.';
-      icon = Icons.science_outlined;
-      accentColor = AppColors.linkMuted;
     } else if (sessionType == 'recovery') {
       title = 'Сегодня восстановление';
       subtitle = 'Режим ЛФК: мобильность и растяжка вместо ОФП/СФП.';
@@ -502,7 +497,6 @@ class _PlanCalendarScreenState extends State<PlanCalendarScreen> {
         _legendItem(Icons.back_hand, 'СФП'),
         _legendItem(Icons.spa, 'Отдых', color: AppColors.successMuted),
         _legendItem(Icons.healing, 'Восстановление', color: AppColors.linkMuted),
-        _legendItem(Icons.science_outlined, 'Замеры', color: AppColors.linkMuted),
         if (widget.plan.includeClimbingInDays)
           _legendItem(Icons.route, 'Лазание', color: AppColors.mutedGold.withOpacity(0.6)),
       ],
