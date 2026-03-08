@@ -11,6 +11,7 @@
 | GET | `/api/climbing-logs/plan-templates?audience=` | Шаблоны и аудитории |
 | POST | `/api/climbing-logs/plans` | Создание плана |
 | GET | `/api/climbing-logs/plans/active` | Активный план |
+| GET | `/api/climbing-logs/plans/active/full?date=` | **Оптимизация:** план + день + прогресс + completions + skips + climbing_history за один вызов |
 | GET | `/api/climbing-logs/plans/{id}/day?date=` | План на день |
 | GET | `/api/climbing-logs/plans/{id}/calendar?month=` | Календарь |
 | POST | `/api/climbing-logs/plans/{id}/complete` | Отметить выполнение |

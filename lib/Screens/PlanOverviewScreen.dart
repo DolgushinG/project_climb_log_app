@@ -4,7 +4,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/models/Workout.dart';
-import 'package:login_app/services/TrainingPlanApiService.dart' show TrainingPlanApiService, PlanApiException;
+import 'package:login_app/services/TrainingPlanApiService.dart' show TrainingPlanApiService, PlanApiException, PlanFullResponse;
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
@@ -79,6 +79,16 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     final hadPlan = _plan != null;
     if (!hadPlan) setState(() => _loading = true);
     try {
+      final today = DateTime.now();
+      final dateStr = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final full = await _api.getPlanFull(dateStr);
+
+      if (full != null && mounted) {
+        _applyFullResponse(full);
+        return;
+      }
+
+      // Fallback: endpoint не реализован (404) или ошибка — старые вызовы
       final result = await _api.getActivePlan();
       if (mounted) {
         final plan = result.plan;
@@ -109,6 +119,88 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         _loadErrorMessage = e is PlanApiException ? e.message : null;
       });
     }
+  }
+
+  void _applyFullResponse(PlanFullResponse full) {
+    final plan = full.plan;
+    final day = full.today;
+    final completions = full.completions;
+    final skips = full.skips;
+    final history = full.climbingHistory;
+    final progress = full.progress;
+    final dateStr = full.date;
+
+    if (!mounted) return;
+
+    if (plan == null) {
+      setState(() {
+        _plan = null;
+        _planGuide = full.planGuide;
+        _loading = false;
+        _loadError = false;
+        _loadErrorMessage = null;
+        _todayPlanDay = null;
+        _remainingExercises = null;
+        _todayCompletedCount = null;
+        _todaySkippedCount = null;
+        _hasClimbingForToday = null;
+        _planCompletedCount = null;
+        _planTotalCount = null;
+        _loadingTodayPlanDay = false;
+      });
+      return;
+    }
+
+    HistorySession? sess;
+    try {
+      sess = history.firstWhere((s) => s.date == dateStr);
+    } catch (_) {}
+
+    final needClimbing = (day?.isClimbing ?? false) || (plan.includeClimbingInDays && (day?.isRest != true));
+    final needCompletionsSkips = day != null && !day.isRest && day.exercises.isNotEmpty;
+
+    int? remaining;
+    int? todayCompleted;
+    int? todaySkipped;
+    bool? hasClimbing;
+
+    if (day == null || day.isRest || day.exercises.isEmpty) {
+      remaining = 0;
+      hasClimbing = day != null && needClimbing ? sess != null : null;
+    } else {
+      final entries = _planDayToWorkoutEntries(day);
+      final ids = entries.map((e) => e.value.exerciseId).toSet();
+      final completedIds = completions.map((c) => c.exerciseId).toSet();
+      final skippedIds = skips.map((s) => s.exerciseId).toSet();
+      final completedCount = ids.where((id) => completedIds.contains(id)).length;
+      final skippedCount = ids.where((id) => skippedIds.contains(id)).length;
+      if (day.completed) {
+        todayCompleted = completedCount;
+        todaySkipped = skippedCount;
+        remaining = 0;
+      } else {
+        remaining = (ids.length - completedCount - skippedCount).clamp(0, ids.length);
+      }
+      hasClimbing = (day?.completed ?? false)
+          ? (plan.includeClimbingInDays ? sess != null : null)
+          : (needClimbing ? sess != null : null);
+    }
+
+    setState(() {
+      _plan = plan;
+      _planGuide = full.planGuide;
+      _todayPlanDay = day;
+      _remainingExercises = remaining ?? 0;
+      _todayCompletedCount = todayCompleted;
+      _todaySkippedCount = todaySkipped;
+      _hasClimbingForToday = hasClimbing;
+      _planCompletedCount = progress.completed;
+      _planTotalCount = progress.total;
+      _loading = false;
+      _loadError = false;
+      _loadErrorMessage = null;
+      _loadingTodayPlanDay = false;
+    });
   }
 
   Future<void> _loadPlanDayProgress() async {

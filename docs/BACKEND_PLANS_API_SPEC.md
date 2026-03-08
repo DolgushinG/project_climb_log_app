@@ -278,6 +278,14 @@
 
 ---
 
+## 10. GET /api/climbing-logs/plans/active/full (оптимизация, рекомендуется)
+
+**Query:** `?date=YYYY-MM-DD` — дата для «Сегодня». Опционально `light=1` — rule-based день без AI.
+
+Объединённый endpoint — все данные для PlanOverviewScreen за один запрос. См. [BACKEND_PLANS_FULL_ENDPOINT.md](BACKEND_PLANS_FULL_ENDPOINT.md).
+
+---
+
 ## Чеклист для бэка
 
 - [ ] GET plan-templates возвращает `audiences` и `templates` (не пустые)

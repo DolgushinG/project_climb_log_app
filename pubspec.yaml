@@ -60,6 +60,8 @@ dependencies:
   # Локальные напоминания о замерах
   flutter_local_notifications: ^18.0.1
   timezone: ^0.9.4
+  # Энергоэффективные фоновые задачи (prefetch, sync)
+  workmanager: ^0.5.2
 dev_dependencies:
   flutter_test:
     sdk: flutter

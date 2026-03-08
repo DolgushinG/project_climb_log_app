@@ -13,10 +13,11 @@ import 'package:login_app/services/PlanCompletionClearService.dart';
 import 'package:login_app/services/AppConfigService.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
+import 'package:login_app/services/background_task_scheduler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:workmanager/workmanager.dart';
 import 'login.dart';
-import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/utils/url_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -25,6 +26,9 @@ final RouteObserver<ModalRoute<dynamic>> routeObserver = RouteObserver<ModalRout
 Future<void> main() async {
   runZonedGuarded(() async {
     WidgetsFlutterBinding.ensureInitialized();
+    if (!kIsWeb) {
+      await Workmanager().initialize(callbackDispatcher);
+    }
     FlutterError.onError = (FlutterErrorDetails details) {
       FlutterError.presentError(details);
       if (kDebugMode) {
@@ -91,6 +95,9 @@ Future<void> clearAllDataOnLogout() async {
 
   // Офлайн-очередь результатов
   await OfflineQueueService.clear();
+
+  // Фоновые задачи
+  await BackgroundTaskScheduler.cancelAll();
 
   // In-memory кэши
   ClimbingLogService.invalidateAllCaches();
@@ -294,6 +301,8 @@ class _TokenCheckerState extends State<TokenChecker> {
     } else {
       // Предзагрузка конфига при заходе
       AppConfigService().getConfig(forceRefresh: true);
+      // Энергоэффективные фоновые задачи (prefetch + sync)
+      BackgroundTaskScheduler.scheduleIfEnabled();
     }
     setState(() {
       token = storedToken;

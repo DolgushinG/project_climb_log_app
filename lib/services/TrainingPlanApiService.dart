@@ -3,7 +3,9 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:login_app/main.dart';
+import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/models/PlanModels.dart';
+import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 
 /// Исключение при 429 или другой ошибке API — чтобы UI показал «Повторить», а не «Создать план».
@@ -29,6 +31,7 @@ class TrainingPlanApiService {
   static final Map<String, _PlanCacheEntry<PlanDayResponse?>> _planDayCache = {};
   static final Map<String, _PlanCacheEntry<PlanCalendarResponse?>> _planCalendarCache = {};
   static final Map<int, _PlanCacheEntry<PlanProgressResponse?>> _planProgressCache = {};
+  static final Map<String, _PlanCacheEntry<PlanFullResponse?>> _planFullCache = {};
 
   /// Инвалидирует весь in-memory кэш планов. Вызывать при выходе из аккаунта.
   static void invalidatePlanCaches() {
@@ -36,6 +39,7 @@ class TrainingPlanApiService {
     _planDayCache.clear();
     _planCalendarCache.clear();
     _planProgressCache.clear();
+    _planFullCache.clear();
   }
 
   static void _invalidatePlanCaches() => invalidatePlanCaches();
@@ -44,6 +48,7 @@ class TrainingPlanApiService {
     _planDayCache.removeWhere((k, _) => k.startsWith('$planId:$date'));
     _planCalendarCache.removeWhere((k, _) => k.startsWith('$planId:'));
     _planProgressCache.remove(planId);
+    _planFullCache.removeWhere((k, _) => k.startsWith('$date:'));
   }
 
   Map<String, String> _headers(String? token) => {
@@ -213,6 +218,35 @@ class TrainingPlanApiService {
       }
     } catch (_) {}
     return false;
+  }
+
+  /// GET /api/climbing-logs/plans/active/full?date= — объединённый endpoint (1 запрос вместо 6).
+  /// Возвращает null при 404/ошибке — вызывающий код использует fallback на getActivePlan + отдельные вызовы.
+  Future<PlanFullResponse?> getPlanFull(String date, {bool light = true}) async {
+    final cacheKey = '$date:light$light';
+    final cached = _planFullCache[cacheKey];
+    if (cached != null && DateTime.now().difference(cached.cachedAt) < _cacheTtl) {
+      return cached.value;
+    }
+    final token = await _getToken();
+    if (token == null) return null;
+    try {
+      final params = <String, String>{'date': date};
+      if (light) params['light'] = '1';
+      final uri = Uri.parse('$DOMAIN/api/climbing-logs/plans/active/full')
+          .replace(queryParameters: params);
+      final response = await http.get(uri, headers: _headers(token));
+      if (await redirectIfUnauthorized(response.statusCode)) return null;
+      if (response.statusCode == 404) return null;
+      if (response.statusCode == 200) {
+        final json = jsonDecode(response.body) as Map<String, dynamic>?;
+        if (json == null) return null;
+        final result = PlanFullResponse.fromJson(json, requestDate: date);
+        _planFullCache[cacheKey] = _PlanCacheEntry(result, DateTime.now());
+        return result;
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// GET /api/climbing-logs/plans/active. Кэш 60 сек — снижает дубли при навигации.
@@ -413,5 +447,65 @@ class TrainingPlanApiService {
       }
     } catch (_) {}
     return false;
+  }
+}
+
+/// Результат GET /api/climbing-logs/plans/active/full — все данные для PlanOverviewScreen.
+class PlanFullResponse {
+  final ActivePlan? plan;
+  final PlanGuide? planGuide;
+  final PlanDayResponse? today;
+  final PlanProgressResponse progress;
+  final List<ExerciseCompletion> completions;
+  final List<ExerciseSkip> skips;
+  final List<HistorySession> climbingHistory;
+  final String date;
+
+  PlanFullResponse({
+    this.plan,
+    this.planGuide,
+    this.today,
+    required this.progress,
+    this.completions = const [],
+    this.skips = const [],
+    this.climbingHistory = const [],
+    required this.date,
+  });
+
+  factory PlanFullResponse.fromJson(Map<String, dynamic> json, {required String requestDate}) {
+    final planRaw = json['plan'] as Map<String, dynamic>?;
+    final pgRaw = json['plan_guide'] as Map<String, dynamic>?;
+    final todayRaw = json['today'] as Map<String, dynamic>?;
+    final progressRaw = json['progress'] as Map<String, dynamic>?;
+    final compRaw = json['completions'] as List<dynamic>? ?? [];
+    final skipsRaw = json['skips'] as List<dynamic>? ?? [];
+    final histRaw = json['climbing_history'] as List<dynamic>? ?? [];
+
+    ActivePlan? plan;
+    if (planRaw != null) {
+      plan = ActivePlan.fromJson(planRaw);
+      if (plan.id <= 0) plan = null;
+    }
+
+    final progress = progressRaw != null
+        ? PlanProgressResponse.fromJson(progressRaw)
+        : PlanProgressResponse(completed: 0, total: 0);
+
+    return PlanFullResponse(
+      plan: plan,
+      planGuide: pgRaw != null ? PlanGuide.fromJson(pgRaw) : null,
+      today: todayRaw != null ? PlanDayResponse.fromJson(todayRaw) : null,
+      progress: progress,
+      completions: compRaw
+          .map((e) => ExerciseCompletion.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      skips: skipsRaw
+          .map((e) => ExerciseSkip.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      climbingHistory: histRaw
+          .map((e) => HistorySession.fromJson(Map<String, dynamic>.from(e as Map)))
+          .toList(),
+      date: requestDate,
+    );
   }
 }

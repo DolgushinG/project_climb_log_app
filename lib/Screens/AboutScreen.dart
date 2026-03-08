@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../theme/app_theme.dart';
 import '../services/RustorePushService.dart';
+import '../services/background_task_scheduler.dart';
 
 class AboutScreen extends StatefulWidget {
   const AboutScreen({super.key});
@@ -17,6 +18,8 @@ class AboutScreen extends StatefulWidget {
 class _AboutScreenState extends State<AboutScreen> {
   PackageInfo? _packageInfo;
   String? _pushToken;
+  bool _backgroundTasksDisabled = false;
+  bool _loadingBgSetting = true;
 
   @override
   void initState() {
@@ -26,6 +29,14 @@ class _AboutScreenState extends State<AboutScreen> {
     });
     RustorePushService.getStoredToken().then((token) {
       if (mounted) setState(() => _pushToken = token);
+    });
+    BackgroundTaskScheduler.isBackgroundTasksDisabled.then((v) {
+      if (mounted) {
+        setState(() {
+          _backgroundTasksDisabled = v;
+          _loadingBgSetting = false;
+        });
+      }
     });
   }
 
@@ -129,6 +140,65 @@ class _AboutScreenState extends State<AboutScreen> {
               value: 'climbing-events.ru',
               onTap: () => _launchUrl(context, 'https://climbing-events.ru'),
             ),
+            if (!kIsWeb) ...[
+              const SizedBox(height: 28),
+              Text(
+                'Энергосбережение',
+                style: unbounded(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.mutedGold,
+                  letterSpacing: 0.3,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.graphite.withOpacity(0.5), width: 0.5),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.battery_charging_full_rounded, color: AppColors.mutedGold.withOpacity(0.9), size: 22),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Фоновое обновление',
+                            style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.white),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Предзагрузка соревнований и синхронизация офлайн-результатов в фоне',
+                            style: AppTypography.secondary().copyWith(fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_loadingBgSetting)
+                      SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.mutedGold),
+                      )
+                    else
+                      Switch(
+                        value: !_backgroundTasksDisabled,
+                        onChanged: (enabled) async {
+                          await BackgroundTaskScheduler.setBackgroundTasksDisabled(!enabled);
+                          if (mounted) setState(() => _backgroundTasksDisabled = !enabled);
+                          if (enabled) await BackgroundTaskScheduler.scheduleIfEnabled();
+                        },
+                        activeColor: AppColors.mutedGold,
+                      ),
+                  ],
+                ),
+              ),
+            ],
             if (kDebugMode && _pushToken != null) ...[
               const SizedBox(height: 28),
               Text(
