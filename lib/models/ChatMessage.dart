@@ -1,5 +1,3 @@
-import 'dart:convert';
-
 /// Статус сообщения (как в мессенджерах).
 enum MessageStatus {
   sending,    // отправляется

@@ -3,15 +3,9 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'package:login_app/main.dart';
-import 'dart:convert';
-
-import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:login_app/models/NumberSets.dart';
-import 'dart:convert';
 
-import '../login.dart';
+import '../main.dart';
 import '../models/Category.dart';
 import '../utils/session_error_helper.dart';
 import '../models/SportCategory.dart';

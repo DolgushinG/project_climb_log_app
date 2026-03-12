@@ -14,4 +14,12 @@ A few resources to get you started if this is your first Flutter project:
 For help getting started with Flutter development, view the
 [online documentation](https://docs.flutter.dev/), which offers tutorials,
 samples, guidance on mobile development, and a full API reference.
-# project_climb_log_app
+
+## Pre-commit hook
+
+To run `flutter analyze` and `flutter test` before each commit:
+
+```bash
+ln -sf ../../scripts/pre-commit.sh .git/hooks/pre-commit
+chmod +x .git/hooks/pre-commit
+```

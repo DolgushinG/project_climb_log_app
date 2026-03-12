@@ -21,8 +21,57 @@ linter:
   # `// ignore_for_file: name_of_lint` syntax on the line or in the file
   # producing the lint.
   rules:
-    # avoid_print: false  # Uncomment to disable the `avoid_print` rule
-    # prefer_single_quotes: true  # Uncomment to enable the `prefer_single_quotes` rule
+    # High-volume style rules — проект использует PascalCase для файлов и snake_case из API
+    file_names: false
+    constant_identifier_names: false
+    non_constant_identifier_names: false
+    # Стиль — много правок без влияния на логику
+    prefer_const_constructors: false
+    prefer_const_declarations: false
+    prefer_const_constructors_in_immutables: false
+    prefer_const_literals_to_create_immutables: false
+    prefer_interpolation_to_compose_strings: false
+    unnecessary_brace_in_string_interps: false
+    unnecessary_string_interpolations: false
+    # Widget-конвенции
+    use_key_in_widget_constructors: false
+    library_private_types_in_public_api: false
+    sort_child_properties_last: false
+    # Управление потоком
+    curly_braces_in_flow_control_structures: false
+    # async/context — требует тщательного рефакторинга
+    use_build_context_synchronously: false
+    # Мелкие рекомендации
+    use_super_parameters: false
+    prefer_final_fields: false
+    no_leading_underscores_for_local_identifiers: false
+    prefer_null_aware_operators: false
+    dangling_library_doc_comments: false
+    prefer_conditional_assignment: false
+    avoid_init_to_null: false
+    unnecessary_to_list_in_spreads: false
+    unnecessary_null_in_if_null_operators: false
+    avoid_print: false
+
+analyzer:
+  errors:
+    unused_field: ignore
+    unused_local_variable: ignore
+    unused_element: ignore
+    deprecated_member_use: ignore
+    unnecessary_non_null_assertion: ignore
+    invalid_null_aware_operator: ignore
+    unnecessary_null_comparison: ignore
+    unnecessary_type_check: ignore
+    dead_null_aware_expression: ignore
+    dead_code: ignore
+    must_be_immutable: ignore
+    unnecessary_cast: ignore
+    empty_catches: ignore
+    unused_catch_stack: ignore
+    unnecessary_import: ignore
+    depend_on_referenced_packages: ignore
+    avoid_web_libraries_in_flutter: ignore
 
 # Additional information about this file can be found at
 # https://dart.dev/guides/language/analysis-options

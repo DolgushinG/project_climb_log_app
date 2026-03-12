@@ -9,7 +9,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../login.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_report_modal.dart';

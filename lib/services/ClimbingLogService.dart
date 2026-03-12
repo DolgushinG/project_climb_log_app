@@ -6,7 +6,6 @@ import 'package:login_app/main.dart';
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/services/PendingSyncService.dart';
 import 'package:login_app/utils/session_error_helper.dart';
-import 'package:login_app/models/Gym.dart';
 
 /// Сервис API трекера трасс Climbing Log.
 /// Все методы с авторизацией требуют Bearer token.

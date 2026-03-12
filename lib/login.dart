@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/Screens/RegisterScreen.dart';
 import 'package:login_app/services/AuthConfigService.dart';
+import 'package:login_app/services/AuthService.dart';
 import 'package:login_app/services/WebAuthnService.dart';
 import 'package:login_app/utils/network_error_helper.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'dart:convert';
 import 'MainScreen.dart';
 import 'Screens/LoginByCodeScreen.dart';
 import 'Screens/PasswordRecoveryScreen.dart';
@@ -50,41 +49,19 @@ class _LoginScreenState extends State<LoginScreen> {
     }
 
     try {
-      final response = await http.post(
-        Uri.parse(DOMAIN + '/api/auth/token'),
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode({
-          'email': email,
-          'password': password,
-        }),
+      final token = await AuthService.instance.login(email, password);
+      await saveToken(token);
+
+      if (!mounted) return;
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
+        (route) => false,
       );
-
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-        final token = responseData['token'];
-        saveToken(token);
-
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
-          (route) => false,
-        );
-      } else if (response.statusCode == 404 || response.statusCode >= 500) {
-        _showError('Сервер недоступен. Проверьте, подключение к интернету.');
-      } else {
-        String message = 'Неверный email или пароль. Проверьте данные и попробуйте снова.';
-        try {
-          final body = json.decode(response.body);
-          if (body is Map && body['message'] != null) {
-            message = body['message'].toString();
-          } else if (body is Map && body['error'] != null) {
-            message = body['error'].toString();
-          }
-        } catch (_) {}
-        _showError(message);
-      }
+    } on AuthException catch (e) {
+      if (mounted) _showError(e.message);
     } catch (error) {
-      _showError(networkErrorMessage(error, 'Ошибка соединения. Проверьте интернет и попробуйте снова.'));
+      if (mounted) _showError(networkErrorMessage(error, 'Ошибка соединения. Проверьте интернет и попробуйте снова.'));
     } finally {
       if (mounted) {
         setState(() {

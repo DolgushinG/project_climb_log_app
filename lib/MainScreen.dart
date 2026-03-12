@@ -4,11 +4,8 @@ import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'CompetitionScreen.dart';
-import 'theme/app_theme.dart';
 import 'ProfileScreen.dart';
-import 'CompetitionScreen.dart';
 import 'theme/app_theme.dart';
-import 'ProfileScreen.dart';
 import 'Screens/AuthSettingScreen.dart';
 import 'Screens/ClimbingLogScreen.dart';
 import 'Screens/GymsListScreen.dart';
@@ -356,6 +353,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         body: Stack(
           children: [
             PageView.builder(
+              key: const ValueKey('main_page_view'),
               controller: _pageController,
               physics: const BouncingScrollPhysics(),
               itemCount: _pageCount,

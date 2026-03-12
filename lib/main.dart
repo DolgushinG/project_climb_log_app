@@ -19,6 +19,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
 import 'login.dart';
+import 'package:login_app/services/AuthService.dart';
 import 'package:login_app/utils/url_helper.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -43,6 +44,7 @@ Future<void> main() async {
     } catch (_) {}
     // Инициализация очереди отчётов об ошибках (отправка при появлении сети)
     ErrorReportService();
+    AuthService.init(DOMAIN);
     runApp(MyApp());
   }, (error, stack) {
     if (kDebugMode) {

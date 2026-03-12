@@ -3,7 +3,6 @@ import 'package:http/http.dart' as http;
 import 'package:login_app/theme/app_theme.dart';
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'CompetitionScreen.dart';
 import 'main.dart';
 import 'utils/display_helper.dart';
 import 'services/cache_service.dart';

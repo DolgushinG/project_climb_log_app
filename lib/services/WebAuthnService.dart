@@ -7,7 +7,6 @@ import 'package:passkeys/exceptions.dart';
 import 'package:passkeys_platform_interface/types/mediation.dart';
 import 'package:passkeys_platform_interface/types/types.dart';
 
-import '../main.dart';
 
 /// Результат входа по Passkey (Face ID / Touch ID).
 class WebAuthnLoginResult {

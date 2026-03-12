@@ -55,20 +55,11 @@ class TrainingPlanGenerator {
   TrainingPlanGenerator();
 
   WeakLinkAnalysis analyzeWeakLink(StrengthMetrics m, {String targetGrade = '7b'}) {
-    final target = targetGrade == '7c'
-        ? GradeBenchmarks.target7c
-        : targetGrade == '6b'
-            ? GradeBenchmarks.target6b
-            : GradeBenchmarks.target7b;
-
     final finger = m.fingerBestPct ?? 0;
-    final pull = m.pull1RmPct ?? 0;
     final pinch = m.pinchPct ?? 0;
-    final lockScore = m.lockOffSec != null && m.lockOffSec! > 0
-        ? (m.lockOffSec! / 30.0) * 100
-        : 0.0;
     final asym = m.asymmetryPct ?? 0;
 
+    final pull = m.pull1RmPct ?? 0;
     final fingersWeak = finger > 0 && pull > 0 && finger < pull * 0.5;
     final pullWeak = finger > 0 && pull > 0 && pull < finger * 1.5;
     final pinchWeak = pinch > 0 && finger > 0 && pinch < finger * 0.7;
@@ -102,7 +93,6 @@ class TrainingPlanGenerator {
   String generateCoachTip(StrengthMetrics m, WeakLinkAnalysis a, {String targetGrade = '7b'}) {
     final finger = m.fingerBestPct ?? 0;
     final pinch = m.pinchPct ?? 0;
-    final pull = m.pull1RmPct ?? 0;
 
     if (a.pinchWeak && finger > 40) {
       final fingerGrade = _pctToGrade(finger);

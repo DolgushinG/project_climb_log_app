@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/ClimbingLog.dart';
 import 'package:login_app/utils/climbing_log_colors.dart';

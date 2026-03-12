@@ -4,10 +4,8 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../main.dart';
 import '../models/ChatMessage.dart';
 import '../models/SuggestedAction.dart';
-import '../models/SupportChatResponse.dart';
 import '../services/AISupportService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';

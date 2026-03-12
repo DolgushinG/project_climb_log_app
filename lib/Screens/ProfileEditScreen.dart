@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:intl/intl.dart'; // Для форматирования даты
 import 'package:login_app/main.dart';
-import '../ProfileScreen.dart';
 import '../login.dart';
 import '../models/UserProfile.dart';
 import '../utils/display_helper.dart';

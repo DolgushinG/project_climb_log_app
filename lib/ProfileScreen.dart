@@ -9,7 +9,6 @@ import 'dart:convert';
 
 import 'Screens/AnalyticsScreen.dart';
 import 'services/RustorePushService.dart';
-import 'Screens/FranceResultScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/RelatedUsersScreen.dart';
 import 'Screens/ChangePasswordScreen.dart';
@@ -17,7 +16,6 @@ import 'Screens/ParticipationHistoryScreen.dart';
 import 'Screens/AboutScreen.dart';
 import 'Screens/PremiumPaymentScreen.dart';
 import 'services/PremiumSubscriptionService.dart';
-import 'login.dart';
 import 'main.dart';
 import 'utils/display_helper.dart';
 import 'utils/session_error_helper.dart';

@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../main.dart';
 import '../models/ChatMessage.dart';
-import '../models/SendMessageResult.dart';
 import '../services/AICoachService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';

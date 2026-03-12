@@ -2,6 +2,7 @@ name: Flutter CI
 
 on:
   push:
+  pull_request:
 
 jobs:
   build:
@@ -29,5 +30,14 @@ jobs:
       - name: Install dependencies
         run: flutter pub get
 
+      - name: Analyze
+        run: flutter analyze
+
       - name: Test
-        run: flutter test --no-pub
+        run: flutter test --no-pub --coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage
+          path: coverage/lcov.info

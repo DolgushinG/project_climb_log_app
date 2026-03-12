@@ -1,9 +1,7 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
 import 'package:login_app/login.dart';
 import 'package:login_app/theme/app_theme.dart';
-import 'package:http/http.dart' as http;
+import 'package:login_app/services/AuthService.dart';
 import '../MainScreen.dart';
 import '../main.dart';
 
@@ -158,54 +156,40 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   }
 
     Future<void> _submitForm() async {
-    if (_formKey.currentState!.validate()) {
-      final String _surname = _surnameController.text;
-      final String _name = _nameController.text;
-      final String _email = _emailController.text;
-      final String _password = _passwordController.text;
-      final String _confirmPassword = _confirmPasswordController.text;
-      final String apiUrl = DOMAIN + '/api/register';
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
-      if (!_isPrivacyAccepted) {
-        _showSnackBar(
-            'Необходимо согласиться с обработкой данных', Colors.red);
-        return;
-      }
+    final name = _nameController.text;
+    final surname = _surnameController.text;
+    final email = _emailController.text;
+    final password = _passwordController.text;
+    final confirmPassword = _confirmPasswordController.text;
 
-      try {
-        final response = await http.post(
-          Uri.parse(apiUrl),
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: json.encode({
-            'firstname': _name,
-            'lastname': _surname,
-            'email': _email,
-            'gender': _selectedGender,
-            'password': _password,
-            'password_confirmation': _confirmPassword,
-          }),
-        );
-        if (response.statusCode == 200) {
-          final responseData = json.decode(response.body);
-          final token = responseData['token'];
-          saveToken(token);
-          _showSnackBar(
-              'Регистрация успешно выполнена', AppColors.successMuted);
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
-            (route) => false,
-          );
-        } else {
-          final responseData = json.decode(response.body);
-          _showSnackBar(
-              '${responseData['errors']}', Colors.red);
-        }
-      } catch (e) {
-        _showSnackBar('Что-то пошло не так', Colors.red);
-      }
+    if (!_isPrivacyAccepted) {
+      _showSnackBar('Необходимо согласиться с обработкой данных', Colors.red);
+      return;
+    }
+
+    try {
+      final token = await AuthService.instance.register(
+        firstname: name,
+        lastname: surname,
+        email: email,
+        password: password,
+        passwordConfirmation: confirmPassword,
+        gender: _selectedGender,
+      );
+      await saveToken(token);
+      if (!mounted) return;
+      _showSnackBar('Регистрация успешно выполнена', AppColors.successMuted);
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
+        (route) => false,
+      );
+    } on AuthException catch (e) {
+      _showSnackBar(e.message, Colors.red);
+    } catch (e) {
+      _showSnackBar('Что-то пошло не так', Colors.red);
     }
     }
     @override

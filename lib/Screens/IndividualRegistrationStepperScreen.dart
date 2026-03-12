@@ -5,7 +5,6 @@ import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 
 import '../CompetitionScreen.dart';
-import '../login.dart';
 import '../main.dart';
 import '../models/Category.dart';
 import '../models/NumberSets.dart';

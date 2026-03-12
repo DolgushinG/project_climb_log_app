@@ -243,7 +243,6 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   bool _isLoading = true;
   String? _selectedCity;
   String? _error;
-  bool _fromCache = false;
 
   @override
   void initState() {
@@ -265,7 +264,6 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           _allCompleted = competitions.where((c) => c.isCompleted).toList();
           _isLoading = false;
           _error = null;
-          _fromCache = true;
         });
       } catch (_) {}
     }
@@ -326,7 +324,6 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
             _allCompleted = competitions.where((c) => c.isCompleted).toList();
             _isLoading = false;
             _error = null;
-            _fromCache = false;
           });
         }
         return;
@@ -426,37 +423,26 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
-                if (_error != null || _fromCache)
+                if (_error != null)
                   Padding(
                     padding: const EdgeInsets.only(left: 12, right: 12, top: 8, bottom: 4),
-                    child: _error != null
-                        ? TopNotificationBanner(
-                            message: _error!,
-                            icon: Icons.wifi_off_rounded,
-                            backgroundColor: AppColors.graphite,
-                            iconColor: Colors.orange.shade200,
-                            textColor: Colors.white,
-                            useSafeArea: false,
-                            showCloseButton: true,
-                            onClose: () => setState(() => _error = null),
-                            trailing: TextButton(
-                              onPressed: () {
-                                setState(() => _error = null);
-                                fetchCompetitions();
-                              },
-                              child: const Text('Повторить'),
-                            ),
-                          )
-                        : TopNotificationBanner(
-                            message: 'Данные из кэша. Потяните для обновления.',
-                            icon: Icons.cloud_done_outlined,
-                            backgroundColor: AppColors.graphite,
-                            iconColor: Colors.white70,
-                            textColor: Colors.white70,
-                            useSafeArea: false,
-                            showCloseButton: true,
-                            onClose: () => setState(() => _fromCache = false),
-                          ),
+                    child: TopNotificationBanner(
+                      message: _error!,
+                      icon: Icons.wifi_off_rounded,
+                      backgroundColor: AppColors.graphite,
+                      iconColor: Colors.orange.shade200,
+                      textColor: Colors.white,
+                      useSafeArea: false,
+                      showCloseButton: true,
+                      onClose: () => setState(() => _error = null),
+                      trailing: TextButton(
+                        onPressed: () {
+                          setState(() => _error = null);
+                          fetchCompetitions();
+                        },
+                        child: const Text('Повторить'),
+                      ),
+                    ),
                   ),
                 if (_uniqueCities.isNotEmpty)
                   Padding(
