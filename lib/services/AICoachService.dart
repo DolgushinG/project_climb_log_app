@@ -233,9 +233,12 @@ class AICoachService {
         return null; // async не поддерживается или диалог не найден — fallback на sync
       }
       if (response.statusCode == 401) throw Exception('Сессия истекла. Выполните вход заново.');
-      if (response.statusCode == 402) throw Exception('Нет активной Premium-подписки.');
+      if (response.statusCode == 402) throw Exception('Доступ запрещён. Возможно, у вас нет премиум-подписки.');
       if (response.statusCode == 429) throw Exception('Слишком много запросов. Попробуйте через несколько минут.');
-      if (response.statusCode == 403) throw Exception('Доступ запрещён. Возможно, у вас нет премиум-подписки.');
+      if (response.statusCode == 403) {
+        final msg = _parse403Message(response.body);
+        throw Exception(msg);
+      }
       if (response.statusCode >= 500) throw Exception('Сервер временно недоступен. Попробуйте позже.');
       return null;
     } catch (e) {
@@ -368,14 +371,15 @@ class AICoachService {
     } else if (response.statusCode == 401) {
       throw Exception('Сессия истекла. Выполните вход заново.');
     } else if (response.statusCode == 402) {
-      throw Exception('Нет активной Premium-подписки.');
+      throw Exception('Доступ запрещён. Возможно, у вас нет премиум-подписки.');
     } else if (response.statusCode == 404) {
       await _clearConversationId();
       throw Exception('Диалог не найден. Начните новый разговор.');
     } else if (response.statusCode == 429) {
       throw Exception('Слишком много запросов. Попробуйте через несколько минут.');
     } else if (response.statusCode == 403) {
-      throw Exception('Доступ запрещён. Возможно, у вас нет премиум-подписки.');
+      final msg = _parse403Message(response.body);
+      throw Exception(msg);
     } else if (response.statusCode >= 500) {
       throw Exception('Сервер временно недоступен. Попробуйте позже.');
     } else {
@@ -515,6 +519,20 @@ class AICoachService {
   }
 
   // Приватные методы
+
+  /// Разбор сообщения при 403: ai_banned — блокировка за нарушения, иначе общий запрет.
+  static String _parse403Message(String body) {
+    try {
+      final data = jsonDecode(body) as Map<String, dynamic>?;
+      if (data?['code'] == 'ai_banned') {
+        return data?['error'] as String? ??
+            'Доступ заблокирован из-за нарушения правил использования. Пожалуйста, соблюдайте правила сервиса.';
+      }
+      return data?['error'] as String? ?? 'Доступ запрещён.';
+    } catch (_) {
+      return 'Доступ запрещён.';
+    }
+  }
 
   Future<List<ChatMessage>> _getLocalHistory() async {
     final prefs = await SharedPreferences.getInstance();

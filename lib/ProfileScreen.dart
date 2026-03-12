@@ -438,54 +438,62 @@ class _ProfileScreenState extends State<ProfileScreen> {
       builder: (ctx) => Dialog(
         backgroundColor: AppColors.cardDark,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.waving_hand_rounded, size: 56, color: AppColors.mutedGold),
-              const SizedBox(height: 20),
-              Text(
-                'Добро пожаловать!',
-                style: unbounded(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'В приложении вы можете:\n\n'
-                '• Записываться на соревнования и вносить результаты\n'
-                '• Отслеживать тренировки и прогресс в скалолазании\n'
-                '• Искать скалодромы и соревнования рядом\n'
-                '• Вести историю залов и трасс',
-                style: unbounded(
-                  fontSize: 14,
-                  color: Colors.white70,
-                  height: 1.5,
-                ),
-                textAlign: TextAlign.left,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: () => Navigator.of(ctx).pop(),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.mutedGold,
-                    foregroundColor: AppColors.anthracite,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
+            maxWidth: MediaQuery.of(ctx).size.width * 0.9,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.waving_hand_rounded, size: 56, color: AppColors.mutedGold),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Добро пожаловать!',
+                    style: unbounded(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  child: Text(
-                    'Начать',
-                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                  const SizedBox(height: 16),
+                  Text(
+                    'В приложении вы можете:\n\n'
+                    '• Записываться на соревнования и вносить результаты\n'
+                    '• Отслеживать тренировки и прогресс в скалолазании\n'
+                    '• Искать скалодромы и соревнования рядом\n'
+                    '• Вести историю залов и трасс',
+                    style: unbounded(
+                      fontSize: 14,
+                      color: Colors.white70,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.left,
                   ),
-                ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: () => Navigator.of(ctx).pop(),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.mutedGold,
+                        foregroundColor: AppColors.anthracite,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        'Начать',
+                        style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

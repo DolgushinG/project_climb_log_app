@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import '../models/ChatMessage.dart';
 import '../services/AICoachService.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_constants.dart';
 import '../utils/network_error_helper.dart';
 
 class AICoachScreen extends StatefulWidget {
@@ -386,6 +388,80 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
     }
   }
 
+  void _showRulesDialog(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AppColors.cardDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.rule, color: AppColors.mutedGold, size: 24),
+                    const SizedBox(width: 10),
+                    Flexible(
+                      child: Text(
+                        'Правила использования AI-тренера',
+                        style: unbounded(fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
+                ),
+              const SizedBox(height: 16),
+              Text(
+                '• Используйте чат по назначению: тренировки, скалолазание, питание, восстановление.',
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• Не отправляйте оскорбительный, незаконный контент или спам.',
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• Не пытайтесь обойти ограничения или извлекать технические данные.',
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• Соблюдайте разумный объём запросов — не перегружайте сервис.',
+                style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'За нарушения доступ может быть заблокирован.',
+                style: unbounded(fontSize: 13, color: Colors.white54, fontStyle: FontStyle.italic),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: TextButton.icon(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    final uri = Uri.parse(AppConstants.aiChatRulesUrl);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
+                  icon: Icon(Icons.open_in_new, size: 16, color: AppColors.mutedGold),
+                  label: Text('Подробнее на сайте', style: unbounded(color: AppColors.mutedGold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    ),
+    );
+  }
+
   void _onDeletePressed() {
     if (_messages.isEmpty && _conversationId == null) {
       // Пустой новый чат — просто возврат
@@ -432,6 +508,11 @@ class _AICoachScreenState extends State<AICoachScreen> with AutomaticKeepAliveCl
           style: unbounded(fontSize: 18, fontWeight: FontWeight.w600),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.rule, color: AppColors.mutedGold),
+            tooltip: 'Правила использования',
+            onPressed: () => _showRulesDialog(context),
+          ),
           IconButton(
             icon: const Icon(Icons.delete_outline, color: AppColors.mutedGold),
             tooltip: 'Удалить чат',
