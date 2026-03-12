@@ -6,6 +6,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/ProfileService.dart';
 import 'package:login_app/services/cache_service.dart';
 import 'package:login_app/utils/network_error_helper.dart';
+import 'package:login_app/widgets/error_report_modal.dart';
 
 class AnalyticsScreen extends StatefulWidget {
   const AnalyticsScreen({Key? key}) : super(key: key);
@@ -18,6 +19,9 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
+  String? _errorStackTrace;
+  Map<String, dynamic>? _errorExtra;
+  bool _showingErrorModal = false;
 
   Future<void> _load() async {
     final cached = await CacheService.getStale(CacheService.keyAnalytics);
@@ -55,13 +59,14 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
       } else if (mounted) {
         setState(() => _isLoading = false);
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          // Не перезаписывать экран ошибкой, если уже показываем данные из кэша
           if (_data == null) {
             _error = networkErrorMessage(e, 'Не удалось загрузить данные');
+            _errorStackTrace = st?.toString();
+            _errorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
           }
         });
       }
@@ -91,35 +96,32 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     }
 
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.error_outline, size: 64, color: Colors.red.shade300),
-              const SizedBox(height: 16),
-        Text(
-          'Не удалось загрузить данные',
-          style: unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white),
-          textAlign: TextAlign.center,
-        ),
-              const SizedBox(height: 8),
-              Text(
-                _error ?? 'Не удалось загрузить данные',
-                style: unbounded(fontSize: 14, color: Colors.white70),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Повторить'),
-              ),
-            ],
-          ),
-        ),
-      );
+      if (!_showingErrorModal) {
+        _showingErrorModal = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _error == null) return;
+          showErrorReportModal(
+            context,
+            message: _error ?? 'Не удалось загрузить данные',
+            screen: 'analytics',
+            stackTrace: _errorStackTrace,
+            extra: _errorExtra,
+            onRetry: () {
+              setState(() {
+                _error = null;
+                _errorStackTrace = null;
+                _errorExtra = null;
+                _isLoading = true;
+                _showingErrorModal = false;
+              });
+              _load();
+            },
+          ).then((_) {
+            if (mounted) setState(() => _showingErrorModal = false);
+          });
+        });
+      }
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_data == null) {

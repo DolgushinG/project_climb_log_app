@@ -9,15 +9,13 @@ import 'package:login_app/models/SportCategory.dart';
 import 'package:login_app/result_festival.dart';
 import 'dart:convert';
 import 'button/result_entry_button.dart';
-import 'button/take_part.dart';
 import 'list_participants.dart';
 import 'main.dart';
-import 'Screens/AISupportScreen.dart';
 import 'Screens/CheckoutScreen.dart';
 import 'Screens/GymProfileScreen.dart';
+import 'Screens/IndividualRegistrationStepperScreen.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/GroupRegisterScreen.dart';
-import 'services/AISupportService.dart';
 import 'services/GymService.dart';
 import 'models/Category.dart';
 import 'services/ProfileService.dart';
@@ -246,16 +244,12 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
   String? _selectedCity;
   String? _error;
   bool _fromCache = false;
-  bool _supportEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _loadCompetitions();
-    AISupportService().getStatus().then((v) {
-      if (mounted) setState(() => _supportEnabled = v);
-    });
   }
 
   /// Сначала показываем кэш (если есть), затем подгружаем с сети.
@@ -398,26 +392,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text('Соревнования', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
-        actions: [
-          if (_supportEnabled)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
-              ),
-              tooltip: 'Поддержка',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AISupportScreen(page: 'main'),
-                ),
-              ),
-            ),
-        ],
+        actions: const [],
         bottom: PreferredSize(
           preferredSize: const Size.fromHeight(48),
           child: Padding(
@@ -750,13 +725,12 @@ class CompetitionDetailScreen extends StatefulWidget {
       _CompetitionDetailScreenState();
 }
 
-class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
+class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with RouteAware {
   int _selectedIndex = 0;
   Category? selectedCategory;
   SportCategory? selectedSportCategory;
   NumberSets? selectedNumberSet;
   late Competition _competitionDetails; // Хранит обновленные данные соревнования
-  DateTime? _selectedDate;
   bool _receiptPending = false; // Чек загружен, ожидает подтверждения
   int _checkoutRemainingSeconds = 0;
   Map<String, dynamic>? _checkoutData;
@@ -767,15 +741,27 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   bool _statsLoading = false;
   String? _statsError;
   String? _userBirthday; // день рождения из профиля
-  bool _supportEnabled = false;
-  final TextEditingController _textEditingController = TextEditingController();
-  final FocusNode _focusNode = AlwaysDisabledFocusNode();
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route is PageRoute) {
+      routeObserver.unsubscribe(this);
+      routeObserver.subscribe(this, route);
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Обновить данные при возврате (например после прикрепления чека в GroupCheckoutScreen)
+    if (mounted) fetchCompetition();
+  }
 
   @override
   void dispose() {
+    routeObserver.unsubscribe(this);
     _paymentTimer?.cancel();
-    _textEditingController.dispose();
-    _focusNode.dispose();
     super.dispose();
   }
 
@@ -803,150 +789,79 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
         .toList();
   }
 
-  void _showSetSelectionDialog() {
-    final numberSetList = _setsFilteredByAge;
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // Локальная переменная для временного хранения выбора (только если сет ещё в списке по возрасту)
-        NumberSets? tempSelectedNumberSet = numberSetList.any((s) => s.id == selectedNumberSet?.id)
-            ? selectedNumberSet
-            : null;
+  Widget _buildTakePartButtons() {
+    final showTakePart = !_allSetsBusy;
+    final showWaitlist = _hasAnyBusySet &&
+        !_competitionDetails.is_participant &&
+        !_competitionDetails.is_in_list_pending;
 
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Выберите сет', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: numberSetList.map((numberSet) {
-                    return RadioListTile<NumberSets>(
-                      title: Text(formatSetCompact(numberSet), style: unbounded(color: Colors.white)),
-                      value: numberSet,
-                      groupValue: tempSelectedNumberSet,
-                      onChanged: (NumberSets? value) {
-                        setDialogState(() {
-                          tempSelectedNumberSet = value; // Обновляем локальную переменную в диалоге
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (showWaitlist)
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton(
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.mutedGold,
+                side: const BorderSide(color: AppColors.mutedGold),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (mounted) setState(() => selectedNumberSet = tempSelectedNumberSet);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-  void _showCategorySelectionDialog() {
-    List<Category> categoryList = _competitionDetails.categories.map((json) => Category.fromJson(json)).toList();
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // Локальная переменная для временного хранения выбора
-        Category? tempSelectedCategory = selectedCategory;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Выберите категорию', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: categoryList.map((category) {
-                    return RadioListTile<Category>(
-                      title: Text(category.category, style: unbounded(color: Colors.white)),
-                      value: category,
-                      groupValue: tempSelectedCategory,
-                      onChanged: (Category? value) {
-                        setDialogState(() {
-                          tempSelectedCategory = value; // Обновляем локальную переменную в диалоге
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
+              onPressed: () async {
+                final result = await Navigator.push<bool>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => IndividualRegistrationStepperScreen(
+                      competition: _competitionDetails,
+                      checkoutData: _checkoutData,
+                      onSuccess: fetchCompetition,
+                    ),
+                  ),
+                );
+                if (result == true && mounted) fetchCompetition();
+              },
+              child: Text(
+                'Добавиться в лист ожидания',
+                style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (mounted) setState(() => selectedCategory = tempSelectedCategory);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
-                ),
-              ],
-            );
-          },
-        );
-      },
-    );
-  }
-  void _showSportCategorySelectionDialog() {
-    List<SportCategory> categoryList = _competitionDetails.sport_categories.map((json) => SportCategory.fromJson(json)).toList();
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        // Локальная переменная для временного хранения выбора
-        SportCategory? tempSelectedSportCategory = selectedSportCategory;
-
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              title: Text('Выберите разряд', style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white)),
-              content: SingleChildScrollView(
-                child: Column(
-                  children: categoryList.map((sport_category) {
-                    return RadioListTile<SportCategory>(
-                      title: Text(sport_category.sport_category, style: unbounded(color: Colors.white)),
-                      value: sport_category,
-                      groupValue: tempSelectedSportCategory,
-                      onChanged: (SportCategory? value) {
-                        setDialogState(() {
-                          tempSelectedSportCategory = value; // Обновляем локальную переменную в диалоге
-                        });
-                      },
-                    );
-                  }).toList(),
-                ),
+            ),
+          ),
+        if (showWaitlist && showTakePart) const SizedBox(height: 8),
+        if (showTakePart)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: _competitionDetails.is_participant
+                  ? null
+                  : () async {
+                      final result = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => IndividualRegistrationStepperScreen(
+                            competition: _competitionDetails,
+                            checkoutData: _checkoutData,
+                            onSuccess: fetchCompetition,
+                          ),
+                        ),
+                      );
+                      if (result == true && mounted) fetchCompetition();
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _competitionDetails.is_participant
+                    ? AppColors.graphite
+                    : AppColors.mutedGold,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
               ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: Text('Отмена', style: unbounded(color: AppColors.mutedGold)),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    if (mounted) setState(() => selectedSportCategory = tempSelectedSportCategory);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Сохранить', style: unbounded(fontWeight: FontWeight.w600)),
-                ),
-              ],
-            );
-          },
-        );
-      },
+              child: Text(
+                _competitionDetails.is_participant ? 'Вы участник' : 'Принять участие',
+                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -1716,52 +1631,61 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
               _buildSetsBlock(),
             ],
             const SizedBox(height: 20),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest &&
-                _competitionDetails.is_need_send_birthday &&
-                _competitionDetails.auto_categories != AUTO_CATEGORIES_YEAR &&
-                _competitionDetails.auto_categories != AUTO_CATEGORIES_AGE)
-              Row(
+            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
+              if (_hasBirthdayFilled &&
+                  (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
+                      _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE))
+                Row(
                   children: [
                     Expanded(
-                      child: TextField(
-                        focusNode: _focusNode,
-                        controller: _textEditingController,
-                        readOnly: true,
-                        onTap: () => _selectDate(context),
-                        decoration: InputDecoration(
-                          labelText: 'Выберите дату',
-                          labelStyle: unbounded(color: AppColors.graphite),
-                          filled: true,
-                          fillColor: AppColors.rowAlt,
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: AppColors.mutedGold.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: AppColors.mutedGold.withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.group_rounded,
+                              size: 22,
+                              color: AppColors.mutedGold,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Ваша группа',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.white.withOpacity(0.7),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _competitionDetails.your_group ?? '—',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ]),
-            const SizedBox(height: 12),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
-              if(_competitionDetails.is_need_sport_category == 1)
-                Row(
-                    children: [
-                      Expanded( // Используем Flexible для более гибкого контроля
-                        child:  ElevatedButton(
-                          onPressed: _showSportCategorySelectionDialog,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.mutedGold,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            selectedSportCategory == null
-                                ? 'Выберите разряд'
-                                : 'Разряд: ${displayValue(selectedSportCategory!.sport_category)}',
-                            style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
-                          ),
-                        ),
-                      ),
-                    ]),
+                  ],
+                ),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if ((_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
                       _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE) &&
@@ -1826,107 +1750,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                     ),
                   ],
                 ),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
-              if (_hasBirthdayFilled &&
-                  (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
-                      _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE))
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.mutedGold.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.mutedGold.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.group_rounded,
-                              size: 22,
-                              color: AppColors.mutedGold,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Ваша группа',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _competitionDetails.your_group ?? '—',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
-              if (_competitionDetails.auto_categories == MANUAL_CATEGORIES)
-                Row(
-                children: [
-                  Expanded( // Используем Flexible для более гибкого контроля
-                      child:  ElevatedButton(
-                        onPressed: _showCategorySelectionDialog,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.mutedGold,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: Text(
-                          selectedCategory == null
-                              ? 'Выберите категорию'
-                              : 'Категория: ${displayValue(selectedCategory!.category)}',
-                          style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
-                        ),
-                      ),
-                  ),
-                ]),
-            const SizedBox(height: 8),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
-              if(_competitionDetails.is_input_set == 0)
-                Row(children: [
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: _showSetSelectionDialog,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.mutedGold,
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      _effectiveSelectedNumberSet == null
-                          ? 'Выберите сет'
-                          : 'Сет: ${formatSetCompact(_effectiveSelectedNumberSet!)}',
-                      style: unbounded(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.anthracite),
-                    ),
-                ),
-                )
-              ]),
             const SizedBox(height: 24),
             Row(
               children: [
@@ -2084,38 +1907,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
                                       style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500),
                                     ),
                                       )
-                                    : TakePartButtonScreen(
-                                        _competitionDetails.id,
-                                        _checkout404Received ? false : _competitionDetails.is_participant,
-                                        _birthdayForTakePart,
-                                        selectedCategory,
-                                        selectedSportCategory,
-                                        _effectiveSelectedNumberSet,
-                                        _refreshParticipationStatus,
-                                        is_need_pay_for_reg: _competitionDetails.is_need_pay_for_reg,
-                                        onNeedCheckout: (eventId) {
-                                          Navigator.push(
-                                            context,
-                                            MaterialPageRoute(
-                                              builder: (context) => CheckoutScreen(
-                                                eventId: eventId,
-                                                initialData: _checkoutData,
-                                              ),
-                                            ),
-                                          ).then((_) => fetchCompetition());
-                                        },
-                                        allSetsBusy: _allSetsBusy,
-                                        hasAnyBusySet: _hasAnyBusySet,
-                                        numberSetsForWaitlist: _numberSetsForWaitlist,
-                                        onWaitlistTap: _showWaitlistBottomSheet,
-                                        is_in_list_pending: _competitionDetails.is_in_list_pending,
-                                        needCategory: _competitionDetails.auto_categories == MANUAL_CATEGORIES &&
-                                            _competitionDetails.categories.isNotEmpty,
-                                        needSportCategory: _competitionDetails.is_need_sport_category == 1 &&
-                                            _competitionDetails.sport_categories.isNotEmpty,
-                                        needNumberSet: _competitionDetails.is_input_set == 0 &&
-                                            _setsFilteredByAge.isNotEmpty,
-                                      ),
+                                    : _buildTakePartButtons(),
                           if (!_needsBirthdayButNotFilled) const SizedBox(height: 8),
                           SizedBox(
                             width: double.infinity,
@@ -2324,36 +2116,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     );
   }
 
-  _selectDate(BuildContext context) async {
-    DateTime? newSelectedDate = await showDatePicker(
-        context: context,
-        initialDate: _selectedDate != null ? _selectedDate : DateTime.now(),
-        firstDate: DateTime(2000),
-        lastDate: DateTime(2040),
-        builder: (BuildContext context, Widget? child) {
-          return Theme(
-            data: ThemeData.dark().copyWith(
-              colorScheme: const ColorScheme.dark(
-                primary: Colors.blue,
-                onPrimary: Colors.white,
-                surface: Colors.blueGrey,
-                onSurface: Colors.white,
-              ),
-              dialogBackgroundColor: Colors.grey[500],
-            ),
-            child: child ?? const SizedBox.shrink(),
-          );
-        });
-    if (newSelectedDate != null) {
-      if(mounted){
-        setState(() {
-          _selectedDate = newSelectedDate;
-          _textEditingController.text = DateFormat('dd MMMM yyyy', 'ru').format(_selectedDate!);
-        });
-      }
-    }
-  }
-
   Widget _buildDetailNavItem({
     required IconData icon,
     required IconData iconActive,
@@ -2403,28 +2165,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
       appBar: AppBar(
         title: Text('Детали соревнования', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
         actions: [
-          if (_supportEnabled)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
-              ),
-              tooltip: 'Поддержка',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AISupportScreen(
-                    eventId: _competitionDetails.id,
-                    page: 'event',
-                    pageTitle: _competitionDetails.title,
-                  ),
-                ),
-              ),
-            ),
           IconButton(
             icon: _isRefreshing
                 ? const SizedBox(
@@ -3106,9 +2846,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
     super.initState();
     _competitionDetails = widget.competition;
     fetchCompetition(); // _fetchInitialParticipationStatus = fetchCompetition, один вызов
-    AISupportService().getStatus().then((v) {
-      if (mounted) setState(() => _supportEnabled = v);
-    });
   }
 
 // Обновить детали соревнования
@@ -3192,7 +2929,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
 
   bool get _hasBirthdayFilled {
     if (_userBirthday != null && _userBirthday!.trim().isNotEmpty) return true;
-    if (_selectedDate != null) return true;
     return false;
   }
 
@@ -3202,7 +2938,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> {
   }
 
   DateTime? get _birthdayForTakePart {
-    if (_selectedDate != null) return _selectedDate;
     if (_userBirthday != null && _userBirthday!.trim().isNotEmpty) {
       try {
         return DateTime.parse(_userBirthday!);

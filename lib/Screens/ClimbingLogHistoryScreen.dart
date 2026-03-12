@@ -10,6 +10,7 @@ import 'package:login_app/Screens/StrengthHistoryScreen.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
 import 'package:login_app/services/StrengthHistoryService.dart';
+import 'package:login_app/widgets/error_report_modal.dart';
 
 /// Объединённая история: тренировки (лазание), замеры, выполнение упражнений.
 class ClimbingLogHistoryScreen extends StatefulWidget {
@@ -42,7 +43,10 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
   List<_HistoryDay> _days = [];
   bool _loading = true;
   String? _error;
+  String? _errorStackTrace;
+  Map<String, dynamic>? _errorExtra;
   _HistoryFilter _filter = _HistoryFilter.all;
+  bool _showingErrorModal = false;
 
   @override
   void initState() {
@@ -93,11 +97,13 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
           _loading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
           _loading = false;
           _error = 'Ошибка загрузки';
+          _errorStackTrace = st?.toString();
+          _errorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
         });
       }
     }
@@ -215,22 +221,34 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
                 const SliverFillRemaining(child: Center(child: CircularProgressIndicator(color: AppColors.mutedGold)))
               else if (_error != null)
                 SliverFillRemaining(
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(_error!, textAlign: TextAlign.center, style: unbounded(color: Colors.white70)),
-                          const SizedBox(height: 16),
-                          ElevatedButton(
-                            onPressed: _load,
-                            style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                            child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
-                          ),
-                        ],
-                      ),
-                    ),
+                  child: _ErrorPlaceholder(
+                    key: ValueKey(_error),
+                    onMount: () {
+                      if (_showingErrorModal) return;
+                      setState(() => _showingErrorModal = true);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        if (!mounted || _error == null) return;
+                        showErrorReportModal(
+                          context,
+                          message: _error!,
+                          screen: 'climbing_log_history',
+                          stackTrace: _errorStackTrace,
+                          extra: _errorExtra,
+                          onRetry: () {
+                            setState(() {
+                              _error = null;
+                              _errorStackTrace = null;
+                              _errorExtra = null;
+                              _loading = true;
+                              _showingErrorModal = false;
+                            });
+                            _load();
+                          },
+                        ).then((_) {
+                          if (mounted) setState(() => _showingErrorModal = false);
+                        });
+                      });
+                    },
                   ),
                 )
               else if (filtered.isEmpty)
@@ -483,5 +501,28 @@ class _DayCard extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+/// Плейсхолдер, вызывающий onMount при монтировании (для показа модалки ошибки).
+class _ErrorPlaceholder extends StatefulWidget {
+  final VoidCallback onMount;
+
+  const _ErrorPlaceholder({super.key, required this.onMount});
+
+  @override
+  State<_ErrorPlaceholder> createState() => _ErrorPlaceholderState();
+}
+
+class _ErrorPlaceholderState extends State<_ErrorPlaceholder> {
+  @override
+  void initState() {
+    super.initState();
+    widget.onMount();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(child: CircularProgressIndicator(color: AppColors.mutedGold));
   }
 }

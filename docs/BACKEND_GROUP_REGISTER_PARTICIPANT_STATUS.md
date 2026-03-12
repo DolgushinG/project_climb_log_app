@@ -14,7 +14,8 @@
 | или `participation_blocked` | `boolean` | альтернативное имя того же флага |
 | `category_not_suitable` | `boolean` | `true` — категория участника не подходит для события (не даём выбрать) |
 | `cannot_participate_reason` | `string` | опционально: причина (показывается в подсказке) |
+| `is_paid` | `boolean` | `true` — участник оплатил заявку (рядом с «Уже участвует» показывается «Оплачено») |
 
 Фронт проверяет в таком порядке:
-1. `is_participant` или `already_registered` → «Уже участвует» (зелёный badge)
+1. `is_participant` или `already_registered` → «Уже участвует»; при `is_paid == true` рядом показывается «Оплачено» (зелёный badge)
 2. `cannot_participate` или `participation_blocked` → «Не может участвовать» (оранжевый badge, tooltip из `cannot_participate_reason`)

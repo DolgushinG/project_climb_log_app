@@ -180,10 +180,17 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
 
 
   Widget _buildPasskeyCard() {
+    final buttonStyle = OutlinedButton.styleFrom(
+      foregroundColor: AppColors.mutedGold,
+      side: BorderSide(color: AppColors.mutedGold.withOpacity(0.6)),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+    );
     return Container(
       decoration: BoxDecoration(
         color: AppColors.cardDark,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.mutedGold.withOpacity(0.25)),
       ),
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -191,56 +198,66 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.fingerprint, color: AppColors.mutedGold, size: 24),
+              Icon(Icons.fingerprint, color: AppColors.mutedGold, size: 22),
               const SizedBox(width: 12),
-              Text(
-                'Face ID / Touch ID (Passkey)',
-                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'Face ID / Touch ID (Passkey)',
+                  style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ],
           ),
-            const SizedBox(height: 10),
-            Text(
-              _hasPasskey == false
-                  ? 'Passkey не добавлен. Добавьте для входа по Face ID / Touch ID.'
-                  : 'Добавьте Passkey для входа по биометрии или удалите его.',
-              style: unbounded(fontSize: 14, color: Colors.white70),
-            ),
-            const SizedBox(height: 16),
-            if (_passkeyLoading)
-              const Center(child: Padding(
+          const SizedBox(height: 10),
+          Text(
+            _hasPasskey == false
+                ? 'Passkey не добавлен. Добавьте для входа по Face ID / Touch ID.'
+                : 'Добавьте Passkey для входа по биометрии или удалите его.',
+            style: unbounded(fontSize: 14, color: Colors.white70),
+          ),
+          const SizedBox(height: 16),
+          if (_passkeyLoading)
+            const Center(
+              child: Padding(
                 padding: EdgeInsets.symmetric(vertical: 8.0),
                 child: CircularProgressIndicator(),
-              ))
-            else
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _addPasskey,
-                      icon: const Icon(Icons.add, size: 20),
-                      label: const Text('Добавить Passkey'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: OutlinedButton.icon(
-                      onPressed: _hasPasskey == false ? null : _deletePasskey,
-                      icon: const Icon(Icons.delete_outline, size: 20),
-                      label: Text(_hasPasskey == false ? 'Нет Passkey' : 'Удалить Passkey'),
-                      style: OutlinedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        foregroundColor: Colors.red,
-                      ),
-                    ),
-                  ),
-                ],
               ),
-          ],
-        ),
+            )
+          else
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _addPasskey,
+                    icon: const Icon(Icons.add, size: 20),
+                    label: Text('Добавить Passkey', style: unbounded(fontSize: 14, fontWeight: FontWeight.w500)),
+                    style: buttonStyle,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _hasPasskey == false ? null : _deletePasskey,
+                    icon: const Icon(Icons.delete_outline, size: 20),
+                    label: Text(
+                      _hasPasskey == false ? 'Нет Passkey' : 'Удалить Passkey',
+                      style: unbounded(fontSize: 14, fontWeight: FontWeight.w500),
+                    ),
+                    style: buttonStyle.copyWith(
+                      foregroundColor: WidgetStateProperty.resolveWith((states) {
+                        if (states.contains(WidgetState.disabled)) return Colors.white38;
+                        return Colors.red;
+                      }),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
     );
   }
 

@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import '../models/Gym.dart';
 import '../theme/app_theme.dart';
 import '../services/GymService.dart';
+import '../widgets/error_report_modal.dart';
 import 'GymProfileScreen.dart';
 
 /// Крупнейшие города России для быстрого фильтра (по убыванию населения)
@@ -33,8 +34,11 @@ class _GymsListScreenState extends State<GymsListScreen> {
   bool _isLoading = true;
   bool _loadingMore = false;
   String? _error;
+  String? _errorStackTrace;
+  Map<String, dynamic>? _errorExtra;
   Timer? _debounceTimer;
   String? _selectedCity;
+  bool _showingErrorModal = false;
 
   static const String _countryRussia = 'Россия';
 
@@ -76,32 +80,44 @@ class _GymsListScreenState extends State<GymsListScreen> {
     setState(() {
       _isLoading = page == 1;
       _error = null;
+      _errorStackTrace = null;
+      _errorExtra = null;
       if (page == 1) _gyms = [];
     });
 
-    final search = _searchController.text.trim();
-    final response = await fetchGyms(
-      page: page,
-      perPage: 12,
-      search: search.isEmpty ? null : search,
-      city: _selectedCity,
-      country: _countryRussia,
-    );
+    try {
+      final search = _searchController.text.trim();
+      final response = await fetchGyms(
+        page: page,
+        perPage: 12,
+        search: search.isEmpty ? null : search,
+        city: _selectedCity,
+        country: _countryRussia,
+      );
 
-    if (!mounted) return;
-    if (response == null) {
+      if (!mounted) return;
+      if (response == null) {
+        setState(() {
+          _isLoading = false;
+          _error = 'Не удалось загрузить список';
+        });
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+        _gyms = page == 1 ? response.gyms : [..._gyms, ...response.gyms];
+        _pagination = response.pagination;
+      });
+    } catch (e, st) {
+      if (!mounted) return;
       setState(() {
         _isLoading = false;
         _error = 'Не удалось загрузить список';
+        _errorStackTrace = st?.toString();
+        _errorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
       });
-      return;
     }
-
-    setState(() {
-      _isLoading = false;
-      _gyms = page == 1 ? response.gyms : [..._gyms, ...response.gyms];
-      _pagination = response.pagination;
-    });
   }
 
   Future<void> _loadMore() async {
@@ -224,7 +240,32 @@ class _GymsListScreenState extends State<GymsListScreen> {
     }
 
     if (_error != null) {
-      return _buildErrorState();
+      if (!_showingErrorModal) {
+        _showingErrorModal = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _error == null) return;
+          showErrorReportModal(
+            context,
+            message: _error!,
+            screen: 'gyms',
+            stackTrace: _errorStackTrace,
+            extra: _errorExtra,
+            onRetry: () {
+              setState(() {
+                _error = null;
+                _errorStackTrace = null;
+                _errorExtra = null;
+                _isLoading = true;
+                _showingErrorModal = false;
+              });
+              _load(page: 1);
+            },
+          ).then((_) {
+            if (mounted) setState(() => _showingErrorModal = false);
+          });
+        });
+      }
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_gyms.isEmpty) {
@@ -380,38 +421,6 @@ class _GymsListScreenState extends State<GymsListScreen> {
             ],
           ),
         ),
-    );
-  }
-
-  Widget _buildErrorState() {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.wifi_off_rounded, size: 48, color: AppColors.mutedGold.withOpacity(0.5)),
-            const SizedBox(height: 16),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: unbounded(color: Colors.white, fontSize: 16),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: () => _load(page: 1),
-              icon: const Icon(Icons.refresh),
-              label: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.mutedGold,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 

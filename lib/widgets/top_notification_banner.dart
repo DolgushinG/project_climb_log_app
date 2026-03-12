@@ -151,7 +151,10 @@ class TopNotificationBanner extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (trailing != null) ...[const SizedBox(width: 8), trailing!],
+                if (trailing != null) ...[
+                  const SizedBox(width: 8),
+                  Flexible(child: trailing!),
+                ],
                 if (showCloseButton && onClose != null) ...[
                   const SizedBox(width: 4),
                   IconButton(

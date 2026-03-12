@@ -14,6 +14,7 @@ import 'package:login_app/Screens/PlanCalendarScreen.dart';
 import 'package:login_app/Screens/PlanDayScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 import 'package:login_app/Screens/AIChatListScreen.dart';
+import 'package:login_app/widgets/error_report_modal.dart';
 
 /// Обзор плана: при отсутствии — кнопка создания; при наличии — календарь и «Сегодня».
 class PlanOverviewScreen extends StatefulWidget {
@@ -52,7 +53,10 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
   bool _loading = true;
   bool _loadError = false;
   String? _loadErrorMessage;
+  String? _loadErrorStackTrace;
+  Map<String, dynamic>? _loadErrorExtra;
   bool _loadingTodayPlanDay = false;
+  bool _showingErrorModal = false;
   bool _wasVisible = false;
   /// Показать приветственную карточку после создания плана (детали и подсказки).
   bool _showPlanCreatedWelcome = false;
@@ -112,11 +116,13 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
           await Future.wait([_loadPlanDayProgress(), _loadPlanProgress()]);
         }
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) setState(() {
         _loading = false;
         _loadError = _plan == null;
         _loadErrorMessage = e is PlanApiException ? e.message : null;
+        _loadErrorStackTrace = st?.toString();
+        _loadErrorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
       });
     }
   }
@@ -502,54 +508,34 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
   }
 
   Widget _buildLoadErrorState() {
-    final subtitle = _loadErrorMessage ??
-        'Проверьте подключение к интернету и нажмите «Повторить»';
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              _loadErrorMessage != null ? Icons.hourglass_empty_rounded : Icons.wifi_off_rounded,
-              size: 64,
-              color: Colors.white38,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Не удалось загрузить план',
-              style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              style: unbounded(fontSize: 14, color: Colors.white54),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 24),
-            FilledButton.icon(
-              onPressed: () {
-                TrainingPlanApiService.invalidatePlanCaches();
-                setState(() {
-                  _loading = true;
-                  _loadError = false;
-                  _loadErrorMessage = null;
-                });
-                _load();
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('Повторить'),
-              style: FilledButton.styleFrom(
-                backgroundColor: AppColors.mutedGold,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (!_showingErrorModal) {
+      _showingErrorModal = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || !_loadError) return;
+        showErrorReportModal(
+          context,
+          message: _loadErrorMessage ?? 'Не удалось загрузить план',
+          screen: 'plan_overview',
+          stackTrace: _loadErrorStackTrace,
+          extra: _loadErrorExtra,
+          onRetry: () {
+            TrainingPlanApiService.invalidatePlanCaches();
+            setState(() {
+              _loading = true;
+              _loadError = false;
+              _loadErrorMessage = null;
+              _loadErrorStackTrace = null;
+              _loadErrorExtra = null;
+              _showingErrorModal = false;
+            });
+            _load();
+          },
+        ).then((_) {
+          if (mounted) setState(() => _showingErrorModal = false);
+        });
+      });
+    }
+    return const Center(child: CircularProgressIndicator(color: AppColors.mutedGold));
   }
 
   Widget _buildNoPlanState() {

@@ -11,9 +11,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
-import '../services/AISupportService.dart';
-import '../Screens/AISupportScreen.dart';
 import '../theme/app_theme.dart';
+import '../widgets/error_report_modal.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
 
@@ -31,6 +30,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
+  String? _errorStackTrace;
+  Map<String, dynamic>? _errorExtra;
   Timer? _timer;
   int _remainingSeconds = 0;
   final _promoController = TextEditingController();
@@ -40,7 +41,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isUploadingReceipt = false;
   bool _isSavingPackage = false;
   bool _isApplyingPromo = false;
-  bool _supportEnabled = false;
+  int _currentStep = 0; // 0 = package selection, 1 = payment & receipt
+  bool _showingErrorModal = false;
 
   @override
   void initState() {
@@ -50,9 +52,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     } else {
       _loadCheckout();
     }
-    AISupportService().getStatus().then((v) {
-      if (mounted) setState(() => _supportEnabled = v);
-    });
   }
 
   void _applyData(Map<String, dynamic> data) {
@@ -181,6 +180,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       setState(() {
         _isLoading = true;
         _error = null;
+        _errorStackTrace = null;
+        _errorExtra = null;
       });
     }
     try {
@@ -219,9 +220,11 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       setState(() {
         _error = networkErrorMessage(e, 'Не удалось загрузить данные');
+        _errorStackTrace = st?.toString();
+        _errorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
         _isLoading = false;
       });
     }
@@ -422,7 +425,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final isSuccess = r.statusCode == 200 || r.statusCode == 201 || (raw is Map && raw['success'] == true);
       if (isSuccess) {
         _showSnack('Чек успешно загружен');
-        if (mounted) Navigator.pop(context, {'receipt_uploaded': true});
+        if (mounted) Navigator.pop(context);
       } else {
         final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
         _showSnack(msg ?? 'Ошибка загрузки чека', isError: true);
@@ -483,7 +486,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       final isSuccess = r.statusCode == 200 || r.statusCode == 201 || (raw is Map && raw['success'] == true);
       if (isSuccess) {
         _showSnack('Чек успешно загружен');
-        if (mounted) Navigator.pop(context, {'receipt_uploaded': true});
+        if (mounted) Navigator.pop(context);
       } else {
         final msg = raw is Map ? (raw['message'] ?? raw['error'])?.toString() : null;
         _showSnack(msg ?? 'Ошибка загрузки чека', isError: true);
@@ -516,10 +519,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
       if (r.statusCode == 200) {
         _showSnack('Оплата на месте подтверждена');
-        if (mounted && Navigator.canPop(context)) {
-          Navigator.pop(context); // закрыть bottom sheet
-        }
-        if (mounted) Navigator.pop(context); // закрыть CheckoutScreen
+        if (mounted) Navigator.pop(context);
       } else {
         _showSnack('Ошибка', isError: true);
       }
@@ -538,80 +538,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Future<void> _showPaymentBottomSheet({
-    required String? linkPayment,
-    required String? imgPayment,
-    required bool isPayCashToPlace,
-  }) async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 8),
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text(
-                    'Оплата и прикрепление чека',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (linkPayment != null && linkPayment.isNotEmpty)
-                          _buildPaymentLink(linkPayment),
-                        if (imgPayment != null && imgPayment.isNotEmpty)
-                          _buildQrCode(imgPayment),
-                        _buildReceiptUpload(),
-                        if (isPayCashToPlace)
-                          _buildPayOnPlaceButton(),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (mounted && result != null && result['receipt_uploaded'] == true) {
-      Navigator.pop(context);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -621,21 +547,38 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       );
     }
     if (_error != null) {
+      if (!_showingErrorModal) {
+        _showingErrorModal = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _error == null) return;
+          showErrorReportModal(
+            context,
+            message: _error!,
+            screen: 'checkout',
+            eventId: widget.eventId,
+            stackTrace: _errorStackTrace,
+            extra: _errorExtra,
+            onRetry: () {
+              setState(() {
+                _error = null;
+                _errorStackTrace = null;
+                _errorExtra = null;
+                _isLoading = true;
+                _showingErrorModal = false;
+              });
+              _loadCheckout();
+            },
+          ).then((_) {
+            if (mounted) setState(() => _showingErrorModal = false);
+          });
+        });
+      }
       return Scaffold(
-        appBar: AppBar(title: Text('Оформление', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white))),
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(_error!, style: const TextStyle(color: Colors.red)),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _loadCheckout,
-                child: const Text('Повторить'),
-              ),
-            ],
-          ),
+        appBar: AppBar(
+          title: Text('Оформление', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
         ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -654,106 +597,175 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         : (selectedPackageRaw is Map ? [selectedPackageRaw] : []);
     final amountStartPriceRaw = _data?['amount_start_price'];
     final amountStartPrice = amountStartPriceRaw is num
-        ? amountStartPriceRaw
+        ? (amountStartPriceRaw as num).toInt()
         : (int.tryParse(amountStartPriceRaw?.toString() ?? '') ?? 0);
     final isAddToListPending = _data?['is_add_to_list_pending'] == true;
     final linkPayment = event['link_payment'] ?? event['link_payment_dynamic'];
     final imgPayment = event['img_payment_dynamic'] ?? event['img_payment'];
     final merchGalleryRaw = _data?['merch_gallery'];
     final merchGallery = merchGalleryRaw is List ? List.from(merchGalleryRaw) : [];
-    final merchAvailabilityRaw = _data?['merch_availability'];
-    final merchAvailability = merchAvailabilityRaw is Map ? Map.from(merchAvailabilityRaw) : {};
+    Map<String, dynamic> merchAvailability = {};
+    final ma1 = _data?['merch_availability'];
+    final ma2 = event['merch_availability'];
+    if (ma1 is Map) merchAvailability = Map.from(ma1);
+    if (merchAvailability.isEmpty && ma2 is Map) merchAvailability = Map.from(ma2);
+    if (merchAvailability.isEmpty && packages.isNotEmpty) {
+      for (final pkg in packages) {
+        if (pkg is! Map) continue;
+        for (final m in (pkg['merch'] is List ? pkg['merch'] as List : [])) {
+          if (m is! Map) continue;
+          final n = m['name']?.toString() ?? '';
+          if (n.isEmpty || merchAvailability.containsKey(n)) continue;
+          final av = m['available'];
+          final limit = m['limit'];
+          if (av != null || limit != null) {
+            merchAvailability[n] = {
+              'available': av is num ? av.toInt() : (av != null ? int.tryParse(av.toString()) : null),
+              'limit': limit is num ? limit.toInt() : (limit != null ? int.tryParse(limit.toString()) : null),
+            };
+          } else {
+            final sizes = m['sizes'];
+            if (sizes is List && sizes.isNotEmpty) {
+              int totalAv = 0;
+              for (final s in sizes) {
+                if (s is Map) totalAv += ((s['available'] ?? 0) is num ? (s['available'] as num).toInt() : 0);
+              }
+              merchAvailability[n] = {'available': totalAv, 'limit': null};
+            }
+          }
+        }
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Оформление', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+        title: Text(
+          _currentStep == 0 ? 'Оформление' : 'Оплата и чек',
+          style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
+        ),
         backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-          tooltip: 'Вернуться к событию',
+          onPressed: () {
+            if (_currentStep == 1) {
+              setState(() => _currentStep = 0);
+            } else {
+              Navigator.pop(context);
+            }
+          },
+          tooltip: _currentStep == 1 ? 'Назад к выбору пакета' : 'Вернуться к событию',
         ),
-        actions: [
-          if (_supportEnabled)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
-              ),
-              tooltip: 'Поддержка',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AISupportScreen(
-                    eventId: widget.eventId,
-                    page: 'checkout',
-                    pageTitle: 'Оформление',
-                  ),
-                ),
-              ),
-            ),
-        ],
+        actions: const [],
       ),
       body: Container(
         color: AppColors.anthracite,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            if (numberSet.isNotEmpty)
-              _buildInfoChip('Сет', numberSet),
-            if (yourGroup.isNotEmpty)
-              _buildInfoChip('Группа', yourGroup),
-            const SizedBox(height: 8),
-            _buildHowToPay(),
-            if (!isAddToListPending && _remainingSeconds > 0) ...[
-              const SizedBox(height: 16),
-              _buildTimer(),
-            ],
-            if (merchGallery.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              _buildSectionTitle('Мерч в пакетах'),
-              const SizedBox(height: 8),
-              _buildMerchGallery(merchGallery),
-            ],
-            if (packages.isNotEmpty) ...[
-              const SizedBox(height: 20),
-              _buildSectionTitle('Пакеты'),
-              ...packages.map((p) => _buildPackageCard(p, merchAvailability)),
-            ],
-            if (showPromoCode) ...[
-              const SizedBox(height: 20),
-              _buildPromoCode(),
-            ],
-            const SizedBox(height: 20),
-            _buildTotalPrice(amountStartPrice, selectedPackage, packages, _selectedPackageName),
-            const SizedBox(height: 20),
-            if (hasBill)
-              _buildHasBillCard()
-            else
-              _buildPayButton(
-                onTap: () {
-                  if (_selectedPackageName == null || _selectedPackageName!.isEmpty) {
-                    _showSnack('Сначала выберите пакет участия', isError: true);
-                    return;
-                  }
-                  if (!_hasAllSizesSelectedForPackage(_selectedPackageName!, packages)) {
-                    _showSnack('Выберите размеры мерча в выбранном пакете', isError: true);
-                    return;
-                  }
-                  _showPaymentBottomSheet(
-                    linkPayment: linkPayment?.toString(),
-                    imgPayment: imgPayment?.toString(),
-                    isPayCashToPlace: isPayCashToPlace,
-                  );
-                },
+        child: _currentStep == 0
+            ? _buildStep0(
+                numberSet: numberSet,
+                yourGroup: yourGroup,
+                isAddToListPending: isAddToListPending,
+                merchGallery: merchGallery,
+                packages: packages,
+                merchAvailability: merchAvailability,
+                showPromoCode: showPromoCode,
+                amountStartPrice: amountStartPrice,
+                selectedPackage: selectedPackage,
+                hasBill: hasBill,
+                linkPayment: linkPayment?.toString(),
+                imgPayment: imgPayment?.toString(),
+                isPayCashToPlace: isPayCashToPlace,
+              )
+            : _buildStep1(
+                linkPayment: linkPayment?.toString(),
+                imgPayment: imgPayment?.toString(),
+                isPayCashToPlace: isPayCashToPlace,
+                hasBill: hasBill,
               ),
-          ],
-        ),
       ),
+    );
+  }
+
+  Widget _buildStep0({
+    required String numberSet,
+    required String yourGroup,
+    required bool isAddToListPending,
+    required List merchGallery,
+    required List packages,
+    required Map merchAvailability,
+    required bool showPromoCode,
+    required int amountStartPrice,
+    required List selectedPackage,
+    required bool hasBill,
+    required String? linkPayment,
+    required String? imgPayment,
+    required bool isPayCashToPlace,
+  }) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (numberSet.isNotEmpty) _buildInfoChip('Сет', numberSet),
+        if (yourGroup.isNotEmpty) _buildInfoChip('Группа', yourGroup),
+        const SizedBox(height: 8),
+        _buildCollapsibleHowToPay(),
+        if (!isAddToListPending && _remainingSeconds > 0) ...[
+          const SizedBox(height: 16),
+          _buildTimer(),
+        ],
+        if (merchGallery.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _buildCollapsibleMerchGallery(merchGallery),
+        ],
+        if (packages.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          _buildSectionTitle('Пакеты'),
+          ...packages.map((p) => _buildPackageCard(p, merchAvailability)),
+        ],
+        if (showPromoCode) ...[
+          const SizedBox(height: 20),
+          _buildPromoCode(),
+        ],
+        const SizedBox(height: 20),
+        _buildTotalPrice(amountStartPrice, selectedPackage, packages, _selectedPackageName),
+        const SizedBox(height: 20),
+        if (hasBill)
+          _buildHasBillCard()
+        else
+          _buildPayButton(
+            onTap: () {
+              if (_selectedPackageName == null || _selectedPackageName!.isEmpty) {
+                _showSnack('Сначала выберите пакет участия', isError: true);
+                return;
+              }
+              if (!_hasAllSizesSelectedForPackage(_selectedPackageName!, packages)) {
+                _showSnack('Выберите размеры мерча в выбранном пакете', isError: true);
+                return;
+              }
+              setState(() => _currentStep = 1);
+            },
+            label: 'Далее → Оплата и чек',
+          ),
+      ],
+    );
+  }
+
+  Widget _buildStep1({
+    required String? linkPayment,
+    required String? imgPayment,
+    required bool isPayCashToPlace,
+    required bool hasBill,
+  }) {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
+        if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
+        if (hasBill)
+          _buildHasBillCard()
+        else ...[
+          _buildReceiptUpload(),
+          if (isPayCashToPlace) _buildPayOnPlaceButton(),
+        ],
+      ],
     );
   }
 
@@ -769,27 +781,52 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildHowToPay() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildCollapsibleHowToPay() {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        collapsedBackgroundColor: AppColors.cardDark,
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         children: [
-          Text('Как оплатить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(
-            '1. Выберите пакет участия\n'
-            '2. Если в пакете есть мерч — выберите размер\n'
-            '3. После этого сохранится ваш выбор\n'
-            '4. Цена и ссылка обновятся автоматически\n'
-            '5. После выбора можно перейти к оплате',
-            style: unbounded(color: Colors.white70, fontSize: 13),
+          Container(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              '1. Выберите пакет участия\n'
+              '2. Если в пакете есть мерч — выберите размер\n'
+              '3. После этого сохранится ваш выбор\n'
+              '4. Цена и ссылка обновятся автоматически\n'
+              '5. После выбора можно перейти к оплате',
+              style: unbounded(color: Colors.white70, fontSize: 13),
+            ),
           ),
         ],
+        title: Row(
+          children: [
+            Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
+            const SizedBox(width: 12),
+            Text('Как оплатить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCollapsibleMerchGallery(List merchGallery) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: true,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(0, 0, 0, 12),
+        collapsedBackgroundColor: AppColors.cardDark,
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text('Мерч в пакетах', style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
+        children: [_buildMerchGallery(merchGallery)],
       ),
     );
   }
@@ -918,8 +955,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(name, style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600)),
-                Text('${price.toInt()} ₽', style: unbounded(color: Colors.white, fontSize: 16)),
+                Expanded(child: Text(name, style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+                if (isDisabled)
+                  Padding(
+                    padding: const EdgeInsets.only(left: 8),
+                    child: Text('Мерч закончился', style: unbounded(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500)),
+                  )
+                else
+                  Text('${price.toInt()} ₽', style: unbounded(color: Colors.white, fontSize: 16)),
               ],
             ),
             ...merch.map((m) {
@@ -930,6 +973,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
               final av = merchAvailability[merchName];
               final available = av is Map ? (av['available'] ?? 0) : null;
               final limit = av is Map ? (av['limit'] ?? 0) : null;
+              final isMerchSoldOut = available != null && available <= 0;
               return Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Column(
@@ -937,12 +981,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   children: [
                     Row(
                       children: [
-                        Text(merchName, style: unbounded(color: Colors.white70, fontSize: 14)),
-                        if (available != null && limit != null)
+                        Text(merchName, style: unbounded(color: isMerchSoldOut ? Colors.red : Colors.white70, fontSize: 14)),
+                        if (!isMerchSoldOut && available != null && limit != null)
                           Text(' (осталось: $available)', style: unbounded(color: Colors.white54, fontSize: 12)),
                       ],
                     ),
-                    if (sizes.isNotEmpty) ...[
+                    if (sizes.isNotEmpty && !isMerchSoldOut) ...[
                       Padding(
                         padding: const EdgeInsets.only(top: 4, bottom: 2),
                         child: Text('Размер:', style: unbounded(color: Colors.white54, fontSize: 12)),
@@ -1168,7 +1212,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     );
   }
 
-  Widget _buildPayButton({required VoidCallback onTap}) {
+  Widget _buildPayButton({required VoidCallback onTap, String? label}) {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -1179,7 +1223,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text('Перейти к оплате или прикрепить чек', style: unbounded(fontWeight: FontWeight.w600)),
+        child: Text(label ?? 'Перейти к оплате или прикрепить чек', style: unbounded(fontWeight: FontWeight.w600)),
       ),
     );
   }

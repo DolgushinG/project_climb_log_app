@@ -10,11 +10,10 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../login.dart';
 import '../main.dart';
-import '../services/AISupportService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
-import 'AISupportScreen.dart';
+import '../widgets/error_report_modal.dart';
 import 'GroupDocumentsScreen.dart';
 
 class GroupCheckoutScreen extends StatefulWidget {
@@ -30,21 +29,20 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
+  String? _errorStackTrace;
+  Map<String, dynamic>? _errorExtra;
   bool _isUploadingReceipt = false;
   bool _isSavingPackage = false;
 
   /// Выбранные пакеты и размеры по user_id
   final Map<int, String?> _selectedPackageByUser = {};
   final Map<int, Map<String, String>> _selectedSizesByUser = {};
-  bool _supportEnabled = false;
+  bool _showingErrorModal = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    AISupportService().getStatus().then((v) {
-      if (mounted) setState(() => _supportEnabled = v);
-    });
   }
 
   String get _baseUrl => DOMAIN.startsWith('http') ? DOMAIN : 'https://$DOMAIN';
@@ -53,6 +51,18 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
     if (path == null || path.isEmpty) return '';
     if (path.startsWith('http')) return path;
     return '$_baseUrl${path.startsWith('/') ? '' : '/'}$path';
+  }
+
+  /// Для картинок мерча: бэкенд отдаёт относительный путь (event_images/...),
+  /// Laravel отдаёт их через /storage/
+  String _fullImageUrl(String? path) {
+    if (path == null || path.isEmpty) return '';
+    if (path.startsWith('http')) return path;
+    final relative = path.startsWith('/') ? path.substring(1) : path;
+    if (!relative.startsWith('storage/')) {
+      return '$_baseUrl/storage/$relative';
+    }
+    return '$_baseUrl/$relative';
   }
 
   Future<void> _loadData({bool silent = false}) async {
@@ -87,8 +97,12 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
       } else {
         if (!silent) setState(() => _error = 'Ошибка загрузки');
       }
-    } catch (e) {
-      if (!silent) setState(() => _error = networkErrorMessage(e, 'Не удалось загрузить данные'));
+    } catch (e, st) {
+      if (!silent) setState(() {
+        _error = networkErrorMessage(e, 'Не удалось загрузить данные');
+        _errorStackTrace = st?.toString();
+        _errorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
+      });
     } finally {
       if (mounted && !silent) setState(() => _isLoading = false);
     }
@@ -405,26 +419,393 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
   }
 
   Widget _buildHowToPayGroup() {
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: ExpansionTile(
+        initiallyExpanded: false,
+        tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        collapsedBackgroundColor: AppColors.cardDark,
+        backgroundColor: AppColors.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         children: [
-          Text('Как оплатить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
-          const SizedBox(height: 8),
-          Text(
-            '1. Выберите пакет участия для каждого участника\n'
-            '2. Если в пакете есть мерч — выберите размер\n'
-            '3. Выбор сохранится автоматически\n'
-            '4. Цена обновится автоматически\n'
-            '5. После выбора можно перейти к оплате',
-            style: unbounded(color: Colors.white70, fontSize: 13),
+          Container(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Text(
+              '1. Выберите пакет участия для каждого участника\n'
+              '2. Если в пакете есть мерч — выберите размер\n'
+              '3. Выбор сохранится автоматически\n'
+              '4. Цена обновится автоматически\n'
+              '5. После выбора можно перейти к оплате',
+              style: unbounded(color: Colors.white70, fontSize: 13),
+            ),
           ),
         ],
+        title: Row(
+          children: [
+            Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
+            const SizedBox(width: 12),
+            Text('Как оплатить', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMerchGallery(List merchGallery) {
+    return SizedBox(
+      height: 120,
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: merchGallery.length,
+        itemBuilder: (_, i) {
+          final item = merchGallery[i];
+          final m = item is Map ? Map.from(item) : <String, dynamic>{};
+          final name = m['name']?.toString() ?? '';
+          final img = m['image_url'] ?? m['image'];
+          final packagesList = m['packages'];
+          final pkgs = packagesList is List ? packagesList.join(', ') : packagesList?.toString() ?? '';
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: GestureDetector(
+              onTap: () => _showImageFullscreen(_fullImageUrl(img?.toString())),
+              child: Column(
+                children: [
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: img != null
+                        ? CachedNetworkImage(
+                            imageUrl: _fullImageUrl(img.toString()),
+                            width: 80,
+                            height: 80,
+                            fit: BoxFit.cover,
+                            placeholder: (_, __) => const SizedBox(width: 80, height: 80, child: CircularProgressIndicator()),
+                            errorWidget: (_, __, ___) => Container(width: 80, height: 80, color: Colors.grey),
+                          )
+                        : Container(width: 80, height: 80, color: Colors.grey),
+                  ),
+                  const SizedBox(height: 4),
+                  SizedBox(width: 80, child: Text(name, style: const TextStyle(color: Colors.white70, fontSize: 11), overflow: TextOverflow.ellipsis, textAlign: TextAlign.center)),
+                  if (pkgs.isNotEmpty) Text('В: $pkgs', style: const TextStyle(color: Colors.white54, fontSize: 10), overflow: TextOverflow.ellipsis),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  void _showImageFullscreen(String url) {
+    if (url.isEmpty) return;
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(ctx),
+          child: CachedNetworkImage(
+            imageUrl: url,
+            fit: BoxFit.contain,
+            errorWidget: (_, __, ___) => const Icon(Icons.image_not_supported, size: 64, color: Colors.grey),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showPackageSelectorModal(int userId, Map<String, dynamic> participant, List packages) async {
+    String? currentPkg = _selectedPackageByUser[userId];
+    Map<String, String> currentSizes = Map.from(_selectedSizesByUser[userId] ?? {});
+    final spRaw = participant['selected_package'];
+    if (currentPkg == null && spRaw is List && spRaw.isNotEmpty && spRaw.first is Map) {
+      final first = spRaw.first as Map;
+      currentPkg = first['package_name']?.toString() ?? first['name']?.toString();
+      final merch = first['merch'];
+      if (merch is List) {
+        for (final m in merch) {
+          if (m is Map) {
+            final n = m['name']?.toString();
+            final sz = m['selected_size']?.toString();
+            if (n != null && sz != null) currentSizes[n] = sz;
+          }
+        }
+      }
+    }
+
+    List merchGallery = _data?['merch_gallery'] is List
+        ? List.from(_data!['merch_gallery'])
+        : (_data?['event'] is Map && _data!['event']['merch_gallery'] is List
+            ? List.from(_data!['event']['merch_gallery'])
+            : <dynamic>[]);
+    if (merchGallery.isEmpty && packages.isNotEmpty) {
+      final byName = <String, Map<String, dynamic>>{};
+      for (final pkg in packages) {
+        if (pkg is! Map) continue;
+        final merch = pkg['merch'];
+        if (merch is! List) continue;
+        final pkgName = pkg['name']?.toString() ?? '';
+        for (final m in merch) {
+          if (m is! Map) continue;
+          final name = m['name']?.toString() ?? '';
+          if (name.isEmpty) continue;
+          final img = m['image_url'] ?? m['image'];
+          if (img == null || img.toString().isEmpty) continue;
+          if (byName.containsKey(name)) {
+            final existing = byName[name]!;
+            final pkgs = (existing['packages'] as List? ?? []).cast<String>();
+            if (pkgName.isNotEmpty && !pkgs.contains(pkgName)) {
+              pkgs.add(pkgName);
+              existing['packages'] = pkgs;
+            }
+          } else {
+            byName[name] = {
+              'name': name,
+              'image_url': img,
+              'image': img,
+              'packages': pkgName.isNotEmpty ? [pkgName] : <String>[],
+            };
+          }
+        }
+      }
+      merchGallery = byName.values.toList();
+    }
+
+    // merch_availability: { "Название мерча": { "available": 0, "limit": 10 } }
+    Map<String, dynamic> merchAvailability = {};
+    final ma1 = _data?['merch_availability'];
+    final ma2 = _data?['event']?['merch_availability'];
+    if (ma1 is Map) merchAvailability = Map.from(ma1);
+    if (merchAvailability.isEmpty && ma2 is Map) merchAvailability = Map.from(ma2);
+    // Fallback: собрать из packages.merch[].available / sizes[].available
+    if (merchAvailability.isEmpty && packages.isNotEmpty) {
+      for (final pkg in packages) {
+        if (pkg is! Map) continue;
+        for (final m in (pkg['merch'] is List ? pkg['merch'] as List : [])) {
+          if (m is! Map) continue;
+          final n = m['name']?.toString() ?? '';
+          if (n.isEmpty) continue;
+          if (merchAvailability.containsKey(n)) continue;
+          final av = m['available'];
+          final limit = m['limit'];
+          if (av != null || limit != null) {
+            merchAvailability[n] = {
+              'available': av is num ? av.toInt() : (av != null ? int.tryParse(av.toString()) : null),
+              'limit': limit is num ? limit.toInt() : (limit != null ? int.tryParse(limit.toString()) : null),
+            };
+          }
+          final sizes = m['sizes'];
+          if (sizes is List && sizes.isNotEmpty && !merchAvailability.containsKey(n)) {
+            int totalAv = 0;
+            for (final s in sizes) {
+              if (s is Map) totalAv += ((s['available'] ?? 0) is num ? (s['available'] as num).toInt() : 0);
+            }
+            merchAvailability[n] = {'available': totalAv, 'limit': null};
+          }
+        }
+      }
+    }
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return Container(
+            decoration: const BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: DraggableScrollableSheet(
+              initialChildSize: 0.7,
+              minChildSize: 0.4,
+              maxChildSize: 0.95,
+              expand: false,
+              builder: (_, scrollController) => SafeArea(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12, bottom: 8),
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white24,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      child: Text(
+                        'Выбрать пакет',
+                        style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    Flexible(
+                      child: SingleChildScrollView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            if (merchGallery.isNotEmpty) ...[
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _buildMerchGallery(merchGallery),
+                              ),
+                            ],
+                            ...packages.map((pkg) {
+                            if (pkg is! Map) return const SizedBox.shrink();
+                            final pkgName = pkg['name']?.toString() ?? '';
+                            final priceVal = pkg['price'];
+                            final price = (priceVal is num ? priceVal.toDouble() : double.tryParse(priceVal?.toString() ?? '') ?? 0).toInt();
+                            final merch = pkg['merch'] is List ? pkg['merch'] as List : [];
+                            bool pkgDisabled = false;
+                            for (final m in merch) {
+                              if (m is! Map) continue;
+                              final n = m['name']?.toString() ?? '';
+                              final av = merchAvailability[n];
+                              if (av is Map && (av['available'] ?? 0) <= 0) {
+                                pkgDisabled = true;
+                                break;
+                              }
+                            }
+                            final allSizesSelected = merch.every((m) {
+                              if (m is! Map) return true;
+                              final sList = m['sizes'];
+                              if (sList is! List || sList.isEmpty) return true;
+                              final n = m['name']?.toString() ?? '';
+                              return currentSizes[n] != null && currentSizes[n]!.isNotEmpty;
+                            });
+                            final isSelected = currentPkg == pkgName;
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: AppColors.graphite,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              padding: const EdgeInsets.all(16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Expanded(child: Text(pkgName, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis)),
+                                      if (pkgDisabled)
+                                        Padding(
+                                          padding: const EdgeInsets.only(left: 8),
+                                          child: Text('Мерч закончился', style: unbounded(color: Colors.red, fontSize: 12, fontWeight: FontWeight.w500)),
+                                        )
+                                      else
+                                        Text('$price ₽', style: unbounded(color: Colors.white70)),
+                                    ],
+                                  ),
+                                  ...merch.map((m) {
+                                    if (m is! Map) return const SizedBox.shrink();
+                                    final merchName = m['name']?.toString() ?? '';
+                                    final sizes = m['sizes'] is List ? m['sizes'] as List : [];
+                                    final av = merchAvailability[merchName];
+                                    final available = av is Map ? (av['available'] ?? 0) : null;
+                                    final isMerchSoldOut = available != null && available <= 0;
+                                    if (sizes.isEmpty) return const SizedBox.shrink();
+                                    return Padding(
+                                      padding: const EdgeInsets.only(top: 8),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Text(merchName, style: unbounded(color: isMerchSoldOut ? Colors.red : Colors.white70, fontSize: 13)),
+                                              if (!isMerchSoldOut && available != null)
+                                                Text(' (осталось: $available)', style: unbounded(color: Colors.white54, fontSize: 12)),
+                                            ],
+                                          ),
+                                          if (!isMerchSoldOut)
+                                            Padding(
+                                              padding: const EdgeInsets.only(top: 4),
+                                              child: DropdownButtonFormField<String>(
+                                                value: currentSizes[merchName],
+                                              decoration: InputDecoration(
+                                                labelText: 'Размер',
+                                                labelStyle: unbounded(color: AppColors.graphite),
+                                                filled: true,
+                                                fillColor: AppColors.rowAlt,
+                                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                                                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                                              ),
+                                              dropdownColor: AppColors.cardDark,
+                                              style: unbounded(color: Colors.white, fontSize: 15),
+                                              items: sizes.map((s) {
+                                                final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
+                                                return DropdownMenuItem<String>(value: sz, child: Text(sz, style: unbounded(color: Colors.white, fontSize: 15)));
+                                              }).toList(),
+                                              onChanged: (v) {
+                                                currentSizes[merchName] = v ?? '';
+                                                setModalState(() {});
+                                              },
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
+                                  const SizedBox(height: 8),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: isSelected
+                                        ? ElevatedButton.icon(
+                                            onPressed: null,
+                                            icon: const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                                            label: Text('Выбрано', style: unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
+                                            style: ElevatedButton.styleFrom(
+                                              backgroundColor: AppColors.mutedGold,
+                                              foregroundColor: Colors.white,
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                          )
+                                        : OutlinedButton.icon(
+                                            onPressed: !pkgDisabled && (allSizesSelected || merch.isEmpty)
+                                                ? () async {
+                                                    final sizesForPackage = <String, String>{};
+                                                    for (final m in merch) {
+                                                      if (m is Map) {
+                                                        final n = m['name']?.toString() ?? '';
+                                                        if (currentSizes[n] != null) sizesForPackage[n] = currentSizes[n]!;
+                                                      }
+                                                    }
+                                                    await _savePackage(userId, pkgName, sizesForPackage, price);
+                                                    if (mounted) Navigator.pop(ctx);
+                                                  }
+                                                : null,
+                                            icon: const Icon(Icons.add_shopping_cart, size: 20),
+                                            label: Text('Выбрать', style: unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
+                                            style: OutlinedButton.styleFrom(
+                                              foregroundColor: AppColors.mutedGold,
+                                              side: const BorderSide(color: AppColors.mutedGold, width: 2),
+                                              padding: const EdgeInsets.symmetric(vertical: 14),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                            ),
+                                          ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+        },
       ),
     );
   }
@@ -528,6 +909,41 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _showReceiptSourcePicker({required int userId}) async {
+    final choice = await showModalBottomSheet<String?>(
+      context: context,
+      backgroundColor: AppColors.cardDark,
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Загрузить чек', style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600)),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.photo_library, color: AppColors.mutedGold),
+                title: Text('Галерея', style: unbounded(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, 'gallery'),
+              ),
+              ListTile(
+                leading: const Icon(Icons.attach_file, color: AppColors.mutedGold),
+                title: Text('Файл', style: unbounded(color: Colors.white)),
+                onTap: () => Navigator.pop(ctx, 'file'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (choice == 'gallery') {
+      await _pickImage(userId: userId);
+    } else if (choice == 'file') {
+      await _pickFile(userId: userId);
+    }
   }
 
   Future<void> _showReceiptUserPicker({bool isFile = false}) async {
@@ -639,25 +1055,39 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
       );
     }
     if (_error != null) {
+      if (!_showingErrorModal) {
+        _showingErrorModal = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _error == null) return;
+          showErrorReportModal(
+            context,
+            message: _error!,
+            screen: 'group-checkout',
+            eventId: widget.eventId,
+            stackTrace: _errorStackTrace,
+            extra: _errorExtra,
+            onRetry: () {
+              setState(() {
+                _error = null;
+                _errorStackTrace = null;
+                _errorExtra = null;
+                _isLoading = true;
+                _showingErrorModal = false;
+              });
+              _loadData();
+            },
+          ).then((_) {
+            if (mounted) setState(() => _showingErrorModal = false);
+          });
+        });
+      }
       return Scaffold(
-        appBar: AppBar(title: Text('Оформление группы', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)), backgroundColor: AppColors.cardDark),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(_error!, textAlign: TextAlign.center, style: unbounded(color: Colors.white70)),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: _loadData,
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold, foregroundColor: AppColors.anthracite),
-                  child: Text('Повторить', style: unbounded(fontWeight: FontWeight.w600)),
-                ),
-              ],
-            ),
-          ),
+        appBar: AppBar(
+          title: Text('Оформление группы', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
+          backgroundColor: AppColors.cardDark,
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
         ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -677,30 +1107,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        actions: [
-          if (_supportEnabled)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
-              ),
-              tooltip: 'Поддержка',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AISupportScreen(
-                    eventId: widget.eventId,
-                    page: 'group-checkout',
-                    pageTitle: 'Оформление группы',
-                  ),
-                ),
-              ),
-            ),
-        ],
+        actions: const [],
       ),
       body: Container(
         color: AppColors.anthracite,
@@ -825,240 +1232,127 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
     final uid = userId is int ? userId : int.tryParse(userId?.toString() ?? '');
     final name = '${participant['middlename'] ?? ''} ${participant['firstname'] ?? ''} ${participant['lastname'] ?? ''}'.trim();
     final setInfo = participant['set'];
-    final setStr = setInfo is Map
-        ? 'Сет №${setInfo['number_set'] ?? ''} ${setInfo['time'] ?? ''}'
-        : '';
+    final setStr = setInfo is Map ? 'Сет №${setInfo['number_set'] ?? ''} ${setInfo['time'] ?? ''}' : '';
     final catInfo = participant['participant_category'];
     final catStr = catInfo is Map ? (catInfo['category']?.toString() ?? '') : '';
-    final amountStart = participant['amount_start_price'];
-    final basePrice = amountStart is num ? amountStart.toInt() : int.tryParse(amountStart?.toString() ?? '') ?? 0;
     final isPaid = participant['is_paid'] == true;
+    final hasReceipt = participant['has_receipt'] == true ||
+        participant['receipt_attached'] == true ||
+        participant['receipt_uploaded'] == true ||
+        participant['receipt_pending'] == true ||
+        (participant['receipt_file_id'] != null && participant['receipt_file_id'].toString().isNotEmpty) ||
+        (participant['receipt_id'] != null && participant['receipt_id'].toString().isNotEmpty) ||
+        (participant['receipts'] is List && (participant['receipts'] as List).isNotEmpty);
     final spRaw = participant['selected_package'];
     String? currentPkg = uid != null ? _selectedPackageByUser[uid] : null;
-    Map<String, String> currentSizes = uid != null ? (_selectedSizesByUser[uid] ?? {}) : {};
     if (currentPkg == null && spRaw is List && spRaw.isNotEmpty && spRaw.first is Map) {
       final first = spRaw.first as Map;
       currentPkg = first['package_name']?.toString() ?? first['name']?.toString();
-      final merch = first['merch'];
-      if (merch is List) {
-        for (final m in merch) {
-          if (m is Map) {
-            final n = m['name']?.toString();
-            final sz = m['selected_size']?.toString();
-            if (n != null && sz != null) currentSizes[n] = sz;
-          }
-        }
-      }
     }
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.cardDark,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(isPaid ? Icons.check_circle : Icons.person, color: isPaid ? Colors.green : AppColors.mutedGold),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(name.isEmpty ? 'Участник' : name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
-                    if (setStr.isNotEmpty) Text(setStr, style: unbounded(color: Colors.white70, fontSize: 12)),
-                    if (catStr.isNotEmpty) Text(catStr, style: unbounded(color: Colors.white70, fontSize: 12)),
-                  ],
-                ),
-              ),
-              if (isPaid)
-                Flexible(
-                  child: Text('Оплачено', style: unbounded(color: Colors.green, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
-                ),
-            ],
-          ),
-            if (!isPaid && uid != null) ...[
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  OutlinedButton.icon(
-                    onPressed: _isUploadingReceipt
-                        ? null
-                        : () => _pickImage(userId: uid),
-                    icon: _isUploadingReceipt
-                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                        : const Icon(Icons.photo_library, size: 18),
-                    label: Text('Чек (галерея)', style: unbounded(fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.mutedGold,
-                      side: const BorderSide(color: AppColors.mutedGold),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: _isUploadingReceipt ? null : () => _pickFile(userId: uid),
-                    icon: const Icon(Icons.attach_file, size: 18),
-                    label: Text('Чек (файл)', style: unbounded(fontSize: 13)),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.mutedGold,
-                      side: const BorderSide(color: AppColors.mutedGold),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    ),
-                  ),
-                  if (participant['has_receipt'] == true || participant['receipt_attached'] == true)
-                    Padding(
-                      padding: const EdgeInsets.only(left: 4),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.receipt_long, color: Colors.orange, size: 20),
-                          const SizedBox(width: 6),
-                          Text('Чек на проверке', style: unbounded(color: Colors.orange, fontWeight: FontWeight.w500, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                ],
-              ),
-            ],
-            if (!isPaid && packages.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              ...packages.map((pkg) {
-                if (pkg is! Map) return const SizedBox.shrink();
-                final pkgName = pkg['name']?.toString() ?? '';
-                final priceVal = pkg['price'];
-                final price = (priceVal is num ? priceVal.toDouble() : double.tryParse(priceVal?.toString() ?? '') ?? 0).toInt();
-                final merch = pkg['merch'] is List ? pkg['merch'] as List : [];
-                final allSizesSelected = merch.every((m) {
-                  if (m is! Map) return true;
-                  final sList = m['sizes'];
-                  if (sList is! List || sList.isEmpty) return true;
-                  final n = m['name']?.toString() ?? '';
-                  return currentSizes[n] != null && currentSizes[n]!.isNotEmpty;
-                });
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    final statusText = isPaid
+        ? 'Оплачено'
+        : (currentPkg != null && currentPkg.isNotEmpty ? 'Пакет: $currentPkg' : 'Выбрать пакет');
+    final needsPackageSelection = !isPaid && uid != null && packages.isNotEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          initiallyExpanded: false,
+          tilePadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          collapsedBackgroundColor: AppColors.cardDark,
+          backgroundColor: AppColors.cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          collapsedShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        leading: Icon(isPaid ? Icons.check_circle : Icons.person, color: isPaid ? Colors.green : AppColors.mutedGold, size: 28),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(name.isEmpty ? 'Участник' : name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+            if (setStr.isNotEmpty) Text(setStr, style: unbounded(color: Colors.white70, fontSize: 12)),
+            if (catStr.isNotEmpty) Text(catStr, style: unbounded(color: Colors.white70, fontSize: 12)),
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                Expanded(
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(pkgName, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
+                      Flexible(
+                        child: Text(
+                          statusText,
+                          style: unbounded(
+                            color: isPaid ? Colors.green : (currentPkg != null ? Colors.white70 : AppColors.mutedGold),
+                            fontSize: 13,
+                            fontWeight: isPaid ? FontWeight.w500 : FontWeight.normal,
                           ),
-                          const SizedBox(width: 8),
-                          Text('$price ₽', style: unbounded(color: Colors.white70)),
-                        ],
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
-                      ...merch.map((m) {
-                        if (m is! Map) return const SizedBox.shrink();
-                        final merchName = m['name']?.toString() ?? '';
-                        final sizes = m['sizes'] is List ? m['sizes'] as List : [];
-                        if (sizes.isEmpty) return const SizedBox.shrink();
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 4),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(merchName, style: unbounded(color: Colors.white70, fontSize: 13)),
-                              Padding(
-                                padding: const EdgeInsets.only(top: 2),
-                                child: DropdownButtonFormField<String>(
-                                  value: currentSizes[merchName],
-                                  decoration: InputDecoration(
-                                    labelText: 'Размер',
-                                    labelStyle: unbounded(color: AppColors.graphite),
-                                    filled: true,
-                                    fillColor: AppColors.rowAlt,
-                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
-                                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                                  ),
-                                  dropdownColor: AppColors.cardDark,
-                                  style: unbounded(color: Colors.white, fontSize: 15),
-                                  items: sizes.map((s) {
-                                    final sz = s is Map ? s['size']?.toString() ?? '' : s.toString();
-                                    return DropdownMenuItem<String>(value: sz, child: Text(sz, style: unbounded(color: Colors.white, fontSize: 15)));
-                                  }).toList(),
-                                  onChanged: (v) {
-                                    final updatedSizes = Map<String, String>.from(currentSizes);
-                                    updatedSizes[merchName] = v ?? '';
-                                    setState(() {
-                                      if (uid != null) {
-                                        _selectedSizesByUser[uid] = updatedSizes;
-                                      }
-                                    });
-                                    if (uid != null && currentPkg == pkgName) {
-                                      final sizesForPackage = <String, String>{};
-                                      for (final m in merch) {
-                                        if (m is Map) {
-                                          final n = m['name']?.toString() ?? '';
-                                          if (updatedSizes[n] != null) sizesForPackage[n] = updatedSizes[n]!;
-                                        }
-                                      }
-                                      final needAll = merch.where((m) => m is Map && (m['sizes'] is List) && (m['sizes'] as List).isNotEmpty).length;
-                                      if (sizesForPackage.length >= needAll || merch.isEmpty) {
-                                        _savePackage(uid, pkgName, sizesForPackage, price);
-                                      }
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-                      }),
-                      const SizedBox(height: 8),
-                      SizedBox(
-                        width: double.infinity,
-                        child: currentPkg == pkgName
-                            ? ElevatedButton.icon(
-                                onPressed: null,
-                                icon: const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                                label: Text('Выбрано', style: unbounded(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w600)),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppColors.mutedGold,
-                                  foregroundColor: Colors.white,
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              )
-                            : OutlinedButton.icon(
-                                onPressed: (allSizesSelected || merch.isEmpty)
-                                    ? () {
-                                        final sizesForPackage = <String, String>{};
-                                        for (final m in merch) {
-                                          if (m is Map) {
-                                            final n = m['name']?.toString() ?? '';
-                                            if (currentSizes[n] != null) sizesForPackage[n] = currentSizes[n]!;
-                                          }
-                                        }
-                                        _savePackage(uid, pkgName, sizesForPackage, price);
-                                      }
-                                    : null,
-                                icon: const Icon(Icons.add_shopping_cart, size: 20),
-                                label: Text('Выбрать', style: unbounded(fontSize: 15, fontWeight: FontWeight.w600)),
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: AppColors.mutedGold,
-                                  side: const BorderSide(color: AppColors.mutedGold, width: 2),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                ),
-                              ),
-                      ),
+                      if (hasReceipt) ...[
+                        const SizedBox(width: 8),
+                        const Icon(Icons.receipt_long, color: Colors.orange, size: 18),
+                        const SizedBox(width: 4),
+                        Text('На проверке', style: unbounded(color: Colors.orange, fontSize: 12)),
+                      ],
                     ],
                   ),
-                );
-              }),
-            ],
+                ),
+                if (needsPackageSelection) ...[
+                  const SizedBox(width: 8),
+                  TextButton(
+                    onPressed: () {
+                      if (uid != null) _showPackageSelectorModal(uid, participant, packages);
+                    },
+                    style: TextButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 4), minimumSize: Size.zero, tapTargetSize: MaterialTapTargetSize.shrinkWrap),
+                    child: Text(
+                      currentPkg != null ? 'Изменить' : 'Выбрать',
+                      style: unbounded(color: AppColors.mutedGold, fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
+        children: [
+          if (!isPaid && uid != null) ...[
+            if (!hasReceipt)
+              Row(
+                children: [
+                  TextButton.icon(
+                    onPressed: _isUploadingReceipt ? null : () => _showReceiptSourcePicker(userId: uid),
+                    icon: _isUploadingReceipt ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.receipt_long, size: 18),
+                    label: Text('Чек', style: unbounded(fontSize: 13)),
+                    style: TextButton.styleFrom(foregroundColor: AppColors.mutedGold),
+                  ),
+                ],
+              ),
+            if (needsPackageSelection)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _showPackageSelectorModal(uid, participant, packages),
+                    icon: const Icon(Icons.add_shopping_cart, size: 18),
+                    label: Text(currentPkg != null ? 'Изменить пакет' : 'Выбрать пакет', style: unbounded(fontSize: 14)),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.mutedGold,
+                      side: const BorderSide(color: AppColors.mutedGold),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ],
+      ),
+    ),
     );
   }
 }

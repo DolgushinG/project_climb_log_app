@@ -300,7 +300,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                         labelPadding: const EdgeInsets.symmetric(horizontal: 4),
                         tabs: [
                           Tab(child: FittedBox(child: Text('План', style: unbounded(fontSize: 13)))),
-                          Tab(child: FittedBox(child: Text('Статистика', style: unbounded(fontSize: 13)))),
+                          Tab(child: FittedBox(child: Text('Статистика', style: unbounded(fontSize: 11)))),
                           Tab(child: FittedBox(child: Text('История', style: unbounded(fontSize: 13)))),
                           Tab(child: FittedBox(child: Text('Тест', style: unbounded(fontSize: 13)))),
                         ],

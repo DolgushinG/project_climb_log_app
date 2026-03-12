@@ -20,7 +20,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isPrivacyAccepted = false;
-  String? _selectedGender;
+  String? _selectedGender; // 'male' | 'female'
+
+  String _genderDisplayText(String? v) {
+    if (v == null) return 'Выберите пол';
+    return v == 'male' ? 'Мужской' : 'Женский';
+  }
 
   void _showSnackBar(String message, [Color? backgroundColor]) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -77,7 +82,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     onTap: () {
                       setState(() {
-                        _selectedGender = 'Мужской';
+                        _selectedGender = 'male';
                       });
                       Navigator.pop(context);
                     },
@@ -91,7 +96,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                     ),
                     onTap: () {
                       setState(() {
-                        _selectedGender = 'Женский';
+                        _selectedGender = 'female';
                       });
                       Navigator.pop(context);
                     },
@@ -270,7 +275,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    _selectedGender ?? 'Выберите пол',
+                                    _genderDisplayText(_selectedGender),
                                     style: unbounded(color: Colors.white),
                                   ),
                                   Icon(Icons.arrow_drop_down, color: AppColors.mutedGold),

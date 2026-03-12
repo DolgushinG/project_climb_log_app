@@ -8,11 +8,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 import '../login.dart';
 import '../main.dart';
-import '../services/AISupportService.dart';
 import '../theme/app_theme.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
-import 'AISupportScreen.dart';
+import '../widgets/error_report_modal.dart';
+import '../widgets/RegistrationStepper.dart';
 import 'GroupCheckoutScreen.dart';
 import 'GroupDocumentsScreen.dart';
 import 'ProfileEditScreen.dart';
@@ -38,6 +38,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
+  String? _errorStackTrace;
+  Map<String, dynamic>? _errorExtra;
   bool _hasUnpaidGroup = false;
 
   // Новые участники и выбранные related_users
@@ -46,15 +48,14 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
   Timer? _debounce;
   static const Duration _debounceDuration = Duration(milliseconds: 500);
-  bool _supportEnabled = false;
+  int _currentStep = 0;
+  static const int _totalSteps = 4;
+  bool _showingErrorModal = false;
 
   @override
   void initState() {
     super.initState();
     _loadData();
-    AISupportService().getStatus().then((v) {
-      if (mounted) setState(() => _supportEnabled = v);
-    });
   }
 
   @override
@@ -106,9 +107,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           _isLoading = false;
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       setState(() {
         _error = networkErrorMessage(e, 'Не удалось загрузить данные');
+        _errorStackTrace = st?.toString();
+        _errorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
         _isLoading = false;
       });
     }
@@ -665,24 +668,41 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       );
     }
     if (_error != null) {
+      if (!_showingErrorModal) {
+        _showingErrorModal = true;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted || _error == null) return;
+          showErrorReportModal(
+            context,
+            message: _error!,
+            screen: 'group-register',
+            eventId: widget.eventId,
+            stackTrace: _errorStackTrace,
+            extra: _errorExtra,
+            onRetry: () {
+              setState(() {
+                _error = null;
+                _errorStackTrace = null;
+                _errorExtra = null;
+                _isLoading = true;
+                _showingErrorModal = false;
+              });
+              _loadData();
+            },
+            onSecondary: () => Navigator.pop(context),
+            secondaryLabel: 'Назад',
+          ).then((_) {
+            if (mounted) setState(() => _showingErrorModal = false);
+          });
+        });
+      }
       return Scaffold(
         appBar: AppBar(
           title: Text('Заявить группу', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white)),
           backgroundColor: AppColors.cardDark,
+          leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => Navigator.pop(context)),
         ),
-        body: Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(_error!, textAlign: TextAlign.center, style: const TextStyle(color: Colors.white70)),
-                const SizedBox(height: 16),
-                ElevatedButton(onPressed: () => Navigator.pop(context), child: const Text('Назад')),
-              ],
-            ),
-          ),
-        ),
+        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
@@ -706,226 +726,531 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             Navigator.pop(context);
           },
         ),
-        actions: [
-          if (_supportEnabled)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
-              ),
-              tooltip: 'Поддержка',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AISupportScreen(
-                    eventId: widget.eventId,
-                    page: 'group-register',
-                    pageTitle: 'Заявить группу',
-                  ),
-                ),
-              ),
-            ),
-        ],
+        actions: const [],
       ),
       body: Container(
         color: AppColors.anthracite,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            if (eventTitle.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  eventTitle,
-                  style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
-                ),
-              ),
-            if (_hasUnpaidGroup) ...[
-              Material(
-                color: AppColors.mutedGold.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupCheckoutScreen(eventId: widget.eventId),
-                      ),
-                    );
-                    if (mounted) _checkUnpaidGroup();
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.payment, color: AppColors.mutedGold, size: 32),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Есть неоплаченная групповая заявка',
-                                style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Продолжить оплату',
-                                style: unbounded(color: Colors.white70, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-            ],
-            if (groupDocumentsAlready || _hasUnpaidGroup)
-              Material(
-                color: const Color(0xFF1E3A5F).withOpacity(0.4),
-                borderRadius: BorderRadius.circular(16),
-                child: InkWell(
-                  onTap: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => GroupDocumentsScreen(
-                          eventId: widget.eventId,
-                          eventTitle: eventTitle,
-                        ),
-                      ),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.description, color: AppColors.mutedGold, size: 32),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Документы участников',
-                                style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Загрузить документы для участников группы',
-                                style: unbounded(color: Colors.white70, fontSize: 14),
-                              ),
-                            ],
-                          ),
-                        ),
-                        const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            if (groupDocumentsAlready || _hasUnpaidGroup) const SizedBox(height: 20),
-            if (showContactMsg)
-              _buildWarningCard(
-                'Заполните контактные данные в профиле для групповой регистрации.',
-                onTap: () async {
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => ProfileEditScreen()),
-                  );
-                  if (mounted) _loadData();
-                },
-                actionText: 'Заполнить профиль',
-              ),
-            const SizedBox(height: 20),
-            Text(
-              'Ранее заявленные участники',
-              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-            ),
-            const SizedBox(height: 12),
-            if (relatedUsers.isEmpty)
-              Container(
+            Expanded(
+              child: ListView(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'У вас пока нет ранее заявленных участников. Добавьте новых участников ниже.',
-                  style: unbounded(color: Colors.white70, fontSize: 14),
-                ),
-              )
-            else
-              ...relatedUsers.map((ru) {
-                if (ru is! Map) return const SizedBox.shrink();
-                final id = ru['id'];
-                final userId = id is int ? id : int.tryParse(id.toString() ?? '');
-                if (userId == null) return const SizedBox.shrink();
-                final name = '${ru['lastname'] ?? ''} ${ru['firstname'] ?? ''}'.trim();
-                final isSelected = _selectedRelatedUserIds.contains(userId);
-                return _buildRelatedUserCard(Map<String, dynamic>.from(ru), userId, name, isSelected);
-              }),
-            const SizedBox(height: 24),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    'Новые участники',
-                    style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
-                    overflow: TextOverflow.ellipsis,
+                children: [
+                  if (eventTitle.isNotEmpty)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Text(
+                        eventTitle,
+                        style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
+                    ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: RegistrationStepper(
+                      currentStep: _currentStep,
+                      totalSteps: _totalSteps,
+                      stepLabels: const ['Участники', 'Данные', 'Сеты', 'Проверка'],
+                    ),
                   ),
-                ),
-                TextButton.icon(
-                  onPressed: _addNewParticipant,
-                  icon: const Icon(Icons.add, size: 20, color: AppColors.mutedGold),
-                  label: Text('Добавить', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
-                ),
-              ],
-            ),
-            if (_newParticipants.isEmpty)
-              Container(
-                padding: const EdgeInsets.all(20),
-                margin: const EdgeInsets.only(top: 8),
-                decoration: BoxDecoration(
-                  color: AppColors.cardDark,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  'Нажмите «Добавить», чтобы зарегистрировать нового участника.',
-                  style: unbounded(color: Colors.white70, fontSize: 14),
-                ),
-              )
-            else ...[
-              const SizedBox(height: 12),
-              ...List.generate(_newParticipants.length, (i) {
-                return _buildNewParticipantCard(i);
-              }),
-            ],
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _submitRegistration,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.mutedGold,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: Text('Зарегистрировать группу', style: unbounded(fontWeight: FontWeight.w600, color: AppColors.anthracite)),
+                  Text(
+                    _stepTitle(_currentStep),
+                    style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                  const SizedBox(height: 16),
+                  _buildStepContent(_currentStep),
+                  const SizedBox(height: 24),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: _currentStep > 0 ? _stepBack : null,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.mutedGold,
+                            side: const BorderSide(color: AppColors.mutedGold),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('Назад', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: _currentStep < _totalSteps - 1 ? _stepForward : _submitRegistration,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.mutedGold,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text(
+                            _currentStep < _totalSteps - 1 ? 'Продолжить →' : 'Зарегистрировать группу',
+                            style: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _stepTitle(int step) {
+    switch (step) {
+      case 0:
+        return 'Выберите участников';
+      case 1:
+        return 'Данные участников';
+      case 2:
+        return 'Сеты и категории';
+      case 3:
+        return 'Проверка и отправка';
+      default:
+        return '';
+    }
+  }
+
+  void _stepBack() {
+    if (_currentStep > 0) setState(() => _currentStep--);
+  }
+
+  void _stepForward() {
+    if (_validateStep(_currentStep)) {
+      if (_currentStep < _totalSteps - 1) {
+        setState(() => _currentStep++);
+      } else {
+        _submitRegistration();
+      }
+    }
+  }
+
+  bool _validateStep(int step) {
+    switch (step) {
+      case 0:
+        if (_newParticipants.isEmpty && _selectedRelatedUserIds.isEmpty) {
+          _showSnack('Добавьте хотя бы одного участника', isError: true);
+          return false;
+        }
+        for (final p in _newParticipants) {
+          if (p.firstname.trim().isEmpty || p.lastname.trim().isEmpty) {
+            _showSnack('Заполните имя и фамилию участников', isError: true);
+            return false;
+          }
+        }
+        return true;
+      case 1:
+        for (final p in _newParticipants) {
+          if ((_isInputBirthday || _needSet) && p.dob == null) {
+            _showSnack('Укажите дату рождения: ${p.firstname} ${p.lastname}', isError: true);
+            return false;
+          }
+          if (p.gender == null) {
+            _showSnack('Укажите пол: ${p.firstname} ${p.lastname}', isError: true);
+            return false;
+          }
+        }
+        return true;
+      case 2:
+        for (final p in _newParticipants) {
+          if (_needSet && (p.sets == null || p.sets == 0)) {
+            _showSnack('Выберите сет: ${p.firstname} ${p.lastname}', isError: true);
+            return false;
+          }
+          if (_isAutoCategories != 1 && p.category.isEmpty) {
+            _showSnack('Выберите категорию: ${p.firstname} ${p.lastname}', isError: true);
+            return false;
+          }
+          if (_isNeedSportCategory && p.sportCategory.isEmpty) {
+            _showSnack('Выберите разряд: ${p.firstname} ${p.lastname}', isError: true);
+            return false;
+          }
+        }
+        final relatedUsersRaw = _data?['related_users'];
+        final relatedList = relatedUsersRaw is List ? relatedUsersRaw : [];
+        for (final ru in relatedList) {
+          if (ru is! Map) continue;
+          if (ru['is_participant'] == true || ru['already_registered'] == true) continue;
+          final id = ru['id'];
+          final userId = id is int ? id : int.tryParse(id.toString());
+          if (userId == null || !_selectedRelatedUserIds.contains(userId)) continue;
+          final p = _getRelatedParticipantData(userId);
+          if (p == null) continue;
+          if (_needSet && (p['sets'] == null || p['sets'] == 0)) {
+            _showSnack('Выберите сет для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+            return false;
+          }
+          if (_isAutoCategories != 1 && (p['category'] ?? '').toString().isEmpty) {
+            _showSnack('Выберите категорию для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+            return false;
+          }
+          if (_isNeedSportCategory && (p['sport_category'] ?? '').toString().isEmpty) {
+            _showSnack('Выберите разряд для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+            return false;
+          }
+        }
+        return true;
+      case 3:
+        return true;
+      default:
+        return true;
+    }
+  }
+
+  Widget _buildStepContent(int step) {
+    final event = _data?['event'];
+    final eventTitle = event is Map ? (event['title']?.toString() ?? '') : '';
+    final relatedUsersRaw = _data?['related_users'];
+    final relatedList = relatedUsersRaw is List ? relatedUsersRaw : [];
+    final showContactMsg = !_hasContact;
+    final groupDocumentsAlready = _data?['group_documents_already'] == true;
+    final hasUnpaidGroup = _hasUnpaidGroup;
+
+    if (step == 0) {
+      return _buildStep0Participants(relatedList, showContactMsg, groupDocumentsAlready, hasUnpaidGroup);
+    }
+    if (step == 1) {
+      return _buildStep1Data(relatedList);
+    }
+    if (step == 2) {
+      return _buildStep2SetsCategories(relatedList);
+    }
+    return _buildStep3Review(relatedList);
+  }
+
+  Widget _buildStep0Participants(List relatedList, bool showContactMsg, bool groupDocumentsAlready, bool hasUnpaidGroup) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (hasUnpaidGroup) ...[
+          Material(
+            color: AppColors.mutedGold.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupCheckoutScreen(eventId: widget.eventId),
+                  ),
+                );
+                if (mounted) _checkUnpaidGroup();
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.payment, color: AppColors.mutedGold, size: 32),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Есть неоплаченная групповая заявка',
+                            style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Продолжить оплату',
+                            style: unbounded(color: Colors.white70, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 20),
+        ],
+        if (groupDocumentsAlready || hasUnpaidGroup)
+          Material(
+            color: const Color(0xFF1E3A5F).withOpacity(0.4),
+            borderRadius: BorderRadius.circular(16),
+            child: InkWell(
+              onTap: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => GroupDocumentsScreen(
+                      eventId: widget.eventId,
+                      eventTitle: _data?['event']?['title']?.toString(),
+                    ),
+                  ),
+                );
+              },
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  children: [
+                    const Icon(Icons.description, color: AppColors.mutedGold, size: 32),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Документы участников',
+                            style: unbounded(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w600),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Загрузить документы для участников группы',
+                            style: unbounded(color: Colors.white70, fontSize: 14),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        if (groupDocumentsAlready || hasUnpaidGroup) const SizedBox(height: 20),
+        if (showContactMsg)
+          _buildWarningCard(
+            'Заполните контактные данные в профиле для групповой регистрации.',
+            onTap: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ProfileEditScreen()),
+              );
+              if (mounted) _loadData();
+            },
+            actionText: 'Заполнить профиль',
+          ),
+        if (showContactMsg) const SizedBox(height: 20),
+        Text(
+          'Ранее заявленные участники',
+          style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+        ),
+        const SizedBox(height: 12),
+        if (relatedList.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'У вас пока нет ранее заявленных участников. Добавьте новых участников ниже.',
+              style: unbounded(color: Colors.white70, fontSize: 14),
+            ),
+          )
+        else
+          ...relatedList.map((ru) {
+            if (ru is! Map) return const SizedBox.shrink();
+            final id = ru['id'];
+            final userId = id is int ? id : int.tryParse(id.toString() ?? '');
+            if (userId == null) return const SizedBox.shrink();
+            final name = '${ru['lastname'] ?? ''} ${ru['firstname'] ?? ''}'.trim();
+            final isSelected = _selectedRelatedUserIds.contains(userId);
+            return _buildRelatedUserCard(Map<String, dynamic>.from(ru), userId, name, isSelected, compact: true);
+          }),
+        const SizedBox(height: 24),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Новые участники',
+                style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            TextButton.icon(
+              onPressed: _addNewParticipant,
+              icon: const Icon(Icons.add, size: 20, color: AppColors.mutedGold),
+              label: Text('Добавить', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w500)),
+            ),
+          ],
+        ),
+        if (_newParticipants.isEmpty)
+          Container(
+            padding: const EdgeInsets.all(20),
+            margin: const EdgeInsets.only(top: 8),
+            decoration: BoxDecoration(
+              color: AppColors.cardDark,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              'Нажмите «Добавить», чтобы зарегистрировать нового участника.',
+              style: unbounded(color: Colors.white70, fontSize: 14),
+            ),
+          )
+        else ...[
+          const SizedBox(height: 12),
+          ...List.generate(_newParticipants.length, (i) => _buildNewParticipantCard(i, dataOnly: true)),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildStep1Data(List relatedList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...relatedList.map((ru) {
+          if (ru is! Map) return const SizedBox.shrink();
+          final id = ru['id'];
+          final userId = id is int ? id : int.tryParse(id.toString() ?? '');
+          if (userId == null || !_selectedRelatedUserIds.contains(userId)) return const SizedBox.shrink();
+          if (ru['is_participant'] == true || ru['already_registered'] == true) return const SizedBox.shrink();
+          final name = '${ru['lastname'] ?? ''} ${ru['firstname'] ?? ''}'.trim();
+          final data = _relatedParticipantData[userId] ?? {};
+          return Card(
+            color: AppColors.cardDark,
+            margin: const EdgeInsets.only(bottom: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  Text('Данные загружены из профиля. При необходимости измените город ниже.', style: unbounded(color: Colors.white70, fontSize: 12)),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    initialValue: data['city']?.toString() ?? '',
+                    onChanged: (v) => _setRelatedParticipantData(userId, {...data, 'city': v ?? ''}),
+                    decoration: InputDecoration(
+                      labelText: 'Город',
+                      labelStyle: unbounded(color: AppColors.graphite),
+                      filled: true,
+                      fillColor: AppColors.rowAlt,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                    style: unbounded(color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        ...List.generate(_newParticipants.length, (i) => _buildNewParticipantCard(i, dataOnly: true)),
+      ],
+    );
+  }
+
+  Widget _buildStep2SetsCategories(List relatedList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ...relatedList.map((ru) {
+          if (ru is! Map) return const SizedBox.shrink();
+          final ruMap = Map<String, dynamic>.from(ru);
+          final id = ruMap['id'];
+          final userId = id is int ? id : int.tryParse(id.toString() ?? '');
+          if (userId == null || !_selectedRelatedUserIds.contains(userId)) return const SizedBox.shrink();
+          if (ruMap['is_participant'] == true || ruMap['already_registered'] == true) return const SizedBox.shrink();
+          final name = '${ruMap['lastname'] ?? ''} ${ruMap['firstname'] ?? ''}'.trim();
+          final data = _relatedParticipantData[userId] ?? <String, dynamic>{};
+          return Card(
+            color: AppColors.cardDark,
+            margin: const EdgeInsets.only(bottom: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+                  const SizedBox(height: 12),
+                  _buildRelatedUserForm(ruMap, userId, data),
+                  if (!_cannotSelectRelatedUser(ruMap)) _buildListPendingBlock(ruMap, userId),
+                ],
+              ),
+            ),
+          );
+        }),
+        ...List.generate(_newParticipants.length, (i) => _buildNewParticipantCard(i, setsOnly: true)),
+      ],
+    );
+  }
+
+  Widget _buildStep3Review(List relatedList) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Проверьте данные перед отправкой',
+          style: unbounded(fontSize: 14, color: Colors.white70),
+        ),
+        const SizedBox(height: 16),
+        ...relatedList.map((ru) {
+          if (ru is! Map) return const SizedBox.shrink();
+          final ruMap = Map<String, dynamic>.from(ru);
+          final id = ruMap['id'];
+          final userId = id is int ? id : int.tryParse(id.toString() ?? '');
+          if (userId == null || !_selectedRelatedUserIds.contains(userId)) return const SizedBox.shrink();
+          if (ruMap['is_participant'] == true || ruMap['already_registered'] == true) return const SizedBox.shrink();
+          final name = '${ruMap['lastname'] ?? ''} ${ruMap['firstname'] ?? ''}'.trim();
+          final data = _getRelatedParticipantData(userId);
+          return _buildReviewParticipantCard(name, data, ruMap);
+        }),
+        ...List.generate(_newParticipants.length, (i) {
+          final p = _newParticipants[i];
+          return _buildReviewParticipantCard('${p.firstname} ${p.lastname}'.trim(), {
+            'sets': p.sets,
+            'category': p.category,
+            'sport_category': p.sportCategory,
+          }, null);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildReviewParticipantCard(String name, Map<String, dynamic>? data, Map<String, dynamic>? ru) {
+    final setsRaw = _data?['sets'];
+    final setsList = setsRaw is List ? setsRaw : [];
+    final setVal = data?['sets'];
+    String setLabel = '—';
+    if (setVal != null && setsList.isNotEmpty) {
+      for (final s in setsList) {
+        if (s is Map && (s['number_set'] == setVal || s['number_set'].toString() == setVal.toString())) {
+          setLabel = 'Сет №$setVal';
+          break;
+        }
+      }
+    }
+    return Card(
+      color: AppColors.cardDark,
+      margin: const EdgeInsets.only(bottom: 12),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 8),
+            Row(children: [
+              Text('Сет: ', style: unbounded(color: Colors.white54, fontSize: 12)),
+              Text(setLabel, style: unbounded(color: Colors.white, fontSize: 12)),
+            ]),
+            if ((data?['category'] ?? '').toString().isNotEmpty)
+              Row(children: [
+                Text('Категория: ', style: unbounded(color: Colors.white54, fontSize: 12)),
+                Text((data?['category'] ?? '').toString(), style: unbounded(color: Colors.white, fontSize: 12)),
+              ]),
+            if ((data?['sport_category'] ?? '').toString().isNotEmpty)
+              Row(children: [
+                Text('Разряд: ', style: unbounded(color: Colors.white54, fontSize: 12)),
+                Text((data?['sport_category'] ?? '').toString(), style: unbounded(color: Colors.white, fontSize: 12)),
+              ]),
           ],
         ),
       ),
@@ -966,16 +1291,34 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   /// Статус участника: "Уже участвует" / "Не может участвовать"
   Widget _buildParticipantStatus(Map<String, dynamic> ru) {
     final isParticipant = ru['is_participant'] == true || ru['already_registered'] == true;
+    final isPaid = ru['is_paid'] == true;
     final cannotParticipate = ru['cannot_participate'] == true || ru['participation_blocked'] == true || ru['category_not_suitable'] == true;
     if (isParticipant) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: AppColors.mutedGold.withOpacity(0.2),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.mutedGold),
+      return Tooltip(
+        message: isPaid ? 'Уже участвует. Оплата подтверждена' : 'Уже участвует',
+        triggerMode: TooltipTriggerMode.tap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: AppColors.mutedGold.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.mutedGold),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text('Уже участвует', style: unbounded(color: AppColors.mutedGold, fontSize: 12, fontWeight: FontWeight.w500)),
+              if (isPaid) ...[
+                const SizedBox(width: 6),
+                Tooltip(
+                  message: 'Оплата подтверждена',
+                  triggerMode: TooltipTriggerMode.tap,
+                  child: const Icon(Icons.payments, color: Colors.green, size: 16),
+                ),
+              ],
+            ],
+          ),
         ),
-        child: Text('Уже участвует', style: unbounded(color: AppColors.mutedGold, fontSize: 12, fontWeight: FontWeight.w500)),
       );
     }
     if (cannotParticipate) {
@@ -996,7 +1339,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     return const SizedBox.shrink();
   }
 
-  Widget _buildRelatedUserCard(Map<String, dynamic> ru, int userId, String name, bool isSelected) {
+  Widget _buildRelatedUserCard(Map<String, dynamic> ru, int userId, String name, bool isSelected, {bool compact = false}) {
     final dob = ru['birthday']?.toString();
     final sportCat = ru['sport_category']?.toString();
     final city = ru['city']?.toString();
@@ -1050,14 +1393,20 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                       ],
                     ),
                   ),
-                  Flexible(child: _buildParticipantStatus(ru)),
+                  Flexible(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: _buildParticipantStatus(ru),
+                    ),
+                  ),
                 ],
               ),
-              if (isSelected) ...[
+              if (isSelected && !compact) ...[
                 const SizedBox(height: 16),
                 _buildRelatedUserForm(ru, userId, data),
               ],
-              if (!isAlreadyParticipant) _buildListPendingBlock(ru, userId),
+              if (!isAlreadyParticipant && !compact) _buildListPendingBlock(ru, userId),
             ],
           ),
         ),
@@ -1541,7 +1890,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     );
   }
 
-  Widget _buildNewParticipantCard(int index) {
+  Widget _buildNewParticipantCard(int index, {bool dataOnly = false, bool setsOnly = false}) {
     final p = _newParticipants[index];
     return Card(
       color: AppColors.cardDark,
@@ -1556,7 +1905,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text('Участник ${index + 1}', style: unbounded(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500), overflow: TextOverflow.ellipsis),
+                  child: Text(
+                    setsOnly ? '${p.firstname} ${p.lastname}'.trim().isEmpty ? 'Участник ${index + 1}' : '${p.firstname} ${p.lastname}'.trim() : 'Участник ${index + 1}',
+                    style: unbounded(color: Colors.white70, fontSize: 13, fontWeight: FontWeight.w500),
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
                 IconButton(
                   icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
@@ -1565,7 +1918,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            TextFormField(
+            if (!setsOnly) TextFormField(
               initialValue: p.firstname,
               onChanged: (v) {
                 setState(() {
@@ -1583,8 +1936,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               ),
               style: unbounded(color: Colors.white),
             ),
-            const SizedBox(height: 12),
-            TextFormField(
+            if (!setsOnly) const SizedBox(height: 12),
+            if (!setsOnly) TextFormField(
               initialValue: p.lastname,
               onChanged: (v) {
                 setState(() {
@@ -1602,7 +1955,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
               ),
               style: unbounded(color: Colors.white),
             ),
-            if (_isInputBirthday || _needSet) ...[
+            if (!setsOnly && (_isInputBirthday || _needSet)) ...[
               const SizedBox(height: 12),
               ListTile(
                 contentPadding: EdgeInsets.zero,
@@ -1628,9 +1981,9 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 },
               ),
             ],
-            const SizedBox(height: 12),
-            _buildGenderSelector(p, index),
-            if (_needSet && (_getSetsForNewParticipant(p).isNotEmpty || _fetchingSetsIndex == index)) ...[
+            if (!setsOnly) const SizedBox(height: 12),
+            if (!setsOnly) _buildGenderSelector(p, index),
+            if (!dataOnly && _needSet && (_getSetsForNewParticipant(p).isNotEmpty || _fetchingSetsIndex == index)) ...[
               const SizedBox(height: 12),
               Row(
                 children: [
@@ -1705,7 +2058,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 },
               ),
             ],
-            if (_isAutoCategories != 1 && _getCategoriesForNewParticipant(p).isNotEmpty && _fetchingSetsIndex != index) ...[
+            if (!dataOnly && _isAutoCategories != 1 && _getCategoriesForNewParticipant(p).isNotEmpty && _fetchingSetsIndex != index) ...[
               const SizedBox(height: 12),
               Text('Категория', style: unbounded(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
@@ -1732,7 +2085,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 },
               ),
             ],
-            if (_isNeedSportCategory && (_data?['sport_categories'] is List)) ...[
+            if (!dataOnly && _isNeedSportCategory && (_data?['sport_categories'] is List)) ...[
               const SizedBox(height: 12),
               Text('Разряд', style: unbounded(color: Colors.white70, fontSize: 12)),
               const SizedBox(height: 4),
@@ -1758,8 +2111,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 },
               ),
             ],
-            const SizedBox(height: 12),
-            TextFormField(
+            if (!setsOnly) const SizedBox(height: 12),
+            if (!setsOnly) TextFormField(
               initialValue: p.city,
               onChanged: (v) {
                 setState(() {

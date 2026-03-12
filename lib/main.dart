@@ -14,6 +14,7 @@ import 'package:login_app/services/AppConfigService.dart';
 import 'package:login_app/services/PremiumSubscriptionService.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
 import 'package:login_app/services/background_task_scheduler.dart';
+import 'package:login_app/services/ErrorReportService.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:workmanager/workmanager.dart';
@@ -40,6 +41,8 @@ Future<void> main() async {
     try {
       await MeasurementReminderService.init();
     } catch (_) {}
+    // Инициализация очереди отчётов об ошибках (отправка при появлении сети)
+    ErrorReportService();
     runApp(MyApp());
   }, (error, stack) {
     if (kDebugMode) {

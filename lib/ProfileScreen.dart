@@ -19,12 +19,11 @@ import 'Screens/PremiumPaymentScreen.dart';
 import 'services/PremiumSubscriptionService.dart';
 import 'login.dart';
 import 'main.dart';
-import 'services/AISupportService.dart';
-import 'Screens/AISupportScreen.dart';
 import 'utils/display_helper.dart';
 import 'utils/session_error_helper.dart';
 import 'services/cache_service.dart';
 import 'utils/network_error_helper.dart';
+import 'widgets/error_report_modal.dart';
 import 'widgets/top_notification_banner.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -41,13 +40,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String birthYear = 'День рождения';
   bool isLoading = true;
   String? _loadError;
+  String? _loadErrorStackTrace;
+  Map<String, dynamic>? _loadErrorExtra;
   PremiumStatus? _premiumStatus;
   bool _isRefreshing = false;
   String? _pushToken;
   bool _expiredBannerDismissed = false;
-  bool _supportEnabled = false;
 
   bool _pushTokenLoading = false;
+  bool _showingErrorModal = false;
 
   Widget _buildPushTestCard() {
     return Padding(
@@ -365,12 +366,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (avatar.isEmpty && firstName == 'Имя') _loadError = 'Не удалось загрузить данные';
         });
       }
-    } catch (e) {
+    } catch (e, st) {
       if (mounted) {
         setState(() {
           isLoading = false;
           if (avatar.isEmpty && firstName == 'Имя') {
             _loadError = networkErrorMessage(e, 'Не удалось загрузить данные');
+            _loadErrorStackTrace = st?.toString();
+            _loadErrorExtra = {'exception': e.toString(), 'type': e.runtimeType.toString()};
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(_loadError ?? '')),
             );
@@ -387,9 +390,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
     _loadProfileAndPremium();
     WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcomeModal());
-    AISupportService().getStatus().then((v) {
-      if (mounted) setState(() => _supportEnabled = v);
-    });
     if (kDebugMode) {
       RustorePushService.getStoredToken().then((token) {
         if (mounted) setState(() => _pushToken = token);
@@ -496,30 +496,35 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-
+    if (_loadError != null && !_showingErrorModal) {
+      _showingErrorModal = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted || _loadError == null) return;
+          showErrorReportModal(
+            context,
+            message: _loadError!,
+            screen: 'profile',
+            stackTrace: _loadErrorStackTrace,
+            extra: _loadErrorExtra,
+            onRetry: () async {
+              setState(() {
+                _loadError = null;
+                _loadErrorStackTrace = null;
+                _loadErrorExtra = null;
+              });
+              await fetchProfileData();
+            if (mounted) setState(() => _showingErrorModal = false);
+          },
+        ).then((_) {
+          if (mounted) setState(() => _showingErrorModal = false);
+        });
+      });
+    }
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: Text('Профиль', style: unbounded(fontWeight: FontWeight.w500, fontSize: 18)),
         actions: [
-          if (_supportEnabled)
-            IconButton(
-              icon: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: AppColors.mutedGold.withOpacity(0.15),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.help_outline, color: AppColors.mutedGold, size: 22),
-              ),
-              tooltip: 'Поддержка',
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const AISupportScreen(page: 'profile'),
-                ),
-              ),
-            ),
           IconButton(
             icon: _isRefreshing
                 ? SizedBox(
@@ -564,28 +569,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       if (mounted) setState(() => _expiredBannerDismissed = true);
                     },
                     onClose: () => setState(() => _expiredBannerDismissed = true),
-                  ),
-                ),
-              if (_loadError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8, bottom: 12),
-                  child: TopNotificationBanner(
-                    message: _loadError!,
-                    icon: Icons.wifi_off_rounded,
-                    backgroundColor: AppColors.graphite,
-                    iconColor: Colors.orange.shade200,
-                    textColor: Colors.white,
-                    useSafeArea: false,
-                    fullWidth: true,
-                    showCloseButton: true,
-                    onClose: () => setState(() => _loadError = null),
-                    trailing: TextButton(
-                      onPressed: () {
-                        setState(() => _loadError = null);
-                        fetchProfileData();
-                      },
-                      child: const Text('Повторить'),
-                    ),
                   ),
                 ),
               Row(

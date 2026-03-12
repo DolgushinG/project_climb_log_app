@@ -260,11 +260,12 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     return Expanded(
       child: Material(
         color: Colors.transparent,
+        clipBehavior: Clip.hardEdge,
         child: InkWell(
           onTap: () => _onItemTapped(index),
           borderRadius: BorderRadius.circular(12),
           child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
@@ -275,18 +276,27 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                   color: color,
                 ),
                 const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    label,
-                    style: unbounded(
-                      fontSize: 9,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                      color: color,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SizedBox(
+                      width: constraints.maxWidth,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.center,
+                        child: Text(
+                          label,
+                          style: unbounded(
+                            fontSize: 9,
+                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                            color: color,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
