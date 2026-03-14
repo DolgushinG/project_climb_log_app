@@ -727,6 +727,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   bool _statsLoading = false;
   String? _statsError;
   String? _userBirthday; // день рождения из профиля
+  List<NumberSets>? _availableSetsFromApi;
+  String? _availableSetsDob;
+  String? _userCategoryFromApi;
 
   @override
   void didChangeDependencies() {
@@ -763,37 +766,85 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     return sets.isNotEmpty && sets.every((s) => (s.free) <= 0);
   }
 
-  /// Номера сетов для add-to-list-pending
+  /// Нет доступных сетов по возрасту — блокировать участие
+  bool get _cannotParticipateByAge {
+    if (_competitionDetails.is_input_set != 0) return false;
+    if (_setsFilteredByAge.isEmpty) {
+      if (_availableSetsFromApi != null) return true;
+      final numberSets = _competitionDetails.number_sets;
+      if (numberSets.isEmpty) return false;
+      final allSets = numberSets
+          .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
+          .toList();
+      return allSets.any((s) => s.allow_years_from != null || s.allow_years_to != null);
+    }
+    return false;
+  }
+
+  /// Номера сетов для add-to-list-pending (только занятые сеты — free <= 0)
   List<int> get _numberSetsForWaitlist {
+    final busySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
     if (_competitionDetails.is_input_set == 0) {
       final s = _effectiveSelectedNumberSet;
-      return s != null ? [s.number_set] : [];
+      if (s != null && s.free <= 0) return [s.number_set];
+      return [];
     }
-    return _competitionDetails.number_sets
-        .map((j) => NumberSets.fromJson(j))
-        .map((s) => s.number_set)
-        .toList();
+    return busySets.map((s) => s.number_set).toList();
   }
 
   Widget _buildTakePartButtons() {
-    final showTakePart = !_allSetsBusy;
-    final showWaitlist = _hasAnyBusySet &&
-        !_competitionDetails.is_participant &&
-        !_competitionDetails.is_in_list_pending;
+    final showTakePart = !_competitionDetails.is_participant && !_competitionDetails.is_in_list_pending;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (showWaitlist)
+        if (showTakePart && _cannotParticipateByAge)
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.orange.withOpacity(0.5)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.info_outline, color: Colors.orange.shade300, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'В вашей группе ваш возраст не подходит для участия',
+                        style: unbounded(fontSize: 14, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: null,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.graphite,
+                    foregroundColor: Colors.white54,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: Text(
+                    'Принять участие',
+                    style: unbounded(color: Colors.white54, fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        if (showTakePart && !_cannotParticipateByAge)
           SizedBox(
             width: double.infinity,
-            child: OutlinedButton(
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.mutedGold,
-                side: const BorderSide(color: AppColors.mutedGold),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            child: ElevatedButton(
               onPressed: () async {
                 final result = await Navigator.push<bool>(
                   context,
@@ -807,42 +858,31 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                 );
                 if (result == true && mounted) fetchCompetition();
               },
-              child: Text(
-                'Добавиться в лист ожидания',
-                style: unbounded(color: AppColors.mutedGold, fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-            ),
-          ),
-        if (showWaitlist && showTakePart) const SizedBox(height: 8),
-        if (showTakePart)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _competitionDetails.is_participant
-                  ? null
-                  : () async {
-                      final result = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => IndividualRegistrationStepperScreen(
-                            competition: _competitionDetails,
-                            checkoutData: _checkoutData,
-                            onSuccess: fetchCompetition,
-                          ),
-                        ),
-                      );
-                      if (result == true && mounted) fetchCompetition();
-                    },
               style: ElevatedButton.styleFrom(
-                backgroundColor: _competitionDetails.is_participant
-                    ? AppColors.graphite
-                    : AppColors.mutedGold,
+                backgroundColor: AppColors.mutedGold,
                 foregroundColor: Colors.white,
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               child: Text(
-                _competitionDetails.is_participant ? 'Вы участник' : 'Принять участие',
+                'Принять участие',
+                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ),
+        if (!showTakePart && _competitionDetails.is_participant)
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: null,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.graphite,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                padding: const EdgeInsets.symmetric(vertical: 14),
+              ),
+              child: Text(
+                'Вы участник',
                 style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
               ),
             ),
@@ -1243,10 +1283,30 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
         .toList();
     final hasAgeRestrictedSets = allSets.any((s) => s.allow_years_from != null || s.allow_years_to != null);
+    final isYearOrAge = _competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
+        _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE;
+    /// Есть ограничения по возрасту, но дата рождения неизвестна — не показывать все сеты
+    final needBirthdayForSets = _competitionDetails.is_input_set == 0 &&
+        hasAgeRestrictedSets &&
+        _birthdayForTakePart == null &&
+        !widget.isGuest;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (isYearOrAge && _userCategoryFromApi != null) ...[
+          Row(
+            children: [
+              const Icon(Icons.groups_outlined, size: 14, color: AppColors.mutedGold),
+              const SizedBox(width: 6),
+              Text(
+                'Ваша группа: ${_userCategoryFromApi!}',
+                style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+        ],
         Row(
           children: [
             const Icon(Icons.grid_view_rounded, size: 14, color: AppColors.mutedGold),
@@ -1258,11 +1318,19 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
           ],
         ),
         const SizedBox(height: 6),
-        if (sets.isEmpty && hasAgeRestrictedSets)
+        if (needBirthdayForSets)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8.0),
             child: Text(
               'Нет сетов для вашей возрастной группы',
+              style: unbounded(fontSize: 12, color: Colors.white70),
+            ),
+          )
+        else if (sets.isEmpty && hasAgeRestrictedSets)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8.0),
+            child: Text(
+              'Ваш возраст не подходит для участия',
               style: unbounded(fontSize: 12, color: Colors.white70),
             ),
           )
@@ -1618,61 +1686,6 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
             ],
             const SizedBox(height: 20),
             if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
-              if (_hasBirthdayFilled &&
-                  (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
-                      _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE))
-                Row(
-                  children: [
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-                        decoration: BoxDecoration(
-                          color: AppColors.mutedGold.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: AppColors.mutedGold.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.group_rounded,
-                              size: 22,
-                              color: AppColors.mutedGold,
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    'Ваша группа',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.white.withOpacity(0.7),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    _competitionDetails.your_group ?? '—',
-                                    style: const TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-            if (!_competitionDetails.isCompleted && !_competitionDetails.is_participant && !widget.isGuest)
               if ((_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
                       _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE) &&
                   !_hasBirthdayFilled)
@@ -2021,7 +2034,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            if (canShowResultButton && _competitionDetails.is_routes_exists)
+                            if (canShowResultButton &&
+                                _competitionDetails.is_routes_exists &&
+                                _competitionDetails.is_france_system_qualification == 0)
                               ResultEntryButton(
                                 eventId: _competitionDetails.id,
                                 // is_participant_active: true → результат существует
@@ -2849,7 +2864,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
           setState(() => _competitionDetails = comp);
           _loadCheckoutDataIfNeeded(comp);
           final ac = comp.auto_categories;
-          if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE) {
+          if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE || comp.is_input_set == 0) {
             _loadUserBirthday();
           }
         }
@@ -2861,7 +2876,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     if (token != null) headers['Authorization'] = 'Bearer $token';
     final needsBirthday = !widget.isGuest &&
         (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
-            _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE);
+            _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE ||
+            _competitionDetails.is_input_set == 0);
     try {
       final results = await Future.wait([
         http.get(
@@ -2889,8 +2905,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
           if (!widget.isGuest) {
             _loadCheckoutDataIfNeeded(updatedCompetition);
             final acNow = updatedCompetition.auto_categories;
-            if ((acNow == AUTO_CATEGORIES_YEAR || acNow == AUTO_CATEGORIES_AGE) && !needsBirthday) {
+            if ((acNow == AUTO_CATEGORIES_YEAR || acNow == AUTO_CATEGORIES_AGE || updatedCompetition.is_input_set == 0) && !needsBirthday) {
               _loadUserBirthday();
+            }
+            if (_birthdayForTakePart != null && updatedCompetition.is_input_set == 0) {
+              _availableSetsDob = null;
+              _fetchAvailableSetsIfNeeded();
             }
           }
         }
@@ -2909,6 +2929,103 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         setState(() {
           _userBirthday = profile.birthday.trim().isNotEmpty ? profile.birthday : null;
         });
+        if (_birthdayForTakePart != null && _competitionDetails.is_input_set == 0) {
+          _fetchAvailableSetsIfNeeded();
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchAvailableSetsIfNeeded() async {
+    final dob = _birthdayForTakePart;
+    if (dob == null || _competitionDetails.is_input_set != 0) return;
+    final dobStr = DateFormat('yyyy-MM-dd').format(dob);
+    if (_availableSetsDob == dobStr) return;
+    try {
+      final token = await getToken();
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/available-sets?dob=$dobStr'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (!mounted || r.statusCode != 200) return;
+      final body = json.decode(r.body);
+      final raw = body['availableSets'] ?? body['available_sets'];
+      final list = raw is List ? raw : [];
+      if (list.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _availableSetsFromApi = [];
+            _availableSetsDob = dobStr;
+          });
+        }
+        return;
+      }
+      final numberSetsFull = _competitionDetails.number_sets
+          .map((j) => Map<String, dynamic>.from(j is Map ? j as Map : {}))
+          .toList();
+      final merged = <NumberSets>[];
+      for (final apiItem in list) {
+          final m = apiItem is Map ? Map<String, dynamic>.from(apiItem as Map) : <String, dynamic>{};
+          final id = m['id'] ?? m['number_set'];
+          Map<String, dynamic>? base;
+          for (final ns in numberSetsFull) {
+            if ((ns['id'] ?? ns['number_set']).toString() == id.toString()) {
+              base = Map<String, dynamic>.from(ns);
+              break;
+            }
+          }
+          base ??= <String, dynamic>{};
+          base.addAll(m);
+          merged.add(NumberSets.fromJson(base));
+      }
+      final birthYear = dob.year;
+      final filtered = merged.where((s) => s.matchesBirthYear(birthYear)).toList();
+      if (mounted) {
+        setState(() {
+          _availableSetsFromApi = filtered;
+          _availableSetsDob = dobStr;
+        });
+        if (_competitionDetails.auto_categories == AUTO_CATEGORIES_YEAR ||
+            _competitionDetails.auto_categories == AUTO_CATEGORIES_AGE) {
+          _fetchAvailableCategoryIfNeeded();
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchAvailableCategoryIfNeeded() async {
+    final ac = _competitionDetails.auto_categories;
+    if (ac != AUTO_CATEGORIES_YEAR && ac != AUTO_CATEGORIES_AGE) return;
+    final dob = _birthdayForTakePart;
+    if (dob == null) return;
+    final dobStr = DateFormat('yyyy-MM-dd').format(dob);
+    try {
+      final token = await getToken();
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/available-category?dob=$dobStr'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (!mounted || r.statusCode != 200) return;
+      final body = json.decode(r.body);
+      final list = body['availableCategory'] ?? body['available_category'] ?? body['availableCategories'] ?? [];
+      final cats = list is List ? list : [];
+      String? category;
+      if (cats.isNotEmpty) {
+        final first = cats.first;
+        if (first is Map) {
+          category = (first['category'] ?? first)?.toString();
+        } else {
+          category = first?.toString();
+        }
+      }
+      if (mounted && category != null && category.isNotEmpty) {
+        setState(() => _userCategoryFromApi = category);
       }
     } catch (_) {}
   }
@@ -2962,8 +3079,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     return _setsFilteredByAge.any((x) => x.id == s.id) ? s : null;
   }
 
-  /// Сеты, отфильтрованные по возрасту пользователя (allow_years_from, allow_years_to)
+  /// Сеты, отфильтрованные по возрасту пользователя
   List<NumberSets> get _setsFilteredByAge {
+    if (_availableSetsFromApi != null) return _availableSetsFromApi!;
     final all = _competitionDetails.number_sets
         .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
         .toList();

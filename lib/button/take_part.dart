@@ -119,6 +119,12 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
       _showNotification('Выберите сет для участия', Colors.orange);
       return;
     }
+    if (widget.needNumberSet &&
+        widget.number_set != null &&
+        (widget.number_set!.free) <= 0) {
+      _showNotification('Выбранный сет занят. Добавьте себя в лист ожидания.', Colors.orange);
+      return;
+    }
 
     if (mounted) {
       setState(() {
@@ -293,7 +299,8 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
   @override
   Widget build(BuildContext context) {
     final bool showTakePart = !widget.allSetsBusy;
-    final bool showWaitlist = widget.hasAnyBusySet && !widget.is_participant && !widget.is_in_list_pending;
+    /// Показываем кнопку листа ожидания только когда все сеты заняты (нет свободных мест)
+    final bool showWaitlist = widget.allSetsBusy && !widget.is_participant && !widget.is_in_list_pending;
     final bool canPressTakePart = !widget.is_participant;
 
     if (showTakePart && showWaitlist) {

@@ -99,27 +99,13 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     );
   }
 
-  // Функция для выбора даты
+  // Функция для выбора даты (без builder — наследуем тему приложения, как в заявке группы)
   _selectDate(BuildContext context) async {
     DateTime? newSelectedDate = await showDatePicker(
       context: context,
       initialDate: _selectedDate ?? DateTime.now(),
       firstDate: DateTime(1900),
       lastDate: DateTime(2040),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: Colors.blue,
-              onPrimary: Colors.white,
-              surface: Colors.blueGrey,
-              onSurface: Colors.white,
-            ),
-            dialogBackgroundColor: Colors.grey[500],
-          ),
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
     );
     if (newSelectedDate != null) {
       if (mounted) {

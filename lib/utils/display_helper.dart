@@ -39,6 +39,15 @@ String extractSetTimeOnly(String timeStr) {
   return t;
 }
 
+/// Склонение «место»: 1 место, 2 места, 5 мест
+String placeWord(int n) {
+  final mod10 = n.abs() % 10;
+  final mod100 = n.abs() % 100;
+  if (mod10 == 1 && mod100 != 11) return 'место';
+  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return 'места';
+  return 'мест';
+}
+
 /// Компактный формат сета: номер, день недели (рус.), время
 String formatSetCompact(NumberSets s) {
   final parts = <String>['№${s.number_set}'];

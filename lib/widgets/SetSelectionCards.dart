@@ -157,7 +157,7 @@ class _SetCard extends StatelessWidget {
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
-                  '$occupied/$total мест',
+                  '$occupied/$total ${placeWord(total)}',
                   style: unbounded(
                     fontSize: isExpanded ? 14 : 12,
                     color: Colors.white70,
@@ -171,7 +171,7 @@ class _SetCard extends StatelessWidget {
           if (isExpanded) ...[
             const SizedBox(height: 8),
             Text(
-              'Свободно мест: $free',
+              'Свободно $free ${placeWord(free)}',
               style: unbounded(fontSize: 13, color: Colors.white60),
             ),
             if (set.allow_years_from != null || set.allow_years_to != null) ...[

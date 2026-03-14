@@ -7,11 +7,14 @@ import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../main.dart';
+import '../models/NumberSets.dart';
 import '../theme/app_theme.dart';
+import '../utils/display_helper.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
 import '../widgets/error_report_modal.dart';
 import '../widgets/RegistrationStepper.dart';
+import '../widgets/SetSelectionCards.dart';
 import 'GroupCheckoutScreen.dart';
 import 'GroupDocumentsScreen.dart';
 import 'ProfileEditScreen.dart';
@@ -50,6 +53,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   int _currentStep = 0;
   static const int _totalSteps = 4;
   bool _showingErrorModal = false;
+  /// При переполнении сета: добавить избыточных участников в лист ожидания
+  bool _addOverflowToListPending = false;
 
   @override
   void initState() {
@@ -85,6 +90,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           _checkUnpaidGroup();
           setState(() {
             _data = data;
+            _relatedUserSetsCache.clear();
+            _dobSetsCategoriesCache.clear();
+            _batchFetchingUserIds.clear();
+            _batchFetchScheduled = false;
+            _addOverflowToListPending = false;
             _isLoading = false;
           });
         } else {
@@ -144,6 +154,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       if (json == null || json.isEmpty) return;
       final draft = jsonDecode(json);
       if (draft is! Map) return;
+
+      // Очищаем перед загрузкой черновика, иначе при возврате из профиля участники дублируются
+      _newParticipants.clear();
+      _selectedRelatedUserIds.clear();
+      _relatedParticipantData.clear();
 
       final newList = draft['new_participants'];
       if (newList is List) {
@@ -241,6 +256,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       if (_selectedRelatedUserIds.contains(userId)) {
         _selectedRelatedUserIds.remove(userId);
         _relatedParticipantData.remove(userId);
+        _relatedUserSetsCache.remove(userId);
       } else {
         _selectedRelatedUserIds.add(userId);
         if (!_relatedParticipantData.containsKey(userId)) {
@@ -269,43 +285,40 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
   Future<void> _fetchSetsAndCategoriesForDob(String dob, int index) async {
     if (!mounted) return;
-    final token = await getToken();
+    final cached = _dobSetsCategoriesCache[dob];
+    if (cached != null && index < _newParticipants.length) {
+      if (mounted) {
+        setState(() {
+          _newParticipants[index] = _newParticipants[index].copyWith(
+            availableSets: cached['availableSets'] as List<dynamic>? ?? [],
+            availableCategories: cached['availableCategories'] as List<dynamic>? ?? [],
+            categoriesForSet: null,
+            category: '',
+          );
+        });
+      }
+      return;
+    }
     setState(() {
       _isFetchingSetsForIndex = true;
       _fetchingSetsIndex = index;
     });
     try {
-      final futures = await Future.wait([
-        http.get(
-          Uri.parse('$DOMAIN/api/event/${widget.eventId}/available-sets?dob=$dob'),
-          headers: {'Authorization': 'Bearer $token'},
-        ),
-        http.get(
-          Uri.parse('$DOMAIN/api/event/${widget.eventId}/available-category?dob=$dob'),
-          headers: {'Authorization': 'Bearer $token'},
-        ),
-      ]);
-      if (!mounted) return;
-      final setsR = futures[0];
-      final catR = futures[1];
-      List<dynamic> availableSets = [];
-      List<dynamic> availableCategories = [];
-      if (setsR.statusCode == 200) {
-        final body = jsonDecode(setsR.body);
-        availableSets = body['availableSets'] ?? body['available_sets'] ?? [];
-      }
-      if (catR.statusCode == 200) {
-        final body = jsonDecode(catR.body);
-        availableCategories = body['availableCategory'] ?? body['available_category'] ?? body['availableCategories'] ?? [];
-      }
-      if (mounted && index < _newParticipants.length) {
+      final data = await _fetchSetsAndCategoriesForDobCached(dob);
+      if (!mounted || index >= _newParticipants.length) return;
+      if (data != null) {
         setState(() {
           _newParticipants[index] = _newParticipants[index].copyWith(
-            availableSets: availableSets,
-            availableCategories: availableCategories,
+            availableSets: data['availableSets'] as List<dynamic>? ?? [],
+            availableCategories: data['availableCategories'] as List<dynamic>? ?? [],
             categoriesForSet: null,
             category: '',
           );
+          _isFetchingSetsForIndex = false;
+          _fetchingSetsIndex = null;
+        });
+      } else {
+        setState(() {
           _isFetchingSetsForIndex = false;
           _fetchingSetsIndex = null;
         });
@@ -320,6 +333,147 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     }
   }
 
+  /// Получить данные по dob из API. Результат кэшируется по dob.
+  Future<Map<String, dynamic>?> _fetchSetsAndCategoriesForDobCached(String dob) async {
+    final cached = _dobSetsCategoriesCache[dob];
+    if (cached != null) return cached;
+    try {
+      final token = await getToken();
+      final futures = await Future.wait([
+        http.get(
+          Uri.parse('$DOMAIN/api/event/${widget.eventId}/available-sets?dob=$dob'),
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+        http.get(
+          Uri.parse('$DOMAIN/api/event/${widget.eventId}/available-category?dob=$dob'),
+          headers: {'Authorization': 'Bearer $token'},
+        ),
+      ]);
+      final setsR = futures[0];
+      final catR = futures[1];
+      List<dynamic> availableSets = [];
+      List<dynamic> availableCategories = [];
+      if (setsR.statusCode == 200) {
+        final body = jsonDecode(setsR.body);
+        availableSets = body['availableSets'] ?? body['available_sets'] ?? [];
+      }
+      if (catR.statusCode == 200) {
+        final body = jsonDecode(catR.body);
+        availableCategories = body['availableCategory'] ?? body['available_category'] ?? body['availableCategories'] ?? [];
+      }
+      final result = {
+        'availableSets': availableSets,
+        'availableCategories': availableCategories,
+        'categoriesForSet': null,
+      };
+      _dobSetsCategoriesCache[dob] = result;
+      return result;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Batch: загрузить сеты/категории для всех selected related users с dob. Один setState, минимум запросов.
+  void _ensureRelatedUsersSetsFetched(List relatedList) {
+    if (!_isYearOrAgeCategories || _batchFetchScheduled) return;
+    final toFetch = <int, String>{}; // userId -> dob
+    for (final ru in relatedList) {
+      if (ru is! Map) continue;
+      final id = ru['id'];
+      final userId = id is int ? id : int.tryParse(id.toString());
+      if (userId == null || !_selectedRelatedUserIds.contains(userId)) continue;
+      if (ru['is_participant'] == true || ru['already_registered'] == true) continue;
+      if (_relatedUserSetsCache.containsKey(userId)) continue;
+      final birthdayRaw = ru['birthday']?.toString();
+      if (birthdayRaw == null || birthdayRaw.isEmpty) continue;
+      final parsed = DateTime.tryParse(birthdayRaw);
+      if (parsed == null) continue;
+      final dobStr = DateFormat('yyyy-MM-dd').format(parsed);
+      toFetch[userId] = dobStr;
+    }
+    if (toFetch.isEmpty) return;
+    _batchFetchScheduled = true;
+    _batchFetchingUserIds.addAll(toFetch.keys);
+    setState(() {});
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final uniqueDobs = toFetch.values.toSet().toList();
+      final dobToData = <String, Map<String, dynamic>>{};
+      for (final dob in uniqueDobs) {
+        final data = await _fetchSetsAndCategoriesForDobCached(dob);
+        if (data != null) dobToData[dob] = data;
+      }
+      if (!mounted) return;
+      setState(() {
+        for (final e in toFetch.entries) {
+          final data = dobToData[e.value];
+          if (data != null) {
+            _relatedUserSetsCache[e.key] = Map<String, dynamic>.from(data);
+          }
+        }
+        _batchFetchingUserIds.clear();
+        _batchFetchScheduled = false;
+      });
+    });
+  }
+
+  Future<void> _fetchSetsAndCategoriesForRelatedUser(int userId, String dob) async {
+    if (!mounted) return;
+    if (_relatedUserSetsCache.containsKey(userId)) return;
+    final cached = _dobSetsCategoriesCache[dob];
+    if (cached != null) {
+      if (mounted) {
+        setState(() {
+          _relatedUserSetsCache[userId] = Map<String, dynamic>.from(cached);
+        });
+      }
+      return;
+    }
+    setState(() {
+      _fetchingSetsForRelatedUserId = userId;
+    });
+    try {
+      final data = await _fetchSetsAndCategoriesForDobCached(dob);
+      if (!mounted) return;
+      if (data != null) {
+        setState(() {
+          _relatedUserSetsCache[userId] = Map<String, dynamic>.from(data);
+          _fetchingSetsForRelatedUserId = null;
+        });
+      } else {
+        setState(() => _fetchingSetsForRelatedUserId = null);
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _fetchingSetsForRelatedUserId = null);
+      }
+    }
+  }
+
+  Future<void> _fetchCategoriesForSetForRelatedUser(int userId, String dob, int numberSet) async {
+    if (!mounted) return;
+    try {
+      final token = await getToken();
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${widget.eventId}/available-category?dob=$dob&number_set=$numberSet'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (!mounted || r.statusCode != 200) return;
+      final body = jsonDecode(r.body);
+      final list = body['availableCategory'] ?? body['availableCategories'] ?? [];
+      final cats = list is List ? list : [];
+      if (mounted) {
+        setState(() {
+          final cache = _relatedUserSetsCache[userId] ?? {};
+          _relatedUserSetsCache[userId] = {
+            ...cache,
+            'categoriesForSet': cats.isNotEmpty ? cats : null,
+          };
+        });
+      }
+    } catch (_) {}
+  }
+
   /// Сеты для нового участника: если есть availableSets (по dob) — используем их, иначе — основные сеты события
   List<dynamic> _getSetsForNewParticipant(GroupNewParticipant p) {
     if (p.availableSets != null && p.availableSets!.isNotEmpty) {
@@ -327,6 +481,20 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     }
     final setsRaw = _data?['sets'];
     return setsRaw is List ? setsRaw : [];
+  }
+
+  /// Преобразует сырые сеты (Map) в NumberSets для SetSelectionCards. Единообразие с одиночной регистрацией.
+  List<NumberSets> _mapSetsToNumberSets(List<dynamic> raw) {
+    return raw.map((s) {
+      final m = s is Map ? Map<String, dynamic>.from(s as Map) : <String, dynamic>{};
+      if (m['max_participants'] == null ||
+          (m['max_participants'] is int && m['max_participants'] == 0)) {
+        final free = (m['free'] is int ? m['free'] as int : int.tryParse(m['free']?.toString() ?? '0')) ?? 0;
+        m['max_participants'] = free;
+        m['participants_count'] = 0;
+      }
+      return NumberSets.fromJson(m);
+    }).toList();
   }
 
   /// Категории для нового участника: фильтруем по выбранному сету (если есть), иначе — по dob или событию
@@ -374,6 +542,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     return _data?['has_contact'] == true;
   }
 
+  /// Событие требует оплаты для регистрации. Не показываем «неоплаченная заявка» для бесплатных событий.
+  bool get _isNeedPayForReg {
+    final v = _data?['event']?['is_need_pay_for_reg'];
+    if (v == null) return false;
+    if (v is bool) return v;
+    if (v is num) return v.toInt() != 0;
+    return v.toString() == '1' || v.toString().toLowerCase() == 'true';
+  }
+
   bool get _isInputBirthday {
     return _data?['event']?['is_input_birthday'] == true;
   }
@@ -396,6 +573,43 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   bool get _isManualCategories => _isAutoCategories == _MANUAL_CATEGORIES;
   bool get _isYearOrAgeCategories =>
       _isAutoCategories == _AUTO_CATEGORIES_YEAR || _isAutoCategories == _AUTO_CATEGORIES_AGE;
+
+  /// Сеты для related user. YEAR/AGE: из available-sets по dob; иначе из sets[] group-register.
+  List<dynamic> _getSetsForRelatedUser(Map<String, dynamic> ru, int userId) {
+    if (_isYearOrAgeCategories) {
+      final cache = _relatedUserSetsCache[userId];
+      final sets = cache?['availableSets'];
+      if (sets is List && sets.isNotEmpty) return sets;
+    }
+    final setsRaw = _data?['sets'];
+    return setsRaw is List ? setsRaw : [];
+  }
+
+  /// Категории для related user. YEAR/AGE: из available-category по dob/сету; иначе из event.categories.
+  List<dynamic> _getCategoriesForRelatedUser(Map<String, dynamic> ru, int userId, Map<String, dynamic> data) {
+    if (_isYearOrAgeCategories) {
+      final cache = _relatedUserSetsCache[userId];
+      final catsForSet = cache?['categoriesForSet'];
+      if (catsForSet is List && catsForSet.isNotEmpty) return catsForSet;
+      final availCats = cache?['availableCategories'];
+      if (availCats is List && availCats.isNotEmpty) return availCats;
+    }
+    final catRaw = _data?['event']?['categories'] ?? _data?['categories'];
+    return catRaw is List ? catRaw : [];
+  }
+
+  /// Есть ли хотя бы один свободный сет (free > 0 или list_pending != true) для этого участника
+  bool _hasAnyFreeSetForRelatedUser(Map<String, dynamic> ru, int userId) {
+    if (_isYearOrAgeCategories) {
+      final cache = _relatedUserSetsCache[userId];
+      final sets = cache?['availableSets'];
+      if (sets is! List || sets.isEmpty) return true;
+      return sets.any((s) => s is Map && s['list_pending'] != true);
+    }
+    final setsRaw = _data?['sets'];
+    final setsList = setsRaw is List ? setsRaw : [];
+    return setsList.any((s) => s is Map && s['list_pending'] != true);
+  }
 
   /// Получить сеты для листа ожидания. MANUAL/RESULT: из sets[] group-register. YEAR/AGE: из available-sets?dob=
   List<Map<String, dynamic>> _getValidListPendingSetsSync() {
@@ -448,6 +662,94 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     return null;
   }
 
+  /// Возвращает количество свободных мест в сете. Берёт из всех доступных источников, минимум — самый консервативный.
+  int _getFreeForSet(int numberSet) {
+    int? free;
+    void trySet(dynamic s) {
+      if (s is! Map) return;
+      final numSet = s['number_set'];
+      final n = numSet is int ? numSet : int.tryParse(numSet?.toString() ?? '');
+      if (n != numberSet) return;
+      final f = s['free'];
+      final v = f is int ? f : int.tryParse(f?.toString() ?? '0');
+      if (v != null && (free == null || v < free!)) free = v;
+    }
+    final setsRaw = _data?['sets'];
+    if (setsRaw is List) {
+      for (final s in setsRaw) trySet(s);
+    }
+    for (final p in _newParticipants) {
+      final list = _getSetsForNewParticipant(p);
+      if (list is List) for (final s in list) trySet(s);
+    }
+    for (final userId in _selectedRelatedUserIds) {
+      final cache = _relatedUserSetsCache[userId];
+      final list = cache?['availableSets'];
+      if (list is List) for (final s in list) trySet(s);
+    }
+    return free ?? 0;
+  }
+
+  /// Информация о переполнении: какие участники «лишние» в каждом сете (по порядку: новые, потом related).
+  ({bool hasOverflow, String message, Set<int> overflowNewIndices, Set<int> overflowRelatedIds}) _getOverflowInfo() {
+    final overflowNew = <int>{};
+    final overflowRelated = <int>{};
+    final Map<int, List<({bool isNew, int indexOrId})>> setToParticipants = {};
+
+    for (var i = 0; i < _newParticipants.length; i++) {
+      final p = _newParticipants[i];
+      if (p.listPending) continue;
+      final n = p.sets is int ? p.sets as int? : int.tryParse(p.sets?.toString() ?? '');
+      if (n == null || n == 0) continue;
+      setToParticipants.putIfAbsent(n, () => []).add((isNew: true, indexOrId: i));
+    }
+    final relatedList = _data?['related_users'] is List ? _data!['related_users'] as List : [];
+    for (final ru in relatedList) {
+      if (ru is! Map) continue;
+      if (ru['is_participant'] == true || ru['already_registered'] == true) continue;
+      final id = ru['id'];
+      final userId = id is int ? id : int.tryParse(id.toString());
+      if (userId == null || !_selectedRelatedUserIds.contains(userId)) continue;
+      final p = _getRelatedParticipantData(userId);
+      if (p == null) continue;
+      if ((p['list_pending'] == true || p['list_pending'] == 'true')) continue;
+      final n = p['sets'] is int ? p['sets'] as int? : int.tryParse(p['sets']?.toString() ?? '');
+      if (n == null || n == 0) continue;
+      setToParticipants.putIfAbsent(n, () => []).add((isNew: false, indexOrId: userId));
+    }
+
+    String? firstMessage;
+    for (final e in setToParticipants.entries) {
+      final free = _getFreeForSet(e.key);
+      final list = e.value;
+      if (list.length <= free) continue;
+      firstMessage ??= 'Сет №${e.key}: свободно $free ${placeWord(free)}, а вы записали туда ${list.length} участников.';
+      final overflowCount = list.length - free;
+      for (var i = list.length - overflowCount; i < list.length; i++) {
+        final item = list[i];
+        if (item.isNew) {
+          overflowNew.add(item.indexOrId);
+        } else {
+          overflowRelated.add(item.indexOrId);
+        }
+      }
+    }
+    return (
+      hasOverflow: firstMessage != null,
+      message: firstMessage ?? '',
+      overflowNewIndices: overflowNew,
+      overflowRelatedIds: overflowRelated,
+    );
+  }
+
+  /// Проверяет переполнение. Если есть и не выбран чекбокс — блокирует. При выбранном чекбоксе — overflow уйдёт в list_pending.
+  String? _checkSetOverbooking(List<Map<String, dynamic>> participants, List<Map<String, dynamic>> relatedUsers) {
+    final info = _getOverflowInfo();
+    if (!info.hasOverflow) return null;
+    if (_addOverflowToListPending) return null; // разрешаем — overflow уйдёт в лист ожидания
+    return info.message;
+  }
+
   Future<void> _submitRegistration() async {
     if (!_hasContact) {
       final go = await showDialog<bool>(
@@ -478,8 +780,10 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
 
     final participants = <Map<String, dynamic>>[];
     final relatedUsers = <Map<String, dynamic>>[];
+    final overflowInfo = _needSet ? _getOverflowInfo() : null;
 
-    for (final p in _newParticipants) {
+    for (var i = 0; i < _newParticipants.length; i++) {
+      final p = _newParticipants[i];
       if (p.firstname.trim().isEmpty || p.lastname.trim().isEmpty) {
         _showSnack('Заполните имя и фамилию участников', isError: true);
         return;
@@ -505,6 +809,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         return;
       }
 
+      final forceListPending = overflowInfo != null &&
+          overflowInfo.hasOverflow &&
+          _addOverflowToListPending &&
+          overflowInfo.overflowNewIndices.contains(i);
+      final listPending = forceListPending || p.listPending;
+
       participants.add({
         'firstname': p.firstname.trim(),
         'lastname': p.lastname.trim(),
@@ -512,7 +822,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         'gender': p.gender,
         'sets': p.sets ?? 0,
         'category': p.category,
-        'list_pending': p.listPending ? 'true' : 'false',
+        'list_pending': listPending ? 'true' : 'false',
         'city': p.city.trim(),
         'team': p.team.trim(),
         'sport_category': p.sportCategory,
@@ -545,7 +855,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         return;
       }
 
-      final listPending = (p['list_pending'] == true || p['list_pending'] == 'true');
+      final forceListPending = overflowInfo != null &&
+          overflowInfo.hasOverflow &&
+          _addOverflowToListPending &&
+          overflowInfo.overflowRelatedIds.contains(userId);
+      final listPending = forceListPending || (p['list_pending'] == true || p['list_pending'] == 'true');
       String? dobStr;
       if (listPending) {
         final birthdayRaw = ru['birthday']?.toString();
@@ -578,6 +892,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (participants.isEmpty && relatedUsers.isEmpty) {
       _showSnack('Добавьте хотя бы одного участника', isError: true);
       return;
+    }
+
+    // Проверка: не превышаем ли свободные места в сетах (только для обычной регистрации, не list_pending)
+    if (_needSet) {
+      final overbook = _checkSetOverbooking(participants, relatedUsers);
+      if (overbook != null) {
+        _showSnack(overbook, isError: true);
+        return;
+      }
     }
 
     try {
@@ -639,6 +962,13 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   }
 
   final Map<int, Map<String, dynamic>> _relatedParticipantData = {};
+  /// Кэш сетов/категорий для related users (YEAR/AGE). userId -> {availableSets, availableCategories, categoriesForSet}.
+  final Map<int, Map<String, dynamic>> _relatedUserSetsCache = {};
+  /// Кэш по дате рождения — один запрос на dob, результат переиспользуется для всех участников с этой датой.
+  final Map<String, Map<String, dynamic>> _dobSetsCategoriesCache = {};
+  int? _fetchingSetsForRelatedUserId;
+  final Set<int> _batchFetchingUserIds = {};
+  bool _batchFetchScheduled = false;
 
   void _setRelatedParticipantData(int userId, Map<String, dynamic> data) {
     _relatedParticipantData[userId] = data;
@@ -763,14 +1093,17 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton(
-                          onPressed: _currentStep > 0 ? _stepBack : null,
+                          onPressed: _stepBack,
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.mutedGold,
                             side: const BorderSide(color: AppColors.mutedGold),
                             padding: const EdgeInsets.symmetric(vertical: 14),
                             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text('Назад', style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600)),
+                          child: Text(
+                            _currentStep > 0 ? 'Назад' : 'Отмена',
+                            style: unbounded(color: AppColors.mutedGold, fontWeight: FontWeight.w600),
+                          ),
                         ),
                       ),
                       const SizedBox(width: 12),
@@ -817,7 +1150,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   }
 
   void _stepBack() {
-    if (_currentStep > 0) setState(() => _currentStep--);
+    if (_currentStep > 0) {
+      setState(() => _currentStep--);
+    } else {
+      if (_newParticipants.isNotEmpty || _selectedRelatedUserIds.isNotEmpty) _saveDraft();
+      Navigator.pop(context);
+    }
   }
 
   void _stepForward() {
@@ -909,7 +1247,8 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     final relatedList = relatedUsersRaw is List ? relatedUsersRaw : [];
     final showContactMsg = !_hasContact;
     final groupDocumentsAlready = _data?['group_documents_already'] == true;
-    final hasUnpaidGroup = _hasUnpaidGroup;
+    // Показываем «неоплаченная заявка» только если событие требует оплаты
+    final hasUnpaidGroup = _hasUnpaidGroup && _isNeedPayForReg;
 
     if (step == 0) {
       return _buildStep0Participants(relatedList, showContactMsg, groupDocumentsAlready, hasUnpaidGroup);
@@ -924,6 +1263,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   }
 
   Widget _buildStep0Participants(List relatedList, bool showContactMsg, bool groupDocumentsAlready, bool hasUnpaidGroup) {
+    _ensureRelatedUsersSetsFetched(relatedList);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1145,6 +1485,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   }
 
   Widget _buildStep2SetsCategories(List relatedList) {
+    _ensureRelatedUsersSetsFetched(relatedList);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1181,6 +1522,9 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   }
 
   Widget _buildStep3Review(List relatedList) {
+    final overflowInfo = _needSet ? _getOverflowInfo() : null;
+    final hasOverflow = overflowInfo != null && overflowInfo.hasOverflow;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1189,6 +1533,53 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           style: unbounded(fontSize: 14, color: Colors.white70),
         ),
         const SizedBox(height: 16),
+        if (hasOverflow && overflowInfo != null) ...[
+          Card(
+            color: Colors.orange.withOpacity(0.25),
+            margin: const EdgeInsets.only(bottom: 16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+              side: const BorderSide(color: Colors.orange, width: 1),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Colors.orange.shade300, size: 24),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          overflowInfo.message,
+                          style: unbounded(color: Colors.white, fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Участники, отмеченные ниже, превышают доступные места. Их можно внести в лист ожидания.',
+                    style: unbounded(color: Colors.white70, fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  CheckboxListTile(
+                    value: _addOverflowToListPending,
+                    onChanged: (v) => setState(() => _addOverflowToListPending = v ?? false),
+                    title: Text(
+                      'Внести избыточных участников в лист ожидания',
+                      style: unbounded(color: Colors.white, fontSize: 14),
+                    ),
+                    activeColor: AppColors.mutedGold,
+                    contentPadding: EdgeInsets.zero,
+                    controlAffinity: ListTileControlAffinity.leading,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         ...relatedList.map((ru) {
           if (ru is! Map) return const SizedBox.shrink();
           final ruMap = Map<String, dynamic>.from(ru);
@@ -1198,21 +1589,23 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           if (ruMap['is_participant'] == true || ruMap['already_registered'] == true) return const SizedBox.shrink();
           final name = '${ruMap['lastname'] ?? ''} ${ruMap['firstname'] ?? ''}'.trim();
           final data = _getRelatedParticipantData(userId);
-          return _buildReviewParticipantCard(name, data, ruMap);
+          final isOverflow = hasOverflow && (overflowInfo?.overflowRelatedIds.contains(userId) ?? false);
+          return _buildReviewParticipantCard(name, data, ruMap, isOverflow: isOverflow);
         }),
         ...List.generate(_newParticipants.length, (i) {
           final p = _newParticipants[i];
+          final isOverflow = hasOverflow && (overflowInfo?.overflowNewIndices.contains(i) ?? false);
           return _buildReviewParticipantCard('${p.firstname} ${p.lastname}'.trim(), {
             'sets': p.sets,
             'category': p.category,
             'sport_category': p.sportCategory,
-          }, null);
+          }, null, isOverflow: isOverflow);
         }),
       ],
     );
   }
 
-  Widget _buildReviewParticipantCard(String name, Map<String, dynamic>? data, Map<String, dynamic>? ru) {
+  Widget _buildReviewParticipantCard(String name, Map<String, dynamic>? data, Map<String, dynamic>? ru, {bool isOverflow = false}) {
     final setsRaw = _data?['sets'];
     final setsList = setsRaw is List ? setsRaw : [];
     final setVal = data?['sets'];
@@ -1225,10 +1618,18 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         }
       }
     }
+    if (isOverflow && _addOverflowToListPending) {
+      setLabel = '$setLabel (лист ожидания)';
+    }
     return Card(
       color: AppColors.cardDark,
       margin: const EdgeInsets.only(bottom: 12),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: isOverflow
+            ? BorderSide(color: Colors.orange.withOpacity(0.8), width: 2)
+            : BorderSide.none,
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -1277,6 +1678,14 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         ),
       ),
     );
+  }
+
+  /// Есть ли у участника статус для отображения (участвует, не может, в листе ожидания)
+  bool _hasParticipantStatus(Map<String, dynamic> ru) {
+    if (ru['is_participant'] == true || ru['already_registered'] == true) return true;
+    if (ru['cannot_participate'] == true || ru['participation_blocked'] == true || ru['category_not_suitable'] == true) return true;
+    if (ru['is_in_list_pending'] == true) return true;
+    return false;
   }
 
   /// Участник не подходит для выбора (категория не подходит, уже участвует и т.д.)
@@ -1335,6 +1744,32 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
         ),
       );
     }
+    final isInListPending = ru['is_in_list_pending'] == true;
+    if (isInListPending) {
+      final numberSets = ru['list_pending_number_sets'];
+      final setsStr = numberSets is List && numberSets.isNotEmpty
+          ? numberSets.map((n) => n?.toString() ?? '').join(', ')
+          : '';
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: Colors.amber.withOpacity(0.2),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.amber),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.schedule, color: Colors.amber.shade300, size: 14),
+            const SizedBox(width: 6),
+            Text(
+              'В листе ожидания${setsStr.isNotEmpty ? ' (Сет $setsStr)' : ''}',
+              style: unbounded(color: Colors.amber.shade300, fontSize: 12, fontWeight: FontWeight.w500),
+            ),
+          ],
+        ),
+      );
+    }
     return const SizedBox.shrink();
   }
 
@@ -1374,6 +1809,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Checkbox(
                     value: isSelected,
@@ -1384,23 +1820,22 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis),
+                        Text(name, style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
                         if (dob != null && dob.isNotEmpty)
-                          Text('ДР: $dob', style: unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          Text('ДР: $dob', style: unbounded(color: Colors.white70, fontSize: 12)),
                         if (sportCat != null && sportCat.isNotEmpty)
-                          Text('Разряд: $sportCat', style: unbounded(color: Colors.white70, fontSize: 12), overflow: TextOverflow.ellipsis),
+                          Text('Разряд: $sportCat', style: unbounded(color: Colors.white70, fontSize: 12)),
+                        if (city != null && city.isNotEmpty)
+                          Text('Город: $city', style: unbounded(color: Colors.white70, fontSize: 12)),
                       ],
-                    ),
-                  ),
-                  Flexible(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      alignment: Alignment.centerRight,
-                      child: _buildParticipantStatus(ru),
                     ),
                   ),
                 ],
               ),
+              if (_hasParticipantStatus(ru)) ...[
+                const SizedBox(height: 10),
+                _buildParticipantStatus(ru),
+              ],
               if (isSelected && !compact) ...[
                 const SizedBox(height: 16),
                 _buildRelatedUserForm(ru, userId, data),
@@ -1420,7 +1855,10 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     final numberSets = ru['list_pending_number_sets'];
     final hasBirthday = (ru['birthday']?.toString() ?? '').isNotEmpty;
     final validSetsSync = _getValidListPendingSetsSync();
-    final hasListPendingSets = _isYearOrAgeCategories ? hasBirthday : validSetsSync.isNotEmpty;
+    final hasAnyFreeSet = _hasAnyFreeSetForRelatedUser(ru, userId);
+    final hasListPendingSets = _isYearOrAgeCategories
+        ? (hasBirthday && !hasAnyFreeSet)
+        : (validSetsSync.isNotEmpty && !hasAnyFreeSet);
 
     if (isInListPending) {
       final setsStr = numberSets is List && numberSets.isNotEmpty
@@ -1626,39 +2064,69 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   if (needCategorySelect) ...[
                     const SizedBox(height: 12),
                     const Text('Категория', style: TextStyle(fontSize: 14, color: Colors.white70)),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: (sheetCategory ?? '').isEmpty ? null : sheetCategory,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.graphite,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-                      ),
-                      dropdownColor: AppColors.graphite,
-                      items: categoriesList.map((c) {
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: categoriesList.map((c) {
                         final cat = c is Map ? (c['category'] ?? c)?.toString() ?? '' : c.toString();
-                        return DropdownMenuItem(value: cat, child: Text(cat, style: const TextStyle(color: Colors.white)));
+                        final isSelected = (sheetCategory ?? '') == cat;
+                        return GestureDetector(
+                          onTap: () => setSheetState(() => sheetCategory = isSelected ? null : cat),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              cat,
+                              style: unbounded(
+                                fontSize: 14,
+                                color: isSelected ? AppColors.mutedGold : Colors.white,
+                              ),
+                            ),
+                          ),
+                        );
                       }).toList(),
-                      onChanged: (v) => setSheetState(() => sheetCategory = v),
                     ),
                   ],
                   if (needSportCategory) ...[
                     const SizedBox(height: 12),
                     const Text('Разряд', style: TextStyle(fontSize: 14, color: Colors.white70)),
-                    const SizedBox(height: 6),
-                    DropdownButtonFormField<String>(
-                      value: (sheetSportCategory ?? '').isEmpty ? null : sheetSportCategory,
-                      decoration: const InputDecoration(
-                        filled: true,
-                        fillColor: AppColors.graphite,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-                      ),
-                      dropdownColor: AppColors.graphite,
-                      items: sportCategoriesList.map((s) {
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: sportCategoriesList.map((s) {
                         final sc = s is Map ? (s['category'] ?? s['sport_category'] ?? '')?.toString() ?? '' : s.toString();
-                        return DropdownMenuItem(value: sc, child: Text(sc, style: const TextStyle(color: Colors.white)));
+                        final isSelected = (sheetSportCategory ?? '') == sc;
+                        return GestureDetector(
+                          onTap: () => setSheetState(() => sheetSportCategory = isSelected ? null : sc),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+                                width: isSelected ? 2 : 1,
+                              ),
+                            ),
+                            child: Text(
+                              sc,
+                              style: unbounded(
+                                fontSize: 14,
+                                color: isSelected ? AppColors.mutedGold : Colors.white,
+                              ),
+                            ),
+                          ),
+                        );
                       }).toList(),
-                      onChanged: (v) => setSheetState(() => sheetSportCategory = v),
                     ),
                   ],
                   const SizedBox(height: 16),
@@ -1776,12 +2244,16 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   }
 
   Widget _buildRelatedUserForm(Map<String, dynamic> ru, int userId, Map<String, dynamic> data) {
-    final setsRaw = _data?['sets'];
-    final setsList = setsRaw is List ? setsRaw : [];
-    final categoriesRaw = _data?['event']?['categories'] ?? _data?['event']?['categories'];
-    final categoriesList = categoriesRaw is List ? categoriesRaw : [];
-    final needSet = _needSet && setsList.isNotEmpty;
-    final needCategory = _isAutoCategories != 1 && categoriesList.isNotEmpty;
+    final birthdayRaw = ru['birthday']?.toString();
+    final hasBirthday = birthdayRaw != null && birthdayRaw.isNotEmpty;
+    final dobParsed = hasBirthday ? DateTime.tryParse(birthdayRaw) : null;
+    final dobStr = dobParsed != null ? DateFormat('yyyy-MM-dd').format(dobParsed) : null;
+
+    final setsList = _getSetsForRelatedUser(ru, userId);
+    final categoriesList = _getCategoriesForRelatedUser(ru, userId, data);
+    final isFetching = _batchFetchingUserIds.contains(userId) || _fetchingSetsForRelatedUserId == userId;
+    final needSet = _needSet && (setsList.isNotEmpty || isFetching);
+    final needCategory = _isAutoCategories != 1 && (categoriesList.isNotEmpty || isFetching);
     final needSportCategory = _isNeedSportCategory && (_data?['sport_categories'] is List);
 
     return Column(
@@ -1789,7 +2261,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       children: [
         if (needSet) ...[
           const Text('Сет', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          if (setsList.any((s) => s is Map && s['list_pending'] == true))
+          if (setsList.isNotEmpty && setsList.any((s) => s is Map && s['list_pending'] == true))
             Padding(
               padding: const EdgeInsets.only(bottom: 4),
               child: Text(
@@ -1797,92 +2269,118 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                 style: TextStyle(color: Colors.white54, fontSize: 11),
               ),
             ),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<int>(
-            isExpanded: true,
-            value: data['sets'] is int ? data['sets'] as int? : int.tryParse(data['sets']?.toString() ?? ''),
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: AppColors.graphite,
-              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            dropdownColor: AppColors.graphite,
-            items: setsList.map((s) {
-              final m = s is Map ? Map<String, dynamic>.from(s) : <String, dynamic>{};
-              final n = m['number_set'];
-              final numSet = n is int ? n : int.tryParse(n?.toString() ?? '');
-              final time = m['time']?.toString() ?? '';
-              final free = m['free'];
-              final listPending = m['list_pending'] == true;
-              final label = 'Сет №$numSet $time${listPending ? ' (лист ожид.)' : free != null ? ' ($free)' : ''}';
-              return DropdownMenuItem<int>(
-                value: numSet,
-                child: Text(label, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis),
-              );
-            }).toList(),
-            onChanged: (v) {
+          const SizedBox(height: 8),
+          if (isFetching)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              child: Center(
+                child: Text('Загрузка сетов по дате рождения...', style: unbounded(color: Colors.white54, fontSize: 12)),
+              ),
+            )
+          else
+          SetSelectionCards(
+            sets: _mapSetsToNumberSets(setsList),
+            selected: () {
+              final numSets = _mapSetsToNumberSets(setsList);
+              final val = data['sets'] is int ? data['sets'] as int? : int.tryParse(data['sets']?.toString() ?? '');
+              if (val == null) return null;
+              for (final ns in numSets) {
+                if (ns.number_set == val) return ns;
+              }
+              return null;
+            }(),
+            onChanged: (NumberSets? ns) async {
+              if (ns == null) return;
               bool listPending = false;
               for (final s in setsList) {
-                if (s is Map && (s['number_set'] == v || s['number_set']?.toString() == v?.toString())) {
+                if (s is Map && (s['number_set'] == ns.number_set || s['number_set']?.toString() == ns.number_set.toString())) {
                   listPending = s['list_pending'] == true;
                   break;
                 }
               }
               setState(() {
-                _setRelatedParticipantData(userId, {...data, 'sets': v, 'list_pending': listPending});
+                _setRelatedParticipantData(userId, {...data, 'sets': ns.number_set, 'list_pending': listPending, 'category': ''});
               });
+              if (_isYearOrAgeCategories && dobStr != null) {
+                await _fetchCategoriesForSetForRelatedUser(userId, dobStr, ns.number_set is int ? ns.number_set as int : int.tryParse(ns.number_set?.toString() ?? '') ?? 0);
+              }
             },
           ),
           const SizedBox(height: 12),
         ],
-        if (needCategory) ...[
+        if (needCategory && !isFetching) ...[
           const Text('Категория', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            value: (data['category']?.toString() ?? '').isEmpty ? null : data['category']?.toString(),
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: AppColors.graphite,
-              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            dropdownColor: AppColors.graphite,
-            items: categoriesList.map((c) {
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: categoriesList.map((c) {
               final cat = c is Map ? c['category']?.toString() ?? '' : c.toString();
-              return DropdownMenuItem<String>(value: cat, child: Text(cat, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis));
+              final isSelected = (data['category']?.toString() ?? '') == cat;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _setRelatedParticipantData(userId, {...data, 'category': isSelected ? '' : cat});
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    cat,
+                    style: unbounded(
+                      fontSize: 14,
+                      color: isSelected ? AppColors.mutedGold : Colors.white,
+                    ),
+                  ),
+                ),
+              );
             }).toList(),
-            onChanged: (v) {
-              setState(() {
-                _setRelatedParticipantData(userId, {...data, 'category': v ?? ''});
-              });
-            },
           ),
           const SizedBox(height: 12),
         ],
         if (needSportCategory) ...[
           const Text('Разряд', style: TextStyle(color: Colors.white70, fontSize: 12)),
-          const SizedBox(height: 6),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            value: (data['sport_category']?.toString() ?? '').isEmpty ? null : data['sport_category']?.toString(),
-            decoration: const InputDecoration(
-              filled: true,
-              fillColor: AppColors.graphite,
-              border: OutlineInputBorder(borderRadius: BorderRadius.all(Radius.circular(10))),
-              contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-            ),
-            dropdownColor: AppColors.graphite,
-            items: ((_data?['sport_categories']) as List? ?? []).map((s) {
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: ((_data?['sport_categories']) as List? ?? []).map((s) {
               final sc = s is Map ? (s['category'] ?? s['sport_category'] ?? '').toString() : s.toString();
-              return DropdownMenuItem<String>(value: sc, child: Text(sc, style: const TextStyle(color: Colors.white), overflow: TextOverflow.ellipsis));
+              final isSelected = (data['sport_category']?.toString() ?? '') == sc;
+              return GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _setRelatedParticipantData(userId, {...data, 'sport_category': isSelected ? '' : sc});
+                  });
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+                      width: isSelected ? 2 : 1,
+                    ),
+                  ),
+                  child: Text(
+                    sc,
+                    style: unbounded(
+                      fontSize: 14,
+                      color: isSelected ? AppColors.mutedGold : Colors.white,
+                    ),
+                  ),
+                ),
+              );
             }).toList(),
-            onChanged: (v) {
-              setState(() {
-                _setRelatedParticipantData(userId, {...data, 'sport_category': v ?? ''});
-              });
-            },
           ),
         ],
       ],
@@ -2008,51 +2506,36 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                   child: Center(child: Text('Загрузка сетов по дате рождения...', style: unbounded(color: Colors.white54, fontSize: 12))),
                 )
               else
-              DropdownButtonFormField<int>(
-                isExpanded: true,
-                value: p.sets != null && _getSetsForNewParticipant(p).any((s) =>
-                    s is Map && (s['number_set'] == p.sets || s['number_set'].toString() == p.sets.toString()))
-                    ? p.sets
-                    : null,
-                decoration: const InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.graphite,
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                dropdownColor: AppColors.graphite,
-                items: _getSetsForNewParticipant(p).map((s) {
-                  final m = s is Map ? s : <String, dynamic>{};
-                  final numSet = m['number_set'];
-                  final val = numSet is int ? numSet : int.tryParse(numSet?.toString() ?? '');
-                  final free = m['free'];
-                  final listPending = m['list_pending'] == true;
-                  final label = 'Сет №${numSet ?? ''} ${m['time'] ?? ''}${listPending ? ' (лист ожид.)' : free != null ? ' ($free)' : ''}';
-                  return DropdownMenuItem<int>(
-                    value: val ?? 0,
-                    child: Text(label, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis),
-                  );
-                }).toList(),
-                onChanged: (v) async {
+              SetSelectionCards(
+                sets: _mapSetsToNumberSets(_getSetsForNewParticipant(p)),
+                selected: () {
+                  final numSets = _mapSetsToNumberSets(_getSetsForNewParticipant(p));
+                  if (p.sets == null) return null;
+                  for (final ns in numSets) {
+                    if (ns.number_set == p.sets) return ns;
+                  }
+                  return null;
+                }(),
+                onChanged: (NumberSets? ns) async {
+                  if (ns == null) return;
                   bool listPendingVal = false;
                   for (final s in _getSetsForNewParticipant(p)) {
-                    if (s is Map && (s['number_set'] == v || s['number_set'].toString() == v?.toString())) {
+                    if (s is Map && (s['number_set'] == ns.number_set || s['number_set'].toString() == ns.number_set.toString())) {
                       listPendingVal = s['list_pending'] == true;
                       break;
                     }
                   }
-                  final newSet = v is int ? v : int.tryParse(v?.toString() ?? '');
                   setState(() {
                     _newParticipants[index] = p.copyWith(
-                      sets: newSet,
+                      sets: ns.number_set,
                       listPending: listPendingVal,
                       categoriesForSet: null,
                       category: '',
                     );
                     _saveDraft();
                   });
-                  if (p.dob != null && newSet != null) {
-                    await _fetchCategoriesForSet(DateFormat('yyyy-MM-dd').format(p.dob!), newSet, index);
+                  if (p.dob != null) {
+                    await _fetchCategoriesForSet(DateFormat('yyyy-MM-dd').format(p.dob!), ns.number_set, index);
                   }
                 },
               ),
@@ -2060,54 +2543,80 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
             if (!dataOnly && _isAutoCategories != 1 && _getCategoriesForNewParticipant(p).isNotEmpty && _fetchingSetsIndex != index) ...[
               const SizedBox(height: 12),
               Text('Категория', style: unbounded(color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 4),
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: p.category.isEmpty ? null : p.category,
-                decoration: const InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.graphite,
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                dropdownColor: AppColors.graphite,
-                items: _getCategoriesForNewParticipant(p).map((c) {
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: _getCategoriesForNewParticipant(p).map((c) {
                   final m = c is Map ? c : <String, dynamic>{};
                   final cat = m['category']?.toString() ?? '';
-                  return DropdownMenuItem(value: cat, child: Text(cat, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
+                  final isSelected = p.category == cat;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _newParticipants[index] = p.copyWith(category: isSelected ? '' : cat);
+                        _saveDraft();
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        cat,
+                        style: unbounded(
+                          fontSize: 14,
+                          color: isSelected ? AppColors.mutedGold : Colors.white,
+                        ),
+                      ),
+                    ),
+                  );
                 }).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    _newParticipants[index] = p.copyWith(category: v ?? '');
-                    _saveDraft();
-                  });
-                },
               ),
             ],
             if (!dataOnly && _isNeedSportCategory && (_data?['sport_categories'] is List)) ...[
               const SizedBox(height: 12),
               Text('Разряд', style: unbounded(color: Colors.white70, fontSize: 12)),
-              const SizedBox(height: 4),
-              DropdownButtonFormField<String>(
-                isExpanded: true,
-                value: p.sportCategory.isEmpty ? null : p.sportCategory,
-                decoration: const InputDecoration(
-                  filled: true,
-                  fillColor: AppColors.graphite,
-                  border: OutlineInputBorder(),
-                  contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                ),
-                dropdownColor: AppColors.graphite,
-                items: ((_data?['sport_categories']) as List? ?? []).map((s) {
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: ((_data?['sport_categories']) as List? ?? []).map((s) {
                   final sc = (s is Map ? s['category'] ?? s['sport_category'] ?? s.toString() : s.toString()).toString();
-                  return DropdownMenuItem<String>(value: sc, child: Text(sc, style: unbounded(color: Colors.white), overflow: TextOverflow.ellipsis));
+                  final isSelected = p.sportCategory == sc;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _newParticipants[index] = p.copyWith(sportCategory: isSelected ? '' : sc);
+                        _saveDraft();
+                      });
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.mutedGold.withOpacity(0.3) : AppColors.rowAlt,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Text(
+                        sc,
+                        style: unbounded(
+                          fontSize: 14,
+                          color: isSelected ? AppColors.mutedGold : Colors.white,
+                        ),
+                      ),
+                    ),
+                  );
                 }).toList(),
-                onChanged: (v) {
-                  setState(() {
-                    _newParticipants[index] = p.copyWith(sportCategory: v ?? '');
-                    _saveDraft();
-                  });
-                },
               ),
             ],
             if (!setsOnly) const SizedBox(height: 12),

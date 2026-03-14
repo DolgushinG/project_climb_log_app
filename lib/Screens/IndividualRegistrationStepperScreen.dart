@@ -49,6 +49,11 @@ class _IndividualRegistrationStepperScreenState
   NumberSets? _selectedNumberSet;
   int _currentStepIndex = 0;
   bool _isSubmitting = false;
+  /// Сеты от available-sets?dob= (фильтр по возрасту на бэкенде)
+  List<NumberSets>? _availableSetsFromApi;
+  String? _availableSetsDob;
+  /// Группа/категория от available-category?dob= (YEAR/AGE)
+  String? _userCategoryFromApi;
 
   bool get _needBirthdayStep {
     final ac = _competition.auto_categories;
@@ -60,6 +65,23 @@ class _IndividualRegistrationStepperScreenState
     return _competition.is_input_set == 0 &&
         _setsFilteredByAge.isNotEmpty;
   }
+
+  /// Нет доступных сетов по возрасту — показать сообщение и заблокировать
+  bool get _cannotParticipateByAge {
+    if (_competition.is_input_set != 0) return false;
+    if (_setsFilteredByAge.isEmpty) {
+      if (_availableSetsFromApi != null) return true;
+      final numberSets = _competition.number_sets;
+      if (numberSets.isEmpty) return false;
+      final allSets = numberSets
+          .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
+          .toList();
+      return allSets.any((s) => s.allow_years_from != null || s.allow_years_to != null);
+    }
+    return false;
+  }
+
+  bool get _needAgeNotSuitableStep => _cannotParticipateByAge;
 
   bool get _needCategoryStep {
     final ac = _competition.auto_categories;
@@ -111,6 +133,7 @@ class _IndividualRegistrationStepperScreenState
   }
 
   List<NumberSets> get _setsFilteredByAge {
+    if (_availableSetsFromApi != null) return _availableSetsFromApi!;
     final all = _competition.number_sets
         .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
         .toList();
@@ -135,15 +158,15 @@ class _IndividualRegistrationStepperScreenState
     return sets.any((s) => s.free <= 0);
   }
 
+  /// Номера сетов для add-to-list-pending (только занятые сеты — free <= 0)
   List<int> get _numberSetsForWaitlist {
+    final busySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
     if (_competition.is_input_set == 0) {
       final s = _effectiveSelectedNumberSet;
-      return s != null ? [s.number_set] : [];
+      if (s != null && s.free <= 0) return [s.number_set];
+      return [];
     }
-    return _competition.number_sets
-        .map((j) => NumberSets.fromJson(j))
-        .map((s) => s.number_set)
-        .toList();
+    return busySets.map((s) => s.number_set).toList();
   }
 
   NumberSets? get _effectiveSelectedNumberSet {
@@ -156,6 +179,7 @@ class _IndividualRegistrationStepperScreenState
     final list = <_StepType>[];
     if (_needBirthdayStep) list.add(_StepType.data);
     if (_needSetStep) list.add(_StepType.set);
+    if (_needAgeNotSuitableStep) list.add(_StepType.ageNotSuitable);
     if (_needCategoryStep || _needSportCategoryStep) list.add(_StepType.category);
     list.add(_StepType.confirm);
     return list;
@@ -166,6 +190,7 @@ class _IndividualRegistrationStepperScreenState
     super.initState();
     _competition = widget.competition;
     if (_needBirthdayStep) _loadUserBirthday();
+    else if (_competition.is_input_set == 0) _loadUserBirthday();
   }
 
   Future<void> _loadUserBirthday() async {
@@ -173,6 +198,102 @@ class _IndividualRegistrationStepperScreenState
       final profile = await ProfileService(baseUrl: DOMAIN).getProfile(context);
       if (mounted && profile != null && profile.birthday.trim().isNotEmpty) {
         setState(() => _userBirthday = profile.birthday);
+        _fetchAvailableSetsIfNeeded();
+        _fetchAvailableCategoryIfNeeded();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchAvailableSetsIfNeeded() async {
+    final dob = _birthdayForTakePart;
+    if (dob == null) return;
+    final dobStr = DateFormat('yyyy-MM-dd').format(dob);
+    if (_availableSetsDob == dobStr) return;
+    try {
+      final token = await getToken();
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/event/${_competition.id}/available-sets?dob=$dobStr'),
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (!mounted || r.statusCode != 200) return;
+      final body = json.decode(r.body);
+      final raw = body['availableSets'] ?? body['available_sets'];
+      final list = raw is List ? raw : [];
+      if (list.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _availableSetsFromApi = [];
+            _availableSetsDob = dobStr;
+          });
+        }
+        return;
+      }
+      final numberSetsFull = _competition.number_sets
+          .map((j) => Map<String, dynamic>.from(j is Map ? j as Map : {}))
+          .toList();
+      final merged = <NumberSets>[];
+      for (final apiItem in list) {
+        final m = apiItem is Map ? Map<String, dynamic>.from(apiItem as Map) : <String, dynamic>{};
+        final id = m['id'] ?? m['number_set'];
+        Map<String, dynamic>? base;
+        for (final ns in numberSetsFull) {
+          if ((ns['id'] ?? ns['number_set']).toString() == id.toString()) {
+            base = Map<String, dynamic>.from(ns);
+            break;
+          }
+        }
+        base ??= <String, dynamic>{};
+        base.addAll(m);
+        merged.add(NumberSets.fromJson(base));
+      }
+      final birthYear = dob.year;
+      final filtered = merged.where((s) => s.matchesBirthYear(birthYear)).toList();
+      if (mounted) {
+        setState(() {
+          _availableSetsFromApi = filtered;
+          _availableSetsDob = dobStr;
+        });
+        _fetchAvailableCategoryIfNeeded();
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _fetchAvailableCategoryIfNeeded({int? numberSet}) async {
+    final ac = _competition.auto_categories;
+    if (ac != _AUTO_CATEGORIES_YEAR && ac != _AUTO_CATEGORIES_AGE) return;
+    final dob = _birthdayForTakePart;
+    if (dob == null) return;
+    final dobStr = DateFormat('yyyy-MM-dd').format(dob);
+    try {
+      final token = await getToken();
+      final uri = numberSet != null
+          ? Uri.parse('$DOMAIN/api/event/${_competition.id}/available-category?dob=$dobStr&number_set=$numberSet')
+          : Uri.parse('$DOMAIN/api/event/${_competition.id}/available-category?dob=$dobStr');
+      final r = await http.get(
+        uri,
+        headers: {
+          if (token != null) 'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (!mounted || r.statusCode != 200) return;
+      final body = json.decode(r.body);
+      final list = body['availableCategory'] ?? body['available_category'] ?? body['availableCategories'] ?? [];
+      final cats = list is List ? list : [];
+      String? category;
+      if (cats.isNotEmpty) {
+        final first = cats.first;
+        if (first is Map) {
+          category = (first['category'] ?? first)?.toString();
+        } else {
+          category = first?.toString();
+        }
+      }
+      if (mounted && category != null && category.isNotEmpty) {
+        setState(() => _userCategoryFromApi = category);
       }
     } catch (_) {}
   }
@@ -180,7 +301,12 @@ class _IndividualRegistrationStepperScreenState
   void _goNext() {
     if (!_validateCurrentStep()) return;
     if (_currentStepIndex < _effectiveSteps.length - 1) {
+      final nextStep = _effectiveSteps[_currentStepIndex + 1];
       setState(() => _currentStepIndex++);
+      if (nextStep == _StepType.set || nextStep == _StepType.ageNotSuitable) {
+        _fetchAvailableSetsIfNeeded();
+        _fetchAvailableCategoryIfNeeded();
+      }
     } else {
       _submitParticipation();
     }
@@ -209,6 +335,8 @@ class _IndividualRegistrationStepperScreenState
           return false;
         }
         return true;
+      case _StepType.ageNotSuitable:
+        return false;
       case _StepType.category:
         if (_needCategoryStep && _selectedCategory == null) {
           _showSnack('Выберите категорию', isError: true);
@@ -234,9 +362,55 @@ class _IndividualRegistrationStepperScreenState
     );
   }
 
+  Future<bool?> _showWaitlistConfirmDialog(String message) async {
+    return showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Лист ожидания', style: unbounded(color: Colors.white)),
+        content: Text(message, style: unbounded(color: Colors.white70)),
+        backgroundColor: AppColors.cardDark,
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Нет', style: unbounded(color: AppColors.mutedGold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.mutedGold),
+            child: Text('Да', style: unbounded(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _submitParticipation() async {
+    // Возраст не подходит — не показывать лист ожидания
+    if (_cannotParticipateByAge) {
+      _showSnack('В вашей группе ваш возраст не подходит для участия', isError: true);
+      return;
+    }
+
     if (_allSetsBusy) {
-      _showWaitlistSheet();
+      final ok = await _showWaitlistConfirmDialog(
+        'Все сеты заняты. Добавить вас в лист ожидания? Если освободится место, вы получите уведомление.',
+      );
+      if (ok == true && mounted) _showWaitlistSheet();
+      return;
+    }
+
+    // Не регистрировать в сет без мест — диалог и лист ожидания
+    if (_needSetStep &&
+        _effectiveSelectedNumberSet != null &&
+        (_effectiveSelectedNumberSet!.free) <= 0) {
+      final ok = await _showWaitlistConfirmDialog(
+        'Выбранный сет занят. Добавить вас в лист ожидания? Если освободится место, вы получите уведомление.',
+      );
+      if (ok == true && mounted) {
+        _showWaitlistSheet();
+      } else if (ok == false && mounted) {
+        setState(() => _currentStepIndex = _effectiveSteps.indexOf(_StepType.set));
+      }
       return;
     }
 
@@ -270,7 +444,7 @@ class _IndividualRegistrationStepperScreenState
         body: json.encode({
           'event_id': '${_competition.id}',
           'birthday': serverDate,
-          'category': '${_selectedCategory?.category ?? ''}',
+          'category': '${_selectedCategory?.category ?? _userCategoryFromApi ?? ''}',
           'sport_category': '${_selectedSportCategory?.sport_category ?? ''}',
           'number_set': '${_effectiveSelectedNumberSet?.number_set ?? ''}',
         }),
@@ -315,6 +489,10 @@ class _IndividualRegistrationStepperScreenState
   }
 
   void _showWaitlistSheet() {
+    if (_cannotParticipateByAge) {
+      _showSnack('В вашей группе ваш возраст не подходит для участия', isError: true);
+      return;
+    }
     final busySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
     final categoryList = _competition.categories
         .map((json) => Category.fromJson(Map<String, dynamic>.from(json)))
@@ -323,7 +501,14 @@ class _IndividualRegistrationStepperScreenState
         .map((json) => SportCategory.fromJson(Map<String, dynamic>.from(json)))
         .toList();
 
-    List<NumberSets> sheetSelectedSets = busySets.isNotEmpty ? [busySets.first] : [];
+    List<NumberSets> sheetSelectedSets = [];
+    if (busySets.isNotEmpty) {
+      final selected = _selectedNumberSet != null &&
+          busySets.any((s) => s.id == _selectedNumberSet!.id)
+          ? _selectedNumberSet!
+          : null;
+      sheetSelectedSets = selected != null ? [selected] : [busySets.first];
+    }
     Category? sheetSelectedCategory = _selectedCategory;
     SportCategory? sheetSelectedSportCategory = _selectedSportCategory;
 
@@ -431,9 +616,10 @@ class _IndividualRegistrationStepperScreenState
                       }
 
                       Navigator.pop(context);
+                      final catForApi = sheetSelectedCategory?.category ?? _userCategoryFromApi;
                       await _addToWaitlist(
                         numberSets,
-                        sheetSelectedCategory,
+                        catForApi,
                         sheetSelectedSportCategory,
                       );
                     },
@@ -457,7 +643,7 @@ class _IndividualRegistrationStepperScreenState
 
   Future<void> _addToWaitlist(
     List<int> numberSets,
-    Category? category,
+    String? category,
     SportCategory? sportCategory,
   ) async {
     try {
@@ -468,7 +654,7 @@ class _IndividualRegistrationStepperScreenState
 
       final body = <String, dynamic>{'number_sets': numberSets};
       if (serverDate != null) body['birthday'] = serverDate;
-      if (category?.category != null) body['category'] = category!.category;
+      if (category != null && category.isNotEmpty) body['category'] = category;
       if (sportCategory?.sport_category != null) {
         body['sport_category'] = sportCategory!.sport_category;
       }
@@ -512,6 +698,7 @@ class _IndividualRegistrationStepperScreenState
     );
     if (picked != null && mounted) {
       setState(() => _selectedDate = picked);
+      _fetchAvailableSetsIfNeeded();
     }
   }
 
@@ -525,6 +712,8 @@ class _IndividualRegistrationStepperScreenState
           return 'Данные';
         case _StepType.set:
           return 'Сет';
+        case _StepType.ageNotSuitable:
+          return 'Не подходит';
         case _StepType.category:
           return 'Категория';
         case _StepType.confirm:
@@ -598,9 +787,14 @@ class _IndividualRegistrationStepperScreenState
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: _isSubmitting ? null : _goNext,
+                      onPressed: (_isSubmitting ||
+                              steps[_currentStepIndex] == _StepType.ageNotSuitable)
+                          ? null
+                          : _goNext,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.mutedGold,
+                        backgroundColor: steps[_currentStepIndex] == _StepType.ageNotSuitable
+                            ? AppColors.graphite
+                            : AppColors.mutedGold,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -635,6 +829,8 @@ class _IndividualRegistrationStepperScreenState
         return 'Проверьте данные';
       case _StepType.set:
         return 'Выберите ваш сет';
+      case _StepType.ageNotSuitable:
+        return 'Участие недоступно';
       case _StepType.category:
         return 'Категория и разряд';
       case _StepType.confirm:
@@ -648,6 +844,8 @@ class _IndividualRegistrationStepperScreenState
         return _buildDataStep();
       case _StepType.set:
         return _buildSetStep();
+      case _StepType.ageNotSuitable:
+        return _buildAgeNotSuitableStep();
       case _StepType.category:
         return _buildCategoryStep();
       case _StepType.confirm:
@@ -716,6 +914,34 @@ class _IndividualRegistrationStepperScreenState
     );
   }
 
+  Widget _buildAgeNotSuitableStep() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.orange.withOpacity(0.5)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.orange.shade300, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  'В вашей группе ваш возраст не подходит для участия. Измените дату рождения на предыдущем шаге.',
+                  style: unbounded(fontSize: 14, color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildSetStep() {
     if (_allSetsBusy) {
       return Column(
@@ -748,7 +974,12 @@ class _IndividualRegistrationStepperScreenState
     return SetSelectionCards(
       sets: _setsFilteredByAge,
       selected: _effectiveSelectedNumberSet,
-      onChanged: (s) => setState(() => _selectedNumberSet = s),
+      onChanged: (s) {
+        setState(() => _selectedNumberSet = s);
+        if (s != null && _userCategoryFromApi == null) {
+          _fetchAvailableCategoryIfNeeded(numberSet: s.number_set);
+        }
+      },
     );
   }
 
@@ -834,11 +1065,31 @@ class _IndividualRegistrationStepperScreenState
   }
 
   Widget _buildConfirmStep() {
+    final isYearOrAge = _competition.auto_categories == _AUTO_CATEGORIES_YEAR ||
+        _competition.auto_categories == _AUTO_CATEGORIES_AGE;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (_needSetStep && _effectiveSelectedNumberSet != null && !_allSetsBusy)
           _buildSummaryRow('Сет', formatSetCompact(_effectiveSelectedNumberSet!)),
+        if (isYearOrAge && _userCategoryFromApi != null)
+          _buildSummaryRow('Ваша группа', _userCategoryFromApi!),
+        if (isYearOrAge && _userCategoryFromApi == null && _hasBirthdayFilled)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, size: 18, color: Colors.orange.shade300),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Группа не определилась. Проверьте дату рождения или обратитесь к организатору.',
+                    style: unbounded(fontSize: 13, color: Colors.orange.shade200),
+                  ),
+                ),
+              ],
+            ),
+          ),
         if (_needCategoryStep && _selectedCategory != null)
           _buildSummaryRow('Категория', _selectedCategory!.category),
         if (_needSportCategoryStep && _selectedSportCategory != null)
@@ -879,4 +1130,4 @@ class _IndividualRegistrationStepperScreenState
   }
 }
 
-enum _StepType { data, set, category, confirm }
+enum _StepType { data, set, ageNotSuitable, category, confirm }
