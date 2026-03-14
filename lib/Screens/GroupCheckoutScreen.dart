@@ -10,6 +10,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
 import '../widgets/error_report_modal.dart';
@@ -342,12 +343,11 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
 
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: unbounded(color: Colors.white)),
-        backgroundColor: isError ? Colors.red : Colors.green,
-      ),
-    );
+    if (isError) {
+      showAppError(context, msg);
+    } else {
+      showAppSuccess(context, msg);
+    }
   }
 
   Future<void> _showPaymentBottomSheet({bool groupReceipt = false}) async {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../login.dart';
 import '../main.dart';
+import 'app_snackbar.dart';
 
 /// При 401 (не авторизован) — очищаем все данные и перекидываем на логин. 419 (rate limit) — не редиректим, не поможет.
 Future<void> redirectToLoginOnSessionError(BuildContext? context,
@@ -13,7 +14,7 @@ Future<void> redirectToLoginOnSessionError(BuildContext? context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
       (route) => false,
     );
-    ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(content: Text(message)));
+    showAppError(ctx, message);
   }
 }
 

@@ -7,6 +7,7 @@ import 'package:login_app/models/NumberSets.dart';
 
 import '../main.dart';
 import '../models/Category.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/session_error_helper.dart';
 import '../models/SportCategory.dart';
 import '../theme/app_theme.dart';
@@ -98,31 +99,31 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
       } else if (response.statusCode == 401) {
         redirectToLoginOnSessionError(context);
       } else {
-        _showNotification('Ошибка при получении статуса', Colors.red);
+        _handleError('Ошибка при получении статуса');
       }
     } catch (e) {
-      _showNotification('Ошибка сети', Colors.red);
+      _handleError('Ошибка сети');
     }
   }
 
   Future<void> _makeRequest() async {
     // Проверка: если категория/сет/разряд требуются, но не выбраны
     if (widget.needCategory && (widget.category == null || widget.category!.category.isEmpty)) {
-      _showNotification('Выберите категорию для участия', Colors.orange);
+      _showWarning('Выберите категорию для участия');
       return;
     }
     if (widget.needSportCategory && (widget.sport_category == null || widget.sport_category!.sport_category.isEmpty)) {
-      _showNotification('Выберите разряд для участия', Colors.orange);
+      _showWarning('Выберите разряд для участия');
       return;
     }
     if (widget.needNumberSet && (widget.number_set == null)) {
-      _showNotification('Выберите сет для участия', Colors.orange);
+      _showWarning('Выберите сет для участия');
       return;
     }
     if (widget.needNumberSet &&
         widget.number_set != null &&
         (widget.number_set!.free) <= 0) {
-      _showNotification('Выбранный сет занят. Добавьте себя в лист ожидания.', Colors.orange);
+      _showWarning('Выбранный сет занят. Добавьте себя в лист ожидания.');
       return;
     }
 
@@ -163,7 +164,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
           response.statusCode == 201 ||
           (responseData['success'] == true);
       if (isSuccess) {
-        _showNotification(message.isNotEmpty ? message : 'Вы успешно зарегистрированы!', Colors.green);
+        _showSuccess(message.isNotEmpty ? message : 'Вы успешно зарегистрированы!');
         if (mounted) {
           setState(() {
             _isButtonDisabled = true;
@@ -187,16 +188,6 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
     }
   }
 
-  void _showNotification(String message, Color color) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: color,
-        duration: Duration(seconds: 2),
-      ),
-    );
-  }
-
   void _handleError(String message) {
     if (mounted) {
       setState(() {
@@ -205,7 +196,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _buttonText = 'Принять участие';
       });
     }
-    _showNotification(message, Colors.red);
+    showAppError(context, message, duration: const Duration(seconds: 2));
   }
 
   void _handleWaitlistError(String message) {
@@ -215,12 +206,20 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
         _waitlistButtonText = 'Добавиться в лист ожидания';
       });
     }
-    _showNotification(message, Colors.red);
+    showAppError(context, message, duration: const Duration(seconds: 2));
+  }
+
+  void _showSuccess(String message) {
+    showAppSuccess(context, message, duration: const Duration(seconds: 2));
+  }
+
+  void _showWarning(String message) {
+    showAppWarning(context, message, duration: const Duration(seconds: 2));
   }
 
   Future<void> _makeAddToListPendingRequest() async {
     if (widget.numberSetsForWaitlist.isEmpty) {
-      _showNotification('Выберите сет для добавления в лист ожидания', Colors.orange);
+      _showWarning('Выберите сет для добавления в лист ожидания');
       return;
     }
     if (mounted) {
@@ -256,7 +255,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
       final isSuccess = response.statusCode == 200 && (responseData['success'] == true);
 
       if (isSuccess) {
-        _showNotification(message.isNotEmpty ? message : 'Вы добавлены в лист ожидания', Colors.green);
+        _showSuccess(message.isNotEmpty ? message : 'Вы добавлены в лист ожидания');
         if (mounted) {
           setState(() {
             _waitlistButtonDisabled = true;

@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 import '../main.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/session_error_helper.dart';
 import '../models/RelatedUser.dart';
 import '../utils/network_error_helper.dart';
@@ -75,22 +76,18 @@ class RelatedUsersService {
         text = msg;
       }
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text), backgroundColor: Colors.red));
+        showAppError(context, text);
       }
       return false;
     }
     if (response.statusCode == 403 || response.statusCode == 404) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Участник не найден или недоступен'), backgroundColor: Colors.red),
-        );
+        showAppError(context, 'Участник не найден или недоступен');
       }
       return false;
     }
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: ${response.statusCode}'), backgroundColor: Colors.red),
-      );
+      showAppError(context, 'Ошибка: ${response.statusCode}');
     }
     return false;
   }
@@ -113,16 +110,12 @@ class RelatedUsersService {
     if (response.statusCode == 200) return true;
     if (response.statusCode == 403 || response.statusCode == 422) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось отвязать участника'), backgroundColor: Colors.red),
-        );
+        showAppError(context, 'Не удалось отвязать участника');
       }
       return false;
     }
     if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Ошибка: ${response.statusCode}'), backgroundColor: Colors.red),
-      );
+      showAppError(context, 'Ошибка: ${response.statusCode}');
     }
     return false;
   }

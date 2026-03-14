@@ -24,6 +24,7 @@ import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:login_app/services/cache_service.dart';
 import 'package:login_app/theme/app_theme.dart';
+import 'package:login_app/utils/app_snackbar.dart';
 import 'package:login_app/utils/network_error_helper.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 import 'package:login_app/widgets/top_notification_banner.dart';
@@ -347,12 +348,7 @@ class _CompetitionsScreenState extends State<CompetitionsScreen>
           _isLoading = false;
           if (_allCurrent.isEmpty && _allCompleted.isEmpty) {
             _error = networkErrorMessage(e, 'Не удалось загрузить данные');
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(_error ?? '', style: const TextStyle(color: Colors.white)),
-                backgroundColor: Colors.red,
-              ),
-            );
+            showAppError(context, _error ?? 'Не удалось загрузить данные');
           }
         });
       }
@@ -1000,30 +996,15 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                           : busySets.map((s) => s.number_set).toList();
 
                       if (numberSets.isEmpty && _competitionDetails.is_input_set == 0) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Выберите сет', style: TextStyle(color: Colors.white)),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
+                        showAppWarning(context, 'Выберите сет');
                         return;
                       }
                       if (needCategory && sheetSelectedCategory == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Выберите категорию', style: TextStyle(color: Colors.white)),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
+                        showAppWarning(context, 'Выберите категорию');
                         return;
                       }
                       if (needSportCategory && sheetSelectedSportCategory == null) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: const Text('Выберите разряд', style: TextStyle(color: Colors.white)),
-                            backgroundColor: Colors.orange,
-                          ),
-                        );
+                        showAppWarning(context, 'Выберите разряд');
                         return;
                       }
 
@@ -1082,35 +1063,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
 
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty ? message : 'Вы добавлены в лист ожидания',
-              style: const TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        showAppSuccess(context, message.isNotEmpty ? message : 'Вы добавлены в лист ожидания');
         _refreshParticipationStatus();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания',
-              style: const TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showAppError(context, message.isNotEmpty ? message : 'Ошибка внесения в лист ожидания');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Ошибка сети', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showAppError(context, 'Ошибка сети');
       }
     }
   }
@@ -1132,35 +1092,14 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
 
       if (!mounted) return;
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty ? message : 'Успешно удалено из листа ожидания',
-              style: const TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.green,
-          ),
-        );
+        showAppSuccess(context, message.isNotEmpty ? message : 'Успешно удалено из листа ожидания');
         _refreshParticipationStatus();
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              message.isNotEmpty ? message : 'Ошибка удаления',
-              style: const TextStyle(color: Colors.white),
-            ),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showAppError(context, message.isNotEmpty ? message : 'Ошибка удаления');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Ошибка сети', style: TextStyle(color: Colors.white)),
-            backgroundColor: Colors.red,
-          ),
-        );
+        showAppError(context, 'Ошибка сети');
       }
     }
   }
@@ -1491,13 +1430,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     final name = _competitionDetails.climbing_gym_name.trim();
     if (name.isEmpty) return;
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Поиск скалодрома...', style: TextStyle(color: Colors.white)),
-          backgroundColor: AppColors.graphite,
-          duration: const Duration(seconds: 1),
-        ),
-      );
+      showAppInfo(context, 'Поиск скалодрома...', duration: const Duration(seconds: 1));
     }
     final results = await searchGyms(name);
     if (!mounted) return;
@@ -1509,12 +1442,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         ),
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Профиль скалодрома временно недоступен', style: TextStyle(color: Colors.white)),
-          backgroundColor: Colors.red,
-        ),
-      );
+      showAppError(context, 'Профиль скалодрома временно недоступен');
     }
   }
 
@@ -3174,22 +3102,12 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
 
     if (response.statusCode == 200) {
       fetchCompetition();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-        content: const Text('Регистрация отменена успешно', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.green,
-      ),
-      );
+      showAppSuccess(context, 'Регистрация отменена успешно');
     } else if (response.statusCode == 401) {
       redirectToLoginOnSessionError(context);
     } else {
       // Ошибка при отмене регистрации
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-        content: const Text('Ошибка при отмене регистрации', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-      ),
-      );
+      showAppError(context, 'Ошибка при отмене регистрации');
     }
   }
   void _onItemTapped(int index) {

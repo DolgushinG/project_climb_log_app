@@ -5,6 +5,7 @@ import '../main.dart';
 import '../models/RelatedUser.dart';
 import '../theme/app_theme.dart';
 import '../services/RelatedUsersService.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/display_helper.dart';
 import '../utils/network_error_helper.dart';
 
@@ -67,12 +68,7 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
           if (ok && mounted) {
             Navigator.pop(context);
             _loadData();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Text('Успешно сохранено', style: TextStyle(color: Colors.white)),
-                backgroundColor: Colors.green,
-              ),
-            );
+            showAppSuccess(context, 'Успешно сохранено');
           }
         },
       ),
@@ -100,12 +96,7 @@ class _RelatedUsersScreenState extends State<RelatedUsersScreen> {
               final ok = await _service.unlinkRelatedUser(context, user.id);
               if (ok && mounted) {
                 _loadData();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: const Text('Успешная отвязка', style: TextStyle(color: Colors.white)),
-                    backgroundColor: Colors.green,
-                  ),
-                );
+                showAppSuccess(context, 'Успешная отвязка');
               }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
@@ -465,21 +456,11 @@ class _RelatedUserEditSheetState extends State<_RelatedUserEditSheet> {
     final lastname = _lastnameController.text.trim();
     final email = _emailController.text.trim();
     if (firstname.isEmpty || lastname.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-        content: const Text('Заполните имя и фамилию', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-      ),
-      );
+      showAppError(context, 'Заполните имя и фамилию');
       return;
     }
     if (email.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-        content: const Text('Заполните email', style: TextStyle(color: Colors.white)),
-        backgroundColor: Colors.red,
-      ),
-      );
+      showAppError(context, 'Заполните email');
       return;
     }
 

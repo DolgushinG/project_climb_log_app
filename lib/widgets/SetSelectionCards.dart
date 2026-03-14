@@ -93,6 +93,7 @@ class _SetCard extends StatelessWidget {
     final occupied = set.participants_count;
     final total = set.max_participants;
     final free = set.free;
+    final isBusy = free <= 0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 250),
@@ -102,10 +103,10 @@ class _SetCard extends StatelessWidget {
         vertical: isExpanded ? 16 : 12,
       ),
       decoration: BoxDecoration(
-        color: AppColors.rowAlt,
+        color: isBusy ? Colors.red.withOpacity(0.15) : AppColors.rowAlt,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isSelected ? AppColors.mutedGold : AppColors.graphite,
+          color: isSelected ? AppColors.mutedGold : (isBusy ? Colors.red.withOpacity(0.5) : AppColors.graphite),
           width: isSelected ? 2 : 1,
         ),
       ),
@@ -120,7 +121,7 @@ class _SetCard extends StatelessWidget {
                 style: unbounded(
                   fontSize: isExpanded ? 16 : 14,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? AppColors.mutedGold : Colors.white,
+                  color: isSelected ? AppColors.mutedGold : (isBusy ? Colors.red.shade300 : Colors.white),
                 ),
               ),
               if (isExpanded) ...[
@@ -139,7 +140,7 @@ class _SetCard extends StatelessWidget {
               formatSetCompact(set),
               style: unbounded(
                 fontSize: isExpanded ? 14 : 12,
-                color: Colors.white70,
+                color: isBusy ? Colors.red.shade300 : Colors.white70,
               ),
               overflow: TextOverflow.ellipsis,
               maxLines: isExpanded ? 2 : 1,
@@ -152,7 +153,7 @@ class _SetCard extends StatelessWidget {
               Icon(
                 Icons.group_outlined,
                 size: isExpanded ? 16 : 14,
-                color: Colors.white54,
+                color: isBusy ? Colors.red.shade300 : Colors.white54,
               ),
               const SizedBox(width: 4),
               Flexible(
@@ -160,7 +161,7 @@ class _SetCard extends StatelessWidget {
                   '$occupied/$total ${placeWord(total)}',
                   style: unbounded(
                     fontSize: isExpanded ? 14 : 12,
-                    color: Colors.white70,
+                    color: isBusy ? Colors.red : Colors.white70,
                   ),
                   overflow: TextOverflow.ellipsis,
                   maxLines: 1,

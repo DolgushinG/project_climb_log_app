@@ -4,6 +4,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/services/AuthService.dart';
 import '../MainScreen.dart';
 import '../main.dart';
+import '../utils/app_snackbar.dart';
 
 class RegistrationScreen extends StatefulWidget {
   @override
@@ -25,10 +26,12 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     return v == 'male' ? 'Мужской' : 'Женский';
   }
 
-  void _showSnackBar(String message, [Color? backgroundColor]) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor ?? AppColors.mutedGold),
-    );
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (isError) {
+      showAppError(context, message);
+    } else {
+      showAppSuccess(context, message);
+    }
   }
 
   void _selectGender() {
@@ -165,7 +168,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     final confirmPassword = _confirmPasswordController.text;
 
     if (!_isPrivacyAccepted) {
-      _showSnackBar('Необходимо согласиться с обработкой данных', Colors.red);
+      _showSnackBar('Необходимо согласиться с обработкой данных', isError: true);
       return;
     }
 
@@ -180,16 +183,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       );
       await saveToken(token);
       if (!mounted) return;
-      _showSnackBar('Регистрация успешно выполнена', AppColors.successMuted);
+      _showSnackBar('Регистрация успешно выполнена');
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const MainScreen(showPasskeyPrompt: true, openOnProfile: true)),
         (route) => false,
       );
     } on AuthException catch (e) {
-      _showSnackBar(e.message, Colors.red);
+      _showSnackBar(e.message, isError: true);
     } catch (e) {
-      _showSnackBar('Что-то пошло не так', Colors.red);
+      _showSnackBar('Что-то пошло не так', isError: true);
     }
     }
     @override

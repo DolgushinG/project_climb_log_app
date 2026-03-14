@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../main.dart';
 import '../models/NumberSets.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/display_helper.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
@@ -785,27 +786,27 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     for (var i = 0; i < _newParticipants.length; i++) {
       final p = _newParticipants[i];
       if (p.firstname.trim().isEmpty || p.lastname.trim().isEmpty) {
-        _showSnack('Заполните имя и фамилию участников', isError: true);
+        _showSnack('Заполните имя и фамилию участников', isError: true, isValidation: true);
         return;
       }
       if (p.gender == null) {
-        _showSnack('Укажите пол участника: ${p.firstname} ${p.lastname}', isError: true);
+        _showSnack('Укажите пол участника: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
         return;
       }
       if ((_isInputBirthday || _needSet) && p.dob == null) {
-        _showSnack('Укажите дату рождения: ${p.firstname} ${p.lastname}', isError: true);
+        _showSnack('Укажите дату рождения: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
         return;
       }
       if (_needSet && (p.sets == null || p.sets == 0)) {
-        _showSnack('Выберите сет: ${p.firstname} ${p.lastname}', isError: true);
+        _showSnack('Выберите сет: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
         return;
       }
       if (_isAutoCategories != 1 && p.category.isEmpty) {
-        _showSnack('Выберите категорию: ${p.firstname} ${p.lastname}', isError: true);
+        _showSnack('Выберите категорию: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
         return;
       }
       if (_isNeedSportCategory && p.sportCategory.isEmpty) {
-        _showSnack('Выберите разряд: ${p.firstname} ${p.lastname}', isError: true);
+        _showSnack('Выберите разряд: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
         return;
       }
 
@@ -843,15 +844,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       final p = _getRelatedParticipantData(userId);
       if (p == null) continue;
       if (_needSet && (p['sets'] == null || p['sets'] == 0)) {
-        _showSnack('Выберите сет для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+        _showSnack('Выберите сет для: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
         return;
       }
       if (_isAutoCategories != 1 && (p['category'] ?? '').toString().isEmpty) {
-        _showSnack('Выберите категорию для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+        _showSnack('Выберите категорию для: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
         return;
       }
       if (_isNeedSportCategory && (p['sport_category'] ?? '').toString().isEmpty) {
-        _showSnack('Выберите разряд для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+        _showSnack('Выберите разряд для: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
         return;
       }
 
@@ -864,12 +865,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       if (listPending) {
         final birthdayRaw = ru['birthday']?.toString();
         if (birthdayRaw == null || birthdayRaw.isEmpty) {
-          _showSnack('Укажите дату рождения участника: ${ru['firstname']} ${ru['lastname']}', isError: true);
+          _showSnack('Укажите дату рождения участника: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
           return;
         }
         final parsed = DateTime.tryParse(birthdayRaw);
         if (parsed == null) {
-          _showSnack('Укажите дату рождения участника: ${ru['firstname']} ${ru['lastname']}', isError: true);
+          _showSnack('Укажите дату рождения участника: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
           return;
         }
         dobStr = DateFormat('yyyy-MM-dd').format(parsed);
@@ -890,7 +891,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     }
 
     if (participants.isEmpty && relatedUsers.isEmpty) {
-      _showSnack('Добавьте хотя бы одного участника', isError: true);
+      _showSnack('Добавьте хотя бы одного участника', isError: true, isValidation: true);
       return;
     }
 
@@ -898,7 +899,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (_needSet) {
       final overbook = _checkSetOverbooking(participants, relatedUsers);
       if (overbook != null) {
-        _showSnack(overbook, isError: true);
+        _showSnack(overbook, isError: true, isValidation: true);
         return;
       }
     }
@@ -975,14 +976,17 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     _saveDraft();
   }
 
-  void _showSnack(String msg, {bool isError = false}) {
+  void _showSnack(String msg, {bool isError = false, bool isValidation = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
-        backgroundColor: isError ? Colors.red : Colors.green,
-      ),
-    );
+    if (isError) {
+      if (isValidation) {
+        showAppWarning(context, msg);
+      } else {
+        showAppError(context, msg);
+      }
+    } else {
+      showAppSuccess(context, msg);
+    }
   }
 
   @override
@@ -1172,12 +1176,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     switch (step) {
       case 0:
         if (_newParticipants.isEmpty && _selectedRelatedUserIds.isEmpty) {
-          _showSnack('Добавьте хотя бы одного участника', isError: true);
+          _showSnack('Добавьте хотя бы одного участника', isError: true, isValidation: true);
           return false;
         }
         for (final p in _newParticipants) {
           if (p.firstname.trim().isEmpty || p.lastname.trim().isEmpty) {
-            _showSnack('Заполните имя и фамилию участников', isError: true);
+            _showSnack('Заполните имя и фамилию участников', isError: true, isValidation: true);
             return false;
           }
         }
@@ -1185,11 +1189,11 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       case 1:
         for (final p in _newParticipants) {
           if ((_isInputBirthday || _needSet) && p.dob == null) {
-            _showSnack('Укажите дату рождения: ${p.firstname} ${p.lastname}', isError: true);
+            _showSnack('Укажите дату рождения: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
             return false;
           }
           if (p.gender == null) {
-            _showSnack('Укажите пол: ${p.firstname} ${p.lastname}', isError: true);
+            _showSnack('Укажите пол: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
             return false;
           }
         }
@@ -1197,15 +1201,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
       case 2:
         for (final p in _newParticipants) {
           if (_needSet && (p.sets == null || p.sets == 0)) {
-            _showSnack('Выберите сет: ${p.firstname} ${p.lastname}', isError: true);
+            _showSnack('Выберите сет: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
             return false;
           }
           if (_isAutoCategories != 1 && p.category.isEmpty) {
-            _showSnack('Выберите категорию: ${p.firstname} ${p.lastname}', isError: true);
+            _showSnack('Выберите категорию: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
             return false;
           }
           if (_isNeedSportCategory && p.sportCategory.isEmpty) {
-            _showSnack('Выберите разряд: ${p.firstname} ${p.lastname}', isError: true);
+            _showSnack('Выберите разряд: ${p.firstname} ${p.lastname}', isError: true, isValidation: true);
             return false;
           }
         }
@@ -1220,15 +1224,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
           final p = _getRelatedParticipantData(userId);
           if (p == null) continue;
           if (_needSet && (p['sets'] == null || p['sets'] == 0)) {
-            _showSnack('Выберите сет для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+            _showSnack('Выберите сет для: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
             return false;
           }
           if (_isAutoCategories != 1 && (p['category'] ?? '').toString().isEmpty) {
-            _showSnack('Выберите категорию для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+            _showSnack('Выберите категорию для: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
             return false;
           }
           if (_isNeedSportCategory && (p['sport_category'] ?? '').toString().isEmpty) {
-            _showSnack('Выберите разряд для: ${ru['firstname']} ${ru['lastname']}', isError: true);
+            _showSnack('Выберите разряд для: ${ru['firstname']} ${ru['lastname']}', isError: true, isValidation: true);
             return false;
           }
         }
@@ -1908,12 +1912,12 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
   Future<void> _showAddToListPendingSheet(Map<String, dynamic> ru, int userId, {required bool isEdit}) async {
     final birthdayRaw = ru['birthday']?.toString();
     if (birthdayRaw == null || birthdayRaw.isEmpty) {
-      _showSnack('Укажите дату рождения участника в профиле', isError: true);
+      _showSnack('Укажите дату рождения участника в профиле', isError: true, isValidation: true);
       return;
     }
     final parsedBirthday = DateTime.tryParse(birthdayRaw);
     if (parsedBirthday == null) {
-      _showSnack('Укажите дату рождения участника в профиле', isError: true);
+      _showSnack('Укажите дату рождения участника в профиле', isError: true, isValidation: true);
       return;
     }
     final birthdayStr = DateFormat('yyyy-MM-dd').format(parsedBirthday);
@@ -1928,7 +1932,7 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     }
 
     if (listPendingSets.isEmpty) {
-      _showSnack('Нет сетов для листа ожидания', isError: true);
+      _showSnack('Нет сетов для листа ожидания', isError: true, isValidation: true);
       return;
     }
 
@@ -2134,15 +2138,15 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
                     onPressed: () async {
                       final numberSets = sheetSelectedNumberSets.toList()..sort();
                       if (numberSets.isEmpty) {
-                        _showSnack('Выберите хотя бы один сет', isError: true);
+                        _showSnack('Выберите хотя бы один сет', isError: true, isValidation: true);
                         return;
                       }
                       if (needCategorySelect && (sheetCategory == null || sheetCategory!.isEmpty)) {
-                        _showSnack('Выберите категорию', isError: true);
+                        _showSnack('Выберите категорию', isError: true, isValidation: true);
                         return;
                       }
                       if (needSportCategory && (sheetSportCategory == null || sheetSportCategory!.isEmpty)) {
-                        _showSnack('Выберите разряд', isError: true);
+                        _showSnack('Выберите разряд', isError: true, isValidation: true);
                         return;
                       }
                       final categoryToSend = _isYearOrAgeCategories ? (categoryByDob ?? sheetCategory) : sheetCategory;

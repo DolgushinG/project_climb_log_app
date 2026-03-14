@@ -13,6 +13,7 @@ import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
 import 'package:login_app/Screens/PlanOverviewScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAnalyticsScreen.dart';
 import 'package:login_app/services/AppConfigService.dart';
+import 'package:login_app/utils/app_snackbar.dart';
 import 'package:login_app/utils/session_error_helper.dart';
 
 /// Объединяющий экран трекера трасс.
@@ -104,36 +105,18 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
     await _loadPremiumStatus();
     if (!mounted) return;
     if (_premiumStatus?.hasActiveSubscription == true && !hadAccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Подписка оформлена! Спасибо за поддержку.', style: unbounded(color: Colors.white)),
-          behavior: SnackBarBehavior.floating,
-          backgroundColor: AppColors.successMuted,
-        ),
-      );
+      showAppSuccess(context, 'Подписка оформлена! Спасибо за поддержку.');
       return;
     }
     // Webhook ещё не обработан — показываем ожидание и опрашиваем
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Оплата получена. Подписка активируется в течение минуты.', style: unbounded(color: Colors.white)),
-        behavior: SnackBarBehavior.floating,
-        backgroundColor: AppColors.mutedGold.withOpacity(0.9),
-      ),
-    );
+    showAppInfo(context, 'Оплата получена. Подписка активируется в течение минуты.');
     for (var i = 0; i < 8 && mounted; i++) {
       await Future.delayed(const Duration(seconds: 2));
       if (!mounted) return;
       await _loadPremiumStatus();
       if (!mounted) return;
       if (_premiumStatus?.hasActiveSubscription == true) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Подписка оформлена! Спасибо за поддержку.', style: unbounded(color: Colors.white)),
-            behavior: SnackBarBehavior.floating,
-            backgroundColor: AppColors.successMuted,
-          ),
-        );
+        showAppSuccess(context, 'Подписка оформлена! Спасибо за поддержку.');
         return;
       }
     }
@@ -214,13 +197,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
           final msg = dateStr != null
               ? 'Ваша пробная подписка активирована до $dateStr'
               : 'Ваша пробная подписка активирована на 7 дней';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg, style: unbounded(color: Colors.white)),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.successMuted,
-            ),
-          );
+          showAppSuccess(context, msg);
         } else {
           // Обрабатываем разные типы ошибок
           String errorMessage;
@@ -249,13 +226,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
             default:
               errorMessage = 'Не удалось активировать. Попробуйте позже.';
           }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(errorMessage, style: unbounded(color: Colors.white)),
-              behavior: SnackBarBehavior.floating,
-              backgroundColor: AppColors.graphite,
-            ),
-          );
+          showAppWarning(context, errorMessage);
         }
       }
     }

@@ -214,8 +214,14 @@ class MyApp extends StatelessWidget {
         snackBarTheme: baseTheme.snackBarTheme.copyWith(
           backgroundColor: AppColors.cardDark,
           contentTextStyle: const TextStyle(
+            fontFamily: 'Unbounded',
             color: Colors.white,
             fontSize: 14,
+            fontWeight: FontWeight.w500,
+          ),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
           ),
         ),
         dialogTheme: DialogTheme(

@@ -104,6 +104,12 @@ class AppColors {
 
   /// Приглушённый синий для ссылок (вместо яркого)
   static const Color linkMuted = Color(0xFF8B9A8B);
+
+  /// Приглушённый красный для ошибок (в тон successMuted)
+  static const Color errorMuted = Color(0xFF5D4A4A);
+
+  /// Приглушённый оранжевый для предупреждений
+  static const Color warningMuted = Color(0xFF5D554A);
 }
 
 /// Форматирование порядкового номера: 01, 02, 03

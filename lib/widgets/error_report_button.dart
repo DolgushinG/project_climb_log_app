@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/ErrorReportService.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_snackbar.dart';
 
 /// Кнопка «Отправить ошибку» для отправки отчёта об ошибке на бэкенд.
 class ErrorReportButton extends StatefulWidget {
@@ -44,27 +45,16 @@ class _ErrorReportButtonState extends State<ErrorReportButton> {
           _isSending = false;
           _sent = true;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              ok ? 'Ошибка отправлена' : 'Добавлено в очередь. Отправится при появлении сети.',
-              style: unbounded(fontSize: 14),
-            ),
-            backgroundColor: ok ? Colors.green : Colors.orange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        if (ok) {
+          showAppSuccess(context, 'Ошибка отправлена');
+        } else {
+          showAppWarning(context, 'Добавлено в очередь. Отправится при появлении сети.');
+        }
       }
     } catch (_) {
       if (mounted) {
         setState(() => _isSending = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Не удалось отправить', style: unbounded(fontSize: 14)),
-            backgroundColor: Colors.orange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        showAppError(context, 'Не удалось отправить');
       }
     }
   }

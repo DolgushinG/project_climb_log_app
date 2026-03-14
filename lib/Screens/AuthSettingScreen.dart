@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 
 import '../theme/app_theme.dart';
 import '../main.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/session_error_helper.dart';
 import '../services/WebAuthnService.dart';
 
@@ -54,7 +55,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
     } else if (response.statusCode == 401) {
       _navigateToLoginScreen('Ошибка сессии');
     } else {
-      _showSnackBar('Не удалось загрузить данные профиля');
+      _showSnackBar('Не удалось загрузить данные профиля', isError: true);
     }
   }
 
@@ -97,7 +98,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
           );
         }
       } else {
-        _showSnackBar('Ошибка при выходе из аккаунта', Colors.red);
+        _showSnackBar('Ошибка при выходе из аккаунта', isError: true);
       }
     }
   }
@@ -106,10 +107,12 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
     redirectToLoginOnSessionError(context, message);
   }
 
-  void _showSnackBar(String message, [Color? backgroundColor]) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), backgroundColor: backgroundColor ?? AppColors.mutedGold),
-    );
+  void _showSnackBar(String message, {bool isError = false}) {
+    if (isError) {
+      showAppError(context, message);
+    } else {
+      showAppSuccess(context, message);
+    }
   }
 
   @override
@@ -263,7 +266,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
   Future<void> _addPasskey() async {
     final token = await getToken();
     if (token == null || token.isEmpty) {
-      _showSnackBar('Войдите в аккаунт', Colors.red);
+      _showSnackBar('Войдите в аккаунт', isError: true);
       return;
     }
     setState(() => _passkeyLoading = true);
@@ -276,9 +279,9 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
         _showSnackBar('Passkey успешно добавлен');
       }
     } on WebAuthnLoginException catch (e) {
-      if (mounted) _showSnackBar(e.userMessage, Colors.red);
+      if (mounted) _showSnackBar(e.userMessage, isError: true);
     } catch (e) {
-      if (mounted) _showSnackBar('Ошибка при добавлении Passkey', Colors.red);
+      if (mounted) _showSnackBar('Ошибка при добавлении Passkey', isError: true);
     } finally {
       if (mounted) setState(() => _passkeyLoading = false);
     }
@@ -287,7 +290,7 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
   Future<void> _deletePasskey() async {
     final token = await getToken();
     if (token == null || token.isEmpty) {
-      _showSnackBar('Войдите в аккаунт', Colors.red);
+      _showSnackBar('Войдите в аккаунт', isError: true);
       return;
     }
     final confirm = await showDialog<bool>(
@@ -320,9 +323,9 @@ class _AuthSettingScreenState extends State<AuthSettingScreen> {
         _showSnackBar('Passkey удалён');
       }
     } on WebAuthnLoginException catch (e) {
-      if (mounted) _showSnackBar(e.userMessage, Colors.red);
+      if (mounted) _showSnackBar(e.userMessage, isError: true);
     } catch (e) {
-      if (mounted) _showSnackBar('Ошибка при удалении Passkey', Colors.red);
+      if (mounted) _showSnackBar('Ошибка при удалении Passkey', isError: true);
     } finally {
       if (mounted) setState(() => _passkeyLoading = false);
     }

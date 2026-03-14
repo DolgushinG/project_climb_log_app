@@ -11,6 +11,7 @@ import '../models/NumberSets.dart';
 import '../models/SportCategory.dart';
 import '../services/ProfileService.dart';
 import '../theme/app_theme.dart';
+import '../utils/app_snackbar.dart';
 import '../utils/display_helper.dart';
 import '../utils/session_error_helper.dart';
 import '../widgets/RegistrationStepper.dart';
@@ -354,12 +355,11 @@ class _IndividualRegistrationStepperScreenState
 
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg, style: const TextStyle(color: Colors.white)),
-        backgroundColor: isError ? Colors.red : Colors.green,
-      ),
-    );
+    if (isError) {
+      showAppError(context, msg);
+    } else {
+      showAppSuccess(context, msg);
+    }
   }
 
   Future<bool?> _showWaitlistConfirmDialog(String message) async {
@@ -809,7 +809,7 @@ class _IndividualRegistrationStepperScreenState
                               ),
                             )
                           : Text(
-                              _currentStepIndex < totalSteps - 1 ? 'Продолжить →' : 'Принять участие',
+                              _currentStepIndex < totalSteps - 1 ? 'Продолжить →' : 'Подтвердить',
                               style: unbounded(color: Colors.white, fontWeight: FontWeight.w600),
                             ),
                     ),
@@ -1070,8 +1070,16 @@ class _IndividualRegistrationStepperScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (_needSetStep && _effectiveSelectedNumberSet != null && !_allSetsBusy)
-          _buildSummaryRow('Сет', formatSetCompact(_effectiveSelectedNumberSet!)),
+        if (_needSetStep && _effectiveSelectedNumberSet != null) ...[
+          _buildSummaryRow(
+            'Сет',
+            formatSetFull(
+              _effectiveSelectedNumberSet!,
+              competitionTitle: _competition.title,
+              startDateFormatted: DateFormat('dd.MM.yyyy').format(_competition.start_date),
+            ),
+          ),
+        ],
         if (isYearOrAge && _userCategoryFromApi != null)
           _buildSummaryRow('Ваша группа', _userCategoryFromApi!),
         if (isYearOrAge && _userCategoryFromApi == null && _hasBirthdayFilled)
@@ -1103,8 +1111,35 @@ class _IndividualRegistrationStepperScreenState
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
-              'Все сеты заняты. Нажмите «Принять участие», чтобы добавиться в лист ожидания.',
+              'Все сеты заняты. Нажмите «Подтвердить», чтобы добавиться в лист ожидания.',
               style: unbounded(fontSize: 14, color: Colors.white70),
+            ),
+          ),
+        if (!_allSetsBusy &&
+            _needSetStep &&
+            _effectiveSelectedNumberSet != null &&
+            _effectiveSelectedNumberSet!.free <= 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.orange.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.schedule, color: Colors.orange.shade300, size: 20),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Выбранный сет занят. Вы будете добавлены в лист ожидания.',
+                      style: unbounded(fontSize: 14, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
       ],
