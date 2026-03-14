@@ -46,6 +46,7 @@ jobs:
           cp web/premium/fail/index.html build/web/premium/fail/
 
       - name: Deploy to server
+        id: deploy
         env:
           SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
           DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
@@ -62,3 +63,29 @@ jobs:
           rsync -avz --delete \
             -e "ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no -p $PORT" \
             build/web/ "$DEPLOY_USER@$DEPLOY_HOST:$TARGET/"
+
+      - name: Notify ntfy — tests + deploy result
+        if: always()
+        env:
+          NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+        run: |
+          if [ -z "$NTFY_TOPIC" ]; then
+            echo "NTFY_TOPIC not set, skip notify"
+            exit 0
+          fi
+          COMMIT="${GITHUB_SHA:0:7}"
+          DEPLOY_OUTCOME="${{ steps.deploy.outcome }}"
+          if [ "$DEPLOY_OUTCOME" = "success" ]; then
+            MSG="✅ Tests passed, deploy OK
+          Ветка: ${{ github.ref_name }}
+          Commit: ${COMMIT}
+          Деплой выполнен."
+          else
+            MSG="❌ Tests passed, deploy failed
+          Ветка: ${{ github.ref_name }}
+          Commit: ${COMMIT}"
+          fi
+          MSG=$(echo "$MSG" | sed 's/^[[:space:]]*//')
+          curl -sf -X POST "https://ntfy.sh/${NTFY_TOPIC}" \
+            -H "Title: PROD tests+deploy ${{ steps.deploy.outcome }}" \
+            -d "${MSG}" || true

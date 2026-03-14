@@ -41,3 +41,21 @@ jobs:
         with:
           name: coverage
           path: coverage/lcov.info
+
+      - name: Notify ntfy — tests failed
+        if: failure()
+        env:
+          NTFY_TOPIC: ${{ vars.NTFY_TOPIC }}
+        run: |
+          if [ -z "$NTFY_TOPIC" ]; then
+            echo "NTFY_TOPIC not set, skip notify"
+            exit 0
+          fi
+          COMMIT="${GITHUB_SHA:0:7}"
+          MSG="❌ Tests failed
+          Ветка: ${{ github.ref_name }}
+          Commit: ${COMMIT}"
+          MSG=$(echo "$MSG" | sed 's/^[[:space:]]*//')
+          curl -sf -X POST "https://ntfy.sh/${NTFY_TOPIC}" \
+            -H "Title: PROD tests failed" \
+            -d "${MSG}" || true
