@@ -56,16 +56,10 @@ String formatSetCompact(NumberSets s) {
   return parts.join(' · ');
 }
 
-/// Полный формат сета для подтверждения: сет, время, день недели, соревнование, дата старта
+/// Полный формат сета для подтверждения: сет, время, день недели
 String formatSetFull(NumberSets s, {String? competitionTitle, String? startDateFormatted}) {
   final parts = <String>['Сет №${s.number_set}'];
   if (s.day_of_week.trim().isNotEmpty) parts.add(_dayOfWeekToRu(s.day_of_week));
   if (s.time.trim().isNotEmpty) parts.add(s.time.trim());
-  if (competitionTitle != null && competitionTitle.isNotEmpty) {
-    parts.add('Соревнование: $competitionTitle');
-  }
-  if (startDateFormatted != null && startDateFormatted.isNotEmpty) {
-    parts.add('Дата старта: $startDateFormatted');
-  }
   return parts.join(' · ');
 }

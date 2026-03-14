@@ -1617,7 +1617,20 @@ class _GroupRegisterScreenState extends State<GroupRegisterScreen> {
     if (setVal != null && setsList.isNotEmpty) {
       for (final s in setsList) {
         if (s is Map && (s['number_set'] == setVal || s['number_set'].toString() == setVal.toString())) {
-          setLabel = 'Сет №$setVal';
+          final ns = NumberSets.fromJson(Map<String, dynamic>.from(s as Map));
+          final event = _data?['event'];
+          final eventTitle = event is Map ? (event['title']?.toString() ?? '') : '';
+          final startDateStr = event is Map ? event['start_date']?.toString() : null;
+          final startDateFormatted = startDateStr != null
+              ? (DateTime.tryParse(startDateStr) != null
+                  ? DateFormat('dd.MM.yyyy').format(DateTime.parse(startDateStr))
+                  : null)
+              : null;
+          setLabel = formatSetFull(
+            ns,
+            competitionTitle: eventTitle.isNotEmpty ? eventTitle : null,
+            startDateFormatted: startDateFormatted,
+          );
           break;
         }
       }
