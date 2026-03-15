@@ -1585,12 +1585,13 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       if (holdSeconds == null) {
         defaultReps = int.tryParse(ex.reps) ?? ex.reps;
       }
+      final comment = ex.comment ?? ex.climbingBenefit;
       final w = WorkoutBlockExercise(
         exerciseId: ex.exerciseId ?? 'plan_${e.key}_${ex.name.hashCode.abs()}',
         name: ex.name,
         nameRu: ex.name,
         category: category,
-        comment: ex.comment,
+        comment: comment,
         hint: ex.hint,
         dosage: ex.dosage,
         defaultSets: ex.sets,

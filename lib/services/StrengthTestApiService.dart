@@ -295,12 +295,16 @@ class StrengthTestApiService {
   /// [sessionType] — short (5), standard (7), full (без лимита)
   /// [limit] — жёсткий лимит 1–50
   /// [dayOffset] — 0–6 (день недели) или дата для ротации упражнений
+  /// [tags] — фильтр по тегам (OR)
+  /// [search] — поиск по имени (name, name_ru)
   Future<List<CatalogExercise>> getExercises({
     String? level,
     String? category,
     String? sessionType,
     int? limit,
     int? dayOffset,
+    String? tags,
+    String? search,
   }) async {
     final token = await _getToken();
     if (token == null) return [];
@@ -311,6 +315,8 @@ class StrengthTestApiService {
       if (sessionType != null) params['session_type'] = sessionType;
       if (limit != null && limit >= 1 && limit <= 50) params['limit'] = limit.toString();
       if (dayOffset != null && dayOffset >= 0 && dayOffset <= 6) params['day_offset'] = dayOffset.toString();
+      if (tags != null && tags.isNotEmpty) params['tags'] = tags;
+      if (search != null && search.isNotEmpty) params['search'] = search;
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/exercises')
           .replace(queryParameters: params.isNotEmpty ? params : null);
       final response = await http.get(uri, headers: _headers(token));
@@ -789,6 +795,7 @@ class CatalogExercise {
   final String? dosage;
   final String? imageUrl;
   final List<String> muscleGroups;
+  final List<String> tags;
   final int defaultSets;
   final String defaultReps;
   final String defaultRest;
@@ -805,6 +812,7 @@ class CatalogExercise {
     this.dosage,
     this.imageUrl,
     this.muscleGroups = const [],
+    this.tags = const [],
     this.defaultSets = 3,
     this.defaultReps = '6',
     this.defaultRest = '180s',
@@ -822,6 +830,7 @@ class CatalogExercise {
         if (dosage != null) 'dosage': dosage,
         if (imageUrl != null) 'image_url': imageUrl,
         if (muscleGroups.isNotEmpty) 'muscle_groups': muscleGroups,
+        if (tags.isNotEmpty) 'tags': tags,
         'default_sets': defaultSets,
         'default_reps': defaultReps,
         'default_rest': defaultRest,
@@ -834,17 +843,24 @@ class CatalogExercise {
     if (mgRaw is List) {
       mg = mgRaw.map((e) => e.toString()).toList();
     }
+    final tagsRaw = json['tags'];
+    List<String> tagsList = [];
+    if (tagsRaw is List) {
+      tagsList = tagsRaw.map((e) => e.toString()).toList();
+    }
+    final desc = json['description'] as String? ?? json['climbing_benefit'] as String?;
     return CatalogExercise(
       id: json['id'] as String? ?? '',
       name: json['name'] as String? ?? '',
       nameRu: json['name_ru'] as String?,
       category: json['category'] as String? ?? 'sfp',
       level: json['level'] as String? ?? 'intermediate',
-      description: json['description'] as String?,
+      description: desc,
       hint: json['hint'] as String?,
       dosage: json['dosage'] as String?,
       imageUrl: json['image_url'] as String?,
       muscleGroups: mg,
+      tags: tagsList,
       defaultSets: json['default_sets'] as int? ?? 3,
       defaultReps: json['default_reps'] as String? ?? '6',
       defaultRest: json['default_rest'] as String? ?? '180s',

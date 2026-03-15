@@ -52,8 +52,9 @@ void main() {
       await tester.pumpAndSettle(const Duration(seconds: 20));
 
       // Главный экран в гостевом режиме: вкладки Тренировки, Рейтинг, Соревнования, Скалодромы
-      expect(find.text('Тренировки'), findsOneWidget);
-      expect(find.text('Соревнования'), findsOneWidget);
+      // "Тренировки" встречается дважды: заголовок экрана + label вкладки в нижней навигации
+      expect(find.text('Тренировки'), findsAtLeastNWidgets(1));
+      expect(find.text('Соревнования'), findsAtLeastNWidgets(1));
     });
 
     testWidgets('переключение на вкладку Соревнования', (tester) async {

@@ -14,6 +14,7 @@ import 'package:login_app/Screens/PlanCalendarScreen.dart';
 import 'package:login_app/Screens/PlanDayScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 import 'package:login_app/Screens/AIChatListScreen.dart';
+import 'package:login_app/Screens/CustomSetLandingScreen.dart';
 import 'package:login_app/widgets/error_report_modal.dart';
 
 /// Обзор плана: при отсутствии — кнопка создания; при наличии — календарь и «Сегодня».
@@ -22,6 +23,8 @@ class PlanOverviewScreen extends StatefulWidget {
   final PremiumStatus? premiumStatus;
   final bool aiCoachEnabled;
   final VoidCallback? onPremiumTap;
+  /// Когда true — показываем кнопку «Назад» (экран открыт через push).
+  final bool showBackButton;
 
   const PlanOverviewScreen({
     super.key,
@@ -29,6 +32,7 @@ class PlanOverviewScreen extends StatefulWidget {
     this.premiumStatus,
     this.aiCoachEnabled = false,
     this.onPremiumTap,
+    this.showBackButton = false,
   });
 
   @override
@@ -385,12 +389,13 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
         if (match != null) holdSeconds = int.tryParse(match.group(1) ?? '');
       }
       if (holdSeconds == null) defaultReps = int.tryParse(ex.reps) ?? ex.reps;
+      final comment = ex.comment ?? ex.climbingBenefit;
       final w = WorkoutBlockExercise(
         exerciseId: ex.exerciseId ?? 'plan_${e.key}_${ex.name.hashCode.abs()}',
         name: ex.name,
         nameRu: ex.name,
         category: category,
-        comment: ex.comment,
+        comment: comment,
         hint: ex.hint,
         dosage: ex.dosage,
         defaultSets: ex.sets,
@@ -481,12 +486,24 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.anthracite,
-        automaticallyImplyLeading: false,
+        automaticallyImplyLeading: widget.showBackButton,
         title: Text(
           'План тренировок',
           style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
         ),
-        actions: const [],
+        actions: [
+          if (!widget.showBackButton)
+            IconButton(
+              icon: const Icon(Icons.add_circle_outline, color: AppColors.mutedGold),
+              tooltip: 'Создать свой сет',
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const CustomSetLandingScreen()),
+                );
+              },
+            ),
+        ],
       ),
       body: _loading
           ? Center(
@@ -504,6 +521,62 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
               : _plan == null
                   ? _buildNoPlanState()
                   : _buildPlanState(),
+    );
+  }
+
+  Widget _buildCreatePlanCard() {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _openPlanSelection(planExists: false, catalogOnly: false),
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: AppColors.graphite),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.25),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.mutedGold.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.calendar_month_rounded, size: 30, color: AppColors.mutedGold),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Создать план',
+                      style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Персональное расписание ОФП и СФП под ваши цели',
+                      style: unbounded(fontSize: 13, color: Colors.white54, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(Icons.arrow_forward_ios, size: 18, color: AppColors.mutedGold),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -540,74 +613,17 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
 
   Widget _buildNoPlanState() {
     final guide = _planGuide;
-    final shortDesc = guide?.shortDescription;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (widget.aiCoachEnabled) ...[
             _buildAICoachChatRow(),
-            const SizedBox(height: 24),
+            const SizedBox(height: 20),
           ],
-          const SizedBox(height: 32),
-          Center(
-            child: Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                color: AppColors.mutedGold.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: AppColors.mutedGold.withOpacity(0.4), width: 2),
-              ),
-              child: Icon(Icons.calendar_month_rounded, size: 48, color: AppColors.mutedGold),
-            ),
-          ),
+          _buildCreatePlanCard(),
           const SizedBox(height: 24),
-          Text(
-            'Что такое план тренировок?',
-            style: unbounded(fontSize: 20, fontWeight: FontWeight.w600, color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            shortDesc ?? 'Персональное расписание ОФП и СФП под ваши цели',
-            style: unbounded(fontSize: 14, color: Colors.white54),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 28),
-          FilledButton.icon(
-            onPressed: () => _openPlanSelection(planExists: false, catalogOnly: true),
-            icon: const Icon(Icons.grid_view_rounded, size: 22),
-            label: Text(
-              'Готовые планы тренировок',
-              style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.mutedGold,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-              elevation: 2,
-              shadowColor: AppColors.mutedGold.withOpacity(0.3),
-            ),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: () => _openPlanSelection(planExists: false, catalogOnly: false),
-            icon: const Icon(Icons.tune_rounded, size: 20),
-            label: Text(
-              'Создать план',
-              style: unbounded(fontSize: 15, fontWeight: FontWeight.w500),
-            ),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.mutedGold,
-              side: const BorderSide(color: AppColors.mutedGold),
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-            ),
-          ),
-          const SizedBox(height: 32),
           if (guide != null) ...[
             if (guide.howItWorks != null && ((guide.howItWorks!.sections ?? []).isNotEmpty || (guide.howItWorks!.items ?? []).isNotEmpty)) ...[
               _buildGuideSection(guide.howItWorks!),
@@ -1655,3 +1671,4 @@ class _PlanOverviewScreenState extends State<PlanOverviewScreen> with AutomaticK
     );
   }
 }
+

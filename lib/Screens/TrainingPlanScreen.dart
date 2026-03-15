@@ -312,7 +312,7 @@ class _TrainingPlanScreenState extends State<TrainingPlanScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Выполни упражнения сверху вниз — каждое по подходам.',
+            'Выполни упражнения сверху вниз — отмечай каждый сет.',
             style: unbounded(fontSize: 12, color: Colors.white54),
           ),
           const SizedBox(height: 16),

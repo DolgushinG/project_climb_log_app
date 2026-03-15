@@ -37,6 +37,8 @@ class ExerciseCompletionScreen extends StatefulWidget {
   final String? progressionHint;
   /// Дата сессии — для плана тренировок (иначе сегодня).
   final DateTime? date;
+  /// Свой сет — при выходе показать предупреждение и напомнить про историю.
+  final bool isCustomSet;
 
   const ExerciseCompletionScreen({
     super.key,
@@ -47,6 +49,7 @@ class ExerciseCompletionScreen extends StatefulWidget {
     this.loadDistribution,
     this.progressionHint,
     this.date,
+    this.isCustomSet = false,
   });
 
   /// Очищает кэш плана на сегодня (например, после нового замера).
@@ -62,7 +65,7 @@ class ExerciseCompletionScreen extends StatefulWidget {
 }
 
 class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   static const String _keyCompleted = 'exercise_completions';
   static const String _keyCache = 'exercise_completion_screen_cache';
   static const String _keySectionExpanded = 'exercise_completion_section_expanded';
@@ -512,19 +515,23 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   Future<void> _loadWorkoutMode() async {
     final api = StrengthTestApiService();
     await api.syncPendingExerciseCompletions();
-    final completions = await api.getExerciseCompletions(date: _dateKey);
-    final skips = await api.getExerciseSkips(date: _dateKey);
     Map<String, bool> completed = {};
     Map<String, int> completionIds = {};
     Map<String, bool> skipped = {};
     Map<String, int> skipIds = {};
-    for (final c in completions) {
-      completed[c.exerciseId] = true;
-      completionIds[c.exerciseId] = c.id;
-    }
-    for (final s in skips) {
-      skipped[s.exerciseId] = true;
-      skipIds[s.exerciseId] = s.id;
+    // Для своего сета: каждое новое выполнение — с нуля. Не подгружаем предыдущие
+    // completions, иначе после создания нового сета в тот же день отображалось бы «выполнено».
+    if (!widget.isCustomSet) {
+      final completions = await api.getExerciseCompletions(date: _dateKey);
+      final skips = await api.getExerciseSkips(date: _dateKey);
+      for (final c in completions) {
+        completed[c.exerciseId] = true;
+        completionIds[c.exerciseId] = c.id;
+      }
+      for (final s in skips) {
+        skipped[s.exerciseId] = true;
+        skipIds[s.exerciseId] = s.id;
+      }
     }
     final entries = widget.workoutExerciseEntries!;
     final ofpList = entries.map((e) => CatalogExercise.fromWorkoutBlock(e.value)).toList();
@@ -550,6 +557,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         _skipIds = skipIds;
         _userLevel = 'intermediate';
         _loading = false;
+        if (widget.isCustomSet) _ofpExpanded = true;
       });
       _maybeShowSwipeHint();
     }
@@ -1015,9 +1023,49 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     });
   }
 
+  Future<void> _maybePop() async {
+    if (widget.isCustomSet) {
+      final ok = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: AppColors.cardDark,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(
+            'Выйти из тренировки?',
+            style: unbounded(color: Colors.white, fontSize: 18),
+          ),
+          content: Text(
+            'Ваш сет сохранён. Его можно найти в «История моих сетов». Прогресс упражнений не сохранится.',
+            style: unbounded(fontSize: 14, color: Colors.white70, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: Text('Остаться', style: unbounded(color: Colors.white54)),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              style: FilledButton.styleFrom(backgroundColor: AppColors.mutedGold),
+              child: Text('Выйти', style: unbounded(color: Colors.white, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      );
+      if (ok != true || !mounted) return;
+    }
+    if (!mounted) return;
+    Navigator.pop(context, _resolvedCount == _totalCount && _totalCount > 0);
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        await _maybePop();
+      },
+      child: Scaffold(
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.anthracite,
@@ -1033,7 +1081,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
           tooltip: 'Назад',
-          onPressed: () => Navigator.pop(context, _resolvedCount == _totalCount && _totalCount > 0),
+          onPressed: _maybePop,
         ),
         actions: [
           IconButton(
@@ -1092,7 +1140,21 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                           ],
                           if (_ofpExercises.isNotEmpty)
                             _isWorkoutMode
-                                ? _buildWorkoutGroupedSections()
+                                ? (widget.isCustomSet
+                                    ? _buildCollapsibleSection(
+                                        title: 'Упражнения',
+                                        expanded: _ofpExpanded,
+                                        onToggle: () {
+                                          setState(() {
+                                            _ofpExpanded = !_ofpExpanded;
+                                            _saveSectionExpandedState();
+                                          });
+                                        },
+                                        count: _ofpExercises.length,
+                                        icon: Icons.fitness_center,
+                                        child: _buildOfpSectionContent(),
+                                      )
+                                    : _buildWorkoutGroupedSections())
                                 : _buildCollapsibleSection(
                                     title: 'ОФП по уровню',
                                     expanded: _ofpExpanded,
@@ -1182,6 +1244,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                   ),
               ],
             ),
+      ),
     );
   }
 
@@ -1549,7 +1612,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Отдых между подходами: ${remain ~/ 60}:${(remain % 60).toString().padLeft(2, '0')}',
+                  'Отдых: ${remain ~/ 60}:${(remain % 60).toString().padLeft(2, '0')}',
                   style: unbounded(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -1783,8 +1846,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   static const _sectionBlocks = {
     'Разминка': ['warmup'],
     'СФП (план)': ['main', 'secondary', 'sfp'],
-    'ОФП': ['antagonist', 'core', 'plan', 'ofp'],
-    'Растяжка': ['cooldown'],
+    'ОФП': ['antagonist', 'core', 'plan', 'ofp', 'other'],
+    'Растяжка': ['cooldown', 'stretching'],
   };
 
   Widget _buildWorkoutGroupedSections() {
@@ -2001,13 +2064,12 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     children: [
                       Text(
                         e.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                         style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: done || skipped ? Colors.white70 : Colors.white,
                           decoration: done || skipped ? TextDecoration.lineThrough : null,
+                          height: 1.3,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -2115,6 +2177,10 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
   Future<void> _toggleStretchingCompleted(CatalogExercise e, bool value) async {
     await _toggleExerciseCompleted(e.id, value, setsDone: e.defaultSets, weightKg: null);
   }
+
+  /// Подсказка «Как выполнять»: hint приоритетнее, иначе description/comment.
+  static String _hintOrFallback(String? hint, String? fallback) =>
+      (hint != null && hint.isNotEmpty) ? hint : (fallback ?? '');
 
   void _showHintModal(String title, String hint) {
     showModalBottomSheet(
@@ -2315,13 +2381,12 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     children: [
                       Text(
                         e.displayName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
                         style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,
                           color: done || skipped ? Colors.white70 : Colors.white,
                           decoration: done || skipped ? TextDecoration.lineThrough : null,
+                          height: 1.3,
                         ),
                       ),
                       const SizedBox(height: 4),
@@ -2337,34 +2402,39 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(Icons.route, size: 14, color: AppColors.mutedGold),
                                 const SizedBox(width: 6),
-                                Text(
-                                  'Польза для скалолазания',
-                                  style: unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
+                                Expanded(
+                                  child: Text(
+                                    'Польза для скалолазания',
+                                    style: unbounded(fontSize: 12, color: AppColors.mutedGold, fontWeight: FontWeight.w500),
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ),
                       ],
-                      if (e.hint != null && e.hint!.isNotEmpty) ...[
+                      if (_hintOrFallback(e.hint, e.description).isNotEmpty) ...[
                         const SizedBox(height: 6),
                         InkWell(
-                          onTap: () => _showHintModal(e.displayName, e.hint!),
+                          onTap: () => _showHintModal(e.displayName, _hintOrFallback(e.hint, e.description)),
                           borderRadius: BorderRadius.circular(8),
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2),
                             child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                              mainAxisSize: MainAxisSize.max,
                               children: [
                                 Icon(Icons.help_outline, size: 14, color: AppColors.linkMuted),
                                 const SizedBox(width: 6),
-                                Text(
-                                  'Как выполнять',
-                                  style: unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+                                Expanded(
+                                  child: Text(
+                                    'Как выполнять',
+                                    style: unbounded(fontSize: 12, color: AppColors.linkMuted, fontWeight: FontWeight.w500),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
                                 ),
                               ],
                             ),
@@ -2373,19 +2443,27 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       ],
                       if (sets > 1 && !done && !skipped) ...[
                         const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: List.generate(sets, (i) {
-                            final isDone = approaches[i];
-                            final isNext = i == nextIndex;
-                            final enabled = isNext && canTapNext && !isRestingForThis;
-                            return Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: enabled
-                                    ? () => _onOfpApproachTap(e, i)
-                                    : null,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Подходы',
+                              style: unbounded(fontSize: 12, color: Colors.white54, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: List.generate(sets, (i) {
+                                final isDone = approaches[i];
+                                final isNext = i == nextIndex;
+                                final enabled = isNext && canTapNext && !isRestingForThis;
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: enabled
+                                        ? () => _onOfpApproachTap(e, i)
+                                        : null,
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -2416,7 +2494,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                             child: Icon(Icons.check, color: AppColors.successMuted, size: 16),
                                           ),
                                         Text(
-                                          '${i + 1} подход',
+                                          '${i + 1}',
                                           style: unbounded(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -2429,6 +2507,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                 ),
                               );
                             }),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -2612,19 +2692,27 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                       ],
                       if (sets > 1 && !done && !skipped) ...[
                         const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: List.generate(sets, (i) {
-                            final isDone = approaches[i];
-                            final isNext = i == nextIndex;
-                            final enabled = isNext && canTapNext && !isRestingForThis;
-                            return Material(
-                              color: Colors.transparent,
-                              child: InkWell(
-                                onTap: enabled
-                                    ? () => _onDrillApproachTap(d, i, restSec)
-                                    : null,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Подходы',
+                              style: unbounded(fontSize: 12, color: Colors.white54, fontWeight: FontWeight.w500),
+                            ),
+                            const SizedBox(height: 6),
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: List.generate(sets, (i) {
+                                final isDone = approaches[i];
+                                final isNext = i == nextIndex;
+                                final enabled = isNext && canTapNext && !isRestingForThis;
+                                return Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: enabled
+                                        ? () => _onDrillApproachTap(d, i, restSec)
+                                        : null,
                                   borderRadius: BorderRadius.circular(8),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -2655,7 +2743,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                             child: Icon(Icons.check, color: AppColors.successMuted, size: 16),
                                           ),
                         Text(
-                          '${i + 1} подход',
+                          '${i + 1}',
                           style: unbounded(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -2668,6 +2756,8 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                                 ),
                             );
                           }),
+                            ),
+                          ],
                         ),
                       ],
                     ],
@@ -2811,15 +2901,16 @@ class _CollapsibleBenefitRowState extends State<_CollapsibleBenefitRow> {
                 children: [
                   Row(
                     children: [
-                      Text(
-                        widget.title,
-                        style: unbounded(
-                          fontSize: 12,
-                          color: color,
-                          fontWeight: FontWeight.w500,
+                      Expanded(
+                        child: Text(
+                          widget.title,
+                          style: unbounded(
+                            fontSize: 12,
+                            color: color,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 4),
                       Icon(
                         _expanded ? Icons.expand_less : Icons.expand_more,
                         size: 16,

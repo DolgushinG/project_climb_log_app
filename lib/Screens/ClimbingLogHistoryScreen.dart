@@ -187,6 +187,23 @@ class _ClimbingLogHistoryScreenState extends State<ClimbingLogHistoryScreen>
 
     return Scaffold(
       backgroundColor: AppColors.anthracite,
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          await Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ClimbingLogAddScreen(initialDate: DateTime.now()),
+            ),
+          );
+          if (mounted) _load();
+        },
+        backgroundColor: AppColors.mutedGold,
+        icon: const Icon(Icons.route, color: Colors.white),
+        label: Text(
+          'Добавить лазание',
+          style: unbounded(fontSize: 14, color: Colors.white),
+        ),
+      ),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _load,

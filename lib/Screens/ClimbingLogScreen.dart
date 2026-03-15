@@ -10,7 +10,7 @@ import 'package:login_app/Screens/ClimbingLogHistoryScreen.dart';
 import 'package:login_app/Screens/ClimbingLogLandingScreen.dart';
 import 'package:login_app/Screens/ClimbingLogPremiumStub.dart';
 import 'package:login_app/Screens/ClimbingLogTestingScreen.dart';
-import 'package:login_app/Screens/PlanOverviewScreen.dart';
+import 'package:login_app/Screens/PlanTrainingLandingScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAnalyticsScreen.dart';
 import 'package:login_app/services/AppConfigService.dart';
 import 'package:login_app/utils/app_snackbar.dart';
@@ -309,8 +309,7 @@ class _ClimbingLogScreenState extends State<ClimbingLogScreen> with SingleTicker
                 : TabBarView(
                 controller: _tabController,
                 children: [
-                  PlanOverviewScreen(
-                    isTabVisible: _tabController.index == 0,
+                  PlanTrainingLandingScreen(
                     premiumStatus: _premiumStatus,
                     aiCoachEnabled: _aiCoachEnabled == true,
                     onPremiumTap: () => Navigator.push(
