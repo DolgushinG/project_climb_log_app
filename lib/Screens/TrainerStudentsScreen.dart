@@ -486,7 +486,7 @@ class _AddStudentSheetState extends State<_AddStudentSheet> {
                           final ok = await widget.onSubmit(email);
                           if (!mounted) return;
                           setState(() => _loading = false);
-                          if (ok) Navigator.pop(context);
+                          Navigator.pop(context);
                         },
                   style: FilledButton.styleFrom(
                     backgroundColor: AppColors.mutedGold,

@@ -121,7 +121,6 @@ Future<void> clearAllDataOnLogout() async {
     'training_last_session_date',
     'training_last_measure_date',
     'training_boss_fight_week',
-    'profile_welcome_shown',
     'exercise_skip_swipe_hint_shown',
     'training_disclaimer_acknowledged',
   ];

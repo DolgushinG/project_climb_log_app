@@ -21,7 +21,7 @@ MaterialApp _buildThemedApp(Widget home) => MaterialApp(
       home: home,
     );
 
-/// Закрывает модалки после логина: сначала верхнюю («Начать»), затем Passkey («Не сейчас»).
+/// Закрывает модалки после логина: Passkey («Не сейчас»), если показывается.
 Future<void> _dismissPostLoginOverlays(WidgetTester tester) async {
   await tester.pumpAndSettle(const Duration(milliseconds: 500));
   while (true) {

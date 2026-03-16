@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'CompetitionScreen.dart';
 import 'ProfileScreen.dart';
@@ -113,8 +112,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     }
   }
 
-  static const String _keyWelcomeShown = 'profile_welcome_shown';
-
   @override
   void initState() {
     super.initState();
@@ -123,9 +120,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final startPage = widget.isGuest ? 0 : (widget.openOnProfile ? 4 : 0);
     _selectedIndex = startPage;
     _pageController = PageController(initialPage: startPage);
-    if (!widget.isGuest && !widget.openOnProfile) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _checkFirstTimeAndGoToProfile());
-    }
     final conn = ConnectivityService();
     _isOnline = conn.isOnline;
     if (!_isOnline) {
@@ -157,14 +151,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed && !widget.isGuest) {
       AppConfigService().getConfig(forceRefresh: true);
     }
-  }
-
-  Future<void> _checkFirstTimeAndGoToProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_keyWelcomeShown) == true) return;
-    if (!mounted) return;
-    setState(() => _selectedIndex = 4);
-    _pageController.jumpToPage(4);
   }
 
   Future<void> _maybeShowPasskeyPrompt() async {

@@ -11,6 +11,15 @@ import '../services/StrengthTestApiService.dart';
 import '../utils/app_snackbar.dart';
 import 'TrainerCreateExerciseScreen.dart';
 
+const _muscleLabels = {
+  'back': 'Спина',
+  'core': 'Кор',
+  'forearms': 'Предплечья',
+  'shoulders': 'Плечи',
+  'chest': 'Грудь',
+  'legs': 'Ноги',
+};
+
 /// Упражнение в списке для назначения (до сохранения).
 class _PendingExercise {
   final String exerciseId;
@@ -70,6 +79,8 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
   bool _loading = true;
   String? _error;
   bool _saving = false;
+  Set<String> _filterCategories = {'ofp', 'sfp', 'stretching'};
+  Set<String> _filterMuscles = {};
 
   bool get _isEditMode => widget.assignmentToEdit != null;
 
@@ -141,22 +152,40 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
     }
   }
 
+  bool _passesCategoryFilter(String cat) {
+    if (_filterCategories.isEmpty) return true;
+    if (cat == 'ofp') return _filterCategories.contains('ofp');
+    if (cat == 'sfp') return _filterCategories.contains('sfp');
+    if (cat == 'stretching') return _filterCategories.contains('stretching');
+    return _filterCategories.contains('other');
+  }
+
   List<TrainerExercise> get _filteredTrainerExercises {
+    var list = _trainerExercises.where((e) => _passesCategoryFilter(e.category)).toList();
     final q = _searchController.text.trim().toLowerCase();
-    if (q.isEmpty) return _trainerExercises;
-    return _trainerExercises.where((e) {
-      final n = e.displayName.toLowerCase();
-      return n.contains(q) || e.name.toLowerCase().contains(q);
-    }).toList();
+    if (q.isNotEmpty) {
+      list = list.where((e) {
+        final n = e.displayName.toLowerCase();
+        return n.contains(q) || e.name.toLowerCase().contains(q);
+      }).toList();
+    }
+    return list;
   }
 
   List<CatalogExercise> get _filteredCatalogExercises {
+    var list = _catalogExercises.where((e) => _passesCategoryFilter(e.category)).toList();
+    if (_filterMuscles.isNotEmpty) {
+      list = list.where((e) =>
+          e.muscleGroups.isEmpty || e.muscleGroups.any((m) => _filterMuscles.contains(m))).toList();
+    }
     final q = _searchController.text.trim().toLowerCase();
-    if (q.isEmpty) return _catalogExercises;
-    return _catalogExercises.where((e) {
-      final n = (e.nameRu ?? e.name).toLowerCase();
-      return n.contains(q) || e.name.toLowerCase().contains(q);
-    }).toList();
+    if (q.isNotEmpty) {
+      list = list.where((e) {
+        final n = (e.nameRu ?? e.name).toLowerCase();
+        return n.contains(q) || e.name.toLowerCase().contains(q);
+      }).toList();
+    }
+    return list;
   }
 
   void _pickCatalogExercise(CatalogExercise ex) {
@@ -216,13 +245,119 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
     return (available / 2).clamp(160.0, 380.0);
   }
 
-  /// При открытой клавиатуре — один общий список с большей высотой.
   double _getUnifiedListMaxHeight() {
     final viewInsets = MediaQuery.of(context).viewInsets;
     if (viewInsets.bottom <= 0) return 0;
     final screenH = MediaQuery.of(context).size.height;
     final available = screenH - viewInsets.bottom - 200;
     return available.clamp(220.0, 450.0);
+  }
+
+  Future<void> _showFiltersSheet() async {
+    var categories = Set<String>.from(_filterCategories);
+    var muscles = Set<String>.from(_filterMuscles);
+    await showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.cardDark,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setModalState) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Фильтры',
+                    style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Категории',
+                    style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                  ),
+                  const SizedBox(height: 8),
+                  _buildFilterCheckbox(ctx, setModalState, 'ofp', 'ОФП', categories, (v) {
+                    if (v) categories.add('ofp'); else categories.remove('ofp');
+                  }),
+                  _buildFilterCheckbox(ctx, setModalState, 'sfp', 'СФП', categories, (v) {
+                    if (v) categories.add('sfp'); else categories.remove('sfp');
+                  }),
+                  _buildFilterCheckbox(ctx, setModalState, 'stretching', 'Растяжка', categories, (v) {
+                    if (v) categories.add('stretching'); else categories.remove('stretching');
+                  }),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Мышцы',
+                    style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: _muscleLabels.entries.map((e) {
+                      final selected = muscles.contains(e.key);
+                      return FilterChip(
+                        label: Text(e.value, style: unbounded(fontSize: 12)),
+                        selected: selected,
+                        onSelected: (v) {
+                          setModalState(() {
+                            if (v) muscles.add(e.key); else muscles.remove(e.key);
+                          });
+                        },
+                        selectedColor: AppColors.mutedGold.withOpacity(0.4),
+                        backgroundColor: AppColors.rowAlt,
+                        checkmarkColor: AppColors.mutedGold,
+                        labelStyle: TextStyle(color: selected ? AppColors.mutedGold : Colors.white70),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 24),
+                  FilledButton(
+                    onPressed: () {
+                      setState(() {
+                        _filterCategories = categories;
+                        _filterMuscles = muscles;
+                        if (_filterCategories.isEmpty) _filterCategories = {'ofp', 'sfp', 'stretching'};
+                      });
+                      Navigator.pop(ctx);
+                    },
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppColors.mutedGold,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Применить'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildFilterCheckbox(
+    BuildContext ctx,
+    StateSetter setModalState,
+    String key,
+    String label,
+    Set<String> values,
+    void Function(bool) onToggle,
+  ) {
+    final selected = values.contains(key);
+    return CheckboxListTile(
+      value: selected,
+      onChanged: (v) {
+        setModalState(() => onToggle(v ?? false));
+      },
+      title: Text(label, style: unbounded(fontSize: 15, color: Colors.white)),
+      activeColor: AppColors.mutedGold,
+      checkColor: Colors.white,
+    );
   }
 
   Widget _buildUnifiedExerciseList() {
@@ -553,56 +688,73 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Ученик: ${widget.student.displayName}',
-                          style: unbounded(fontSize: 14, color: Colors.white70),
-                        ),
-                        const SizedBox(height: 16),
-
-                        // Дата
-                        InkWell(
-                          onTap: _selectDate,
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.cardDark,
-                              borderRadius: BorderRadius.circular(12),
+                        // Ученик и дата в одной компактной строке
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                'Ученик: ${widget.student.displayName}',
+                                style: unbounded(fontSize: 14, color: Colors.white70),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
-                            child: Row(
-                              children: [
-                                Icon(Icons.calendar_today, color: AppColors.mutedGold),
-                                const SizedBox(width: 12),
-                                Text(
-                                  DateFormat('dd MMMM yyyy', 'ru').format(_selectedDate),
-                                  style: unbounded(fontSize: 16, color: Colors.white),
+                            InkWell(
+                              onTap: _selectDate,
+                              borderRadius: BorderRadius.circular(8),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(Icons.calendar_today, size: 16, color: AppColors.mutedGold),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      DateFormat('d MMM yyyy', 'ru').format(_selectedDate),
+                                      style: unbounded(fontSize: 13, color: Colors.white70),
+                                    ),
+                                    const SizedBox(width: 2),
+                                    Icon(Icons.chevron_right, size: 18, color: Colors.white54),
+                                  ],
                                 ),
-                                const Spacer(),
-                                Icon(Icons.chevron_right, color: Colors.white54),
-                              ],
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                         const SizedBox(height: 16),
 
                         // Выбор упражнения
                         Text('Упражнение', style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
                         const SizedBox(height: 8),
-                        TextField(
-                          controller: _searchController,
-                          onChanged: (_) => setState(() {}),
-                          style: unbounded(color: Colors.white),
-                          decoration: InputDecoration(
-                            hintText: 'Поиск...',
-                            hintStyle: unbounded(color: Colors.white38),
-                            prefixIcon: Icon(Icons.search, color: AppColors.mutedGold),
-                            filled: true,
-                            fillColor: AppColors.cardDark,
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                          ),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (_) => setState(() {}),
+                                style: unbounded(color: Colors.white),
+                                decoration: InputDecoration(
+                                  hintText: 'Поиск...',
+                                  hintStyle: unbounded(color: Colors.white38),
+                                  prefixIcon: Icon(Icons.search, color: AppColors.mutedGold),
+                                  filled: true,
+                                  fillColor: AppColors.cardDark,
+                                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: _showFiltersSheet,
+                              icon: Icon(
+                                _filterMuscles.isNotEmpty || _filterCategories.length < 3 ? Icons.filter_alt : Icons.filter_alt_outlined,
+                                color: _filterMuscles.isNotEmpty || _filterCategories.length < 3 ? AppColors.mutedGold : Colors.white54,
+                              ),
+                              tooltip: 'Фильтры',
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 12),
-                        // При открытой клавиатуре — один объединённый список для экономии места
+                        // При открытой клавиатуре — объединённый список для экономии места
                         if (MediaQuery.of(context).viewInsets.bottom > 0 && _getUnifiedListMaxHeight() > 0) ...[
                           _buildUnifiedExerciseList(),
                         ] else ...[

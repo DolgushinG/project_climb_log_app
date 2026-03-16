@@ -2,7 +2,6 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'theme/app_theme.dart';
 import 'package:login_app/Screens/AuthSettingScreen.dart';
 import 'dart:convert';
@@ -385,13 +384,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  static const String _keyWelcomeShown = 'profile_welcome_shown';
-
   @override
   void initState() {
     super.initState();
     _loadProfileAndPremium();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowWelcomeModal());
     if (kDebugMode) {
       RustorePushService.getStoredToken().then((token) {
         if (mounted) setState(() => _pushToken = token);
@@ -425,83 +421,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         _isRefreshing = false;
       });
     }
-  }
-
-  Future<void> _maybeShowWelcomeModal() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (prefs.getBool(_keyWelcomeShown) == true) return;
-    if (!mounted) return;
-    await _showWelcomeModal();
-    if (mounted) await prefs.setBool(_keyWelcomeShown, true);
-  }
-
-  Future<void> _showWelcomeModal() async {
-    await showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => Dialog(
-        backgroundColor: AppColors.cardDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxHeight: MediaQuery.of(ctx).size.height * 0.7,
-            maxWidth: MediaQuery.of(ctx).size.width * 0.9,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.waving_hand_rounded, size: 56, color: AppColors.mutedGold),
-                  const SizedBox(height: 20),
-                  Text(
-                    'Добро пожаловать!',
-                    style: unbounded(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'В приложении вы можете:\n\n'
-                    '• Записываться на соревнования и вносить результаты\n'
-                    '• Отслеживать тренировки и прогресс в скалолазании\n'
-                    '• Искать скалодромы и соревнования рядом\n'
-                    '• Вести историю залов и трасс',
-                    style: unbounded(
-                      fontSize: 14,
-                      color: Colors.white70,
-                      height: 1.5,
-                    ),
-                    textAlign: TextAlign.left,
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton(
-                      onPressed: () => Navigator.of(ctx).pop(),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.mutedGold,
-                        foregroundColor: AppColors.anthracite,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: Text(
-                        'Начать',
-                        style: unbounded(fontSize: 16, fontWeight: FontWeight.w600),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 
   @override

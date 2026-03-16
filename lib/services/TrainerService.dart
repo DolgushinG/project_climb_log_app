@@ -80,7 +80,16 @@ class TrainerService {
         if (context.mounted) redirectToLoginOnSessionError(context);
         return false;
       }
-      if (response.statusCode == 201 || response.statusCode == 200) return true;
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        final b = response.body.isNotEmpty ? jsonDecode(response.body) : null;
+        if (b is Map && (b['error'] == 'User not found' || b['error'] == 'user_not_found')) {
+          if (context.mounted) {
+            showAppError(context, (b['message'] ?? 'Пользователь не найден').toString());
+          }
+          return false;
+        }
+        return true;
+      }
       if (response.statusCode == 403) {
         if (context.mounted) showAppError(context, 'Режим тренера не включён');
         return false;
