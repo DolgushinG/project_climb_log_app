@@ -205,6 +205,99 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
     });
   }
 
+  void _unfocusKeyboard() => FocusScope.of(context).unfocus();
+
+  double _getExerciseListMaxHeight() {
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    final keyboardVisible = viewInsets.bottom > 0;
+    if (!keyboardVisible) return 180;
+    final screenH = MediaQuery.of(context).size.height;
+    final available = screenH - viewInsets.bottom - 240;
+    return (available / 2).clamp(160.0, 380.0);
+  }
+
+  /// При открытой клавиатуре — один общий список с большей высотой.
+  double _getUnifiedListMaxHeight() {
+    final viewInsets = MediaQuery.of(context).viewInsets;
+    if (viewInsets.bottom <= 0) return 0;
+    final screenH = MediaQuery.of(context).size.height;
+    final available = screenH - viewInsets.bottom - 200;
+    return available.clamp(220.0, 450.0);
+  }
+
+  Widget _buildUnifiedExerciseList() {
+    final maxH = _getUnifiedListMaxHeight();
+    final trainer = _filteredTrainerExercises;
+    final catalog = _filteredCatalogExercises;
+    final hasTrainer = trainer.isNotEmpty;
+    final hasCatalog = catalog.isNotEmpty;
+    if (!hasTrainer && !hasCatalog) {
+      return ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxH),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Text(
+              'Нет результатов',
+              style: unbounded(color: Colors.white54, fontSize: 14),
+            ),
+          ),
+        ),
+      );
+    }
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxHeight: maxH),
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          if (hasTrainer) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.star, size: 16, color: AppColors.mutedGold),
+                  const SizedBox(width: 6),
+                  Text('Мои упражнения', style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedGold)),
+                ],
+              ),
+            ),
+            ...trainer.map((e) => ListTile(
+              dense: true,
+              selected: _selectedExerciseId == e.id,
+              selectedTileColor: AppColors.mutedGold.withOpacity(0.2),
+              title: Text(e.displayName, style: unbounded(color: Colors.white, fontSize: 14)),
+              subtitle: Text(e.category == 'ofp' ? 'ОФП' : e.category == 'sfp' ? 'СФП' : 'Растяжка', style: unbounded(fontSize: 12, color: Colors.white54)),
+              trailing: _selectedExerciseId == e.id ? Icon(Icons.check, color: AppColors.mutedGold, size: 20) : null,
+              onTap: () { _pickTrainerExercise(e); _unfocusKeyboard(); },
+            )),
+            const SizedBox(height: 8),
+          ],
+          if (hasCatalog) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(Icons.list, size: 16, color: Colors.white54),
+                  const SizedBox(width: 6),
+                  Text('Каталог', style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54)),
+                ],
+              ),
+            ),
+            ...catalog.map((e) => ListTile(
+              dense: true,
+              selected: _selectedExerciseId == e.id,
+              selectedTileColor: AppColors.mutedGold.withOpacity(0.2),
+              title: Text(e.displayName, style: unbounded(color: Colors.white, fontSize: 14)),
+              subtitle: Text(e.category == 'ofp' ? 'ОФП' : e.category == 'sfp' ? 'СФП' : 'Растяжка', style: unbounded(fontSize: 12, color: Colors.white54)),
+              trailing: _selectedExerciseId == e.id ? Icon(Icons.check, color: AppColors.mutedGold, size: 20) : null,
+              onTap: () { _pickCatalogExercise(e); _unfocusKeyboard(); },
+            )),
+          ],
+        ],
+      ),
+    );
+  }
+
   Widget _buildExerciseList<T>({
     required List<T> items,
     required String Function(T) displayName,
@@ -212,25 +305,33 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
     required String Function(T) getId,
     required void Function(T) onTap,
   }) {
-    return ConstrainedBox(
-      constraints: const BoxConstraints(maxHeight: 180),
-      child: ListView.builder(
-        shrinkWrap: true,
-        itemCount: items.length,
-        itemBuilder: (_, i) {
-          final ex = items[i];
-          final isSelected = _selectedExerciseId == getId(ex);
-          return ListTile(
-            dense: true,
-            selected: isSelected,
-            selectedTileColor: AppColors.mutedGold.withOpacity(0.2),
-            title: Text(displayName(ex), style: unbounded(color: Colors.white, fontSize: 14)),
-            subtitle: Text(categoryLabel(ex), style: unbounded(fontSize: 12, color: Colors.white54)),
-            trailing: isSelected ? Icon(Icons.check, color: AppColors.mutedGold, size: 20) : null,
-            onTap: () => onTap(ex),
-          );
-        },
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxH = _getExerciseListMaxHeight();
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: maxH),
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: items.length,
+            itemBuilder: (_, i) {
+              final ex = items[i];
+              final isSelected = _selectedExerciseId == getId(ex);
+              return ListTile(
+                dense: true,
+                selected: isSelected,
+                selectedTileColor: AppColors.mutedGold.withOpacity(0.2),
+                title: Text(displayName(ex), style: unbounded(color: Colors.white, fontSize: 14)),
+                subtitle: Text(categoryLabel(ex), style: unbounded(fontSize: 12, color: Colors.white54)),
+                trailing: isSelected ? Icon(Icons.check, color: AppColors.mutedGold, size: 20) : null,
+                onTap: () {
+                  onTap(ex);
+                  FocusScope.of(context).unfocus();
+                },
+              );
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -416,6 +517,7 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text(_isEditMode ? 'Редактировать упражнение' : 'Упражнения', style: unbounded(fontSize: 18, fontWeight: FontWeight.w500, color: Colors.white)),
         backgroundColor: AppColors.cardDark,
@@ -500,41 +602,44 @@ class _TrainerAssignExerciseScreenState extends State<TrainerAssignExerciseScree
                           ),
                         ),
                         const SizedBox(height: 12),
-                        // Мои упражнения (быстрый доступ)
-                        if (_filteredTrainerExercises.isNotEmpty) ...[
+                        // При открытой клавиатуре — один объединённый список для экономии места
+                        if (MediaQuery.of(context).viewInsets.bottom > 0 && _getUnifiedListMaxHeight() > 0) ...[
+                          _buildUnifiedExerciseList(),
+                        ] else ...[
+                          if (_filteredTrainerExercises.isNotEmpty) ...[
+                            Row(
+                              children: [
+                                Icon(Icons.star, size: 16, color: AppColors.mutedGold),
+                                const SizedBox(width: 6),
+                                Text('Мои упражнения', style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedGold)),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            _buildExerciseList<TrainerExercise>(
+                              items: _filteredTrainerExercises,
+                              displayName: (e) => e.displayName,
+                              categoryLabel: (e) => e.category == 'ofp' ? 'ОФП' : e.category == 'sfp' ? 'СФП' : 'Растяжка',
+                              getId: (e) => e.id,
+                              onTap: _pickTrainerExercise,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
                           Row(
                             children: [
-                              Icon(Icons.star, size: 16, color: AppColors.mutedGold),
+                              Icon(Icons.list, size: 16, color: Colors.white54),
                               const SizedBox(width: 6),
-                              Text('Мои упражнения', style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.mutedGold)),
+                              Text('Каталог', style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54)),
                             ],
                           ),
                           const SizedBox(height: 6),
-                          _buildExerciseList<TrainerExercise>(
-                            items: _filteredTrainerExercises,
+                          _buildExerciseList<CatalogExercise>(
+                            items: _filteredCatalogExercises,
                             displayName: (e) => e.displayName,
                             categoryLabel: (e) => e.category == 'ofp' ? 'ОФП' : e.category == 'sfp' ? 'СФП' : 'Растяжка',
                             getId: (e) => e.id,
-                            onTap: _pickTrainerExercise,
+                            onTap: _pickCatalogExercise,
                           ),
-                          const SizedBox(height: 12),
                         ],
-                        // Каталог
-                        Row(
-                          children: [
-                            Icon(Icons.list, size: 16, color: Colors.white54),
-                            const SizedBox(width: 6),
-                            Text('Каталог', style: unbounded(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white54)),
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        _buildExerciseList<CatalogExercise>(
-                          items: _filteredCatalogExercises,
-                          displayName: (e) => e.displayName,
-                          categoryLabel: (e) => e.category == 'ofp' ? 'ОФП' : e.category == 'sfp' ? 'СФП' : 'Растяжка',
-                          getId: (e) => e.id,
-                          onTap: _pickCatalogExercise,
-                        ),
                         const SizedBox(height: 12),
                         OutlinedButton.icon(
                           onPressed: _openCreateExercise,
