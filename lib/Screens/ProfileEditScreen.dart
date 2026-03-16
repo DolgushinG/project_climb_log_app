@@ -19,6 +19,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   String? selectedSportCategory;
   String? selectedGender;
   DateTime? _selectedDate;
+  bool _trainerModeEnabled = false;
 
   final Map<String, String> genderOptions = {
     'Мужской': 'male',
@@ -49,6 +50,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       } catch (e) {
       }
     }
+    if (profile != null && mounted) {
+      setState(() => _trainerModeEnabled = profile!.trainerModeEnabled ?? false);
+    }
 
     return profile;
   }
@@ -71,6 +75,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
       profile.birthday = DateFormat('yyyy-MM-dd').format(_selectedDate!);
     }
     profile.gender = (selectedGender ?? profile.gender);
+    profile.trainerModeEnabled = _trainerModeEnabled;
     final profileService = ProfileService(baseUrl: DOMAIN);
     // Обновляем значения полей
     final response = await profileService.updateProfile(profile);
@@ -363,6 +368,29 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                         Icons.email,
                         isEmail: true,
                       ),
+
+                      // Режим тренера
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        child: Row(
+                          children: [
+                            Icon(Icons.fitness_center, color: AppColors.mutedGold),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Режим тренера',
+                                style: unbounded(color: Colors.white, fontSize: 16),
+                              ),
+                            ),
+                            Switch(
+                              value: _trainerModeEnabled,
+                              onChanged: (v) => setState(() => _trainerModeEnabled = v),
+                              activeTrackColor: AppColors.mutedGold.withOpacity(0.5),
+                            ),
+                          ],
+                        ),
+                      ),
+
                       SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,

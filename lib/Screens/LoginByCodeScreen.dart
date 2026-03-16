@@ -423,50 +423,59 @@ class _CodeInputFieldState extends State<_CodeInputField> {
 
   @override
   Widget build(BuildContext context) {
-    final boxesRow = Row(
-      mainAxisSize: MainAxisSize.min,
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(widget.codeLength, (i) {
-        final text = widget.controller.text;
-        final digit = i < text.length ? text[i] : '';
-        return Container(
-          width: _boxWidth,
-          height: 52,
-          margin: EdgeInsets.only(right: i < widget.codeLength - 1 ? _boxGap : 0),
-          decoration: BoxDecoration(
-            color: AppColors.rowAlt,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: digit.isNotEmpty ? AppColors.mutedGold : AppColors.graphite,
-              width: 1.5,
-            ),
-          ),
-          child: Center(
-            child: Text(
-              digit,
-              style: unbounded(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.w600,
+    final totalFixedWidth = widget.codeLength * _boxWidth + (widget.codeLength - 1) * _boxGap;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        final scale = maxW < totalFixedWidth ? maxW / totalFixedWidth : 1.0;
+        final boxWidth = _boxWidth * scale;
+        final boxGap = _boxGap * scale;
+        final boxHeight = 52.0 * scale;
+
+        final boxesRow = Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(widget.codeLength, (i) {
+            final text = widget.controller.text;
+            final digit = i < text.length ? text[i] : '';
+            return Container(
+              width: boxWidth,
+              height: boxHeight,
+              margin: EdgeInsets.only(right: i < widget.codeLength - 1 ? boxGap : 0),
+              decoration: BoxDecoration(
+                color: AppColors.rowAlt,
+                borderRadius: BorderRadius.circular(12 * scale),
+                border: Border.all(
+                  color: digit.isNotEmpty ? AppColors.mutedGold : AppColors.graphite,
+                  width: 1.5,
+                ),
               ),
-            ),
-          ),
+              child: Center(
+                child: Text(
+                  digit,
+                  style: unbounded(
+                    color: Colors.white,
+                    fontSize: 22 * scale,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            );
+          }),
         );
-      }),
-    );
 
-    final totalWidth = widget.codeLength * _boxWidth + (widget.codeLength - 1) * _boxGap;
+        final actualWidth = totalFixedWidth * scale;
 
-    return GestureDetector(
-      onTap: () => widget.focusNode.requestFocus(),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Center(child: boxesRow),
-          SizedBox(
-            width: totalWidth,
-            height: 52,
-            child: TextField(
+        return GestureDetector(
+          onTap: () => widget.focusNode.requestFocus(),
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Center(child: boxesRow),
+              SizedBox(
+                width: actualWidth,
+                height: boxHeight,
+                child: TextField(
               controller: widget.controller,
               focusNode: widget.focusNode,
               showCursor: false,
@@ -488,8 +497,10 @@ class _CodeInputFieldState extends State<_CodeInputField> {
               onChanged: widget.onChanged,
             ),
           ),
-        ],
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

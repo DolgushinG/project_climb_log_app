@@ -580,7 +580,7 @@ class _DrillTileWithHintState extends State<_DrillTileWithHint> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        d.name,
+                        d.displayName,
                         style: unbounded(
                           fontSize: 15,
                           fontWeight: FontWeight.w600,

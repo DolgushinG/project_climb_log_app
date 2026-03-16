@@ -11,6 +11,8 @@ import 'Screens/AnalyticsScreen.dart';
 import 'services/RustorePushService.dart';
 import 'Screens/ProfileEditScreen.dart';
 import 'Screens/RelatedUsersScreen.dart';
+import 'Screens/TrainerStudentsScreen.dart';
+import 'Screens/TrainerInvitationsScreen.dart';
 import 'Screens/ChangePasswordScreen.dart';
 import 'Screens/ParticipationHistoryScreen.dart';
 import 'Screens/AboutScreen.dart';
@@ -44,6 +46,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _isRefreshing = false;
   String? _pushToken;
   bool _expiredBannerDismissed = false;
+  bool _trainerModeEnabled = false;
 
   bool _pushTokenLoading = false;
   bool _showingErrorModal = false;
@@ -318,6 +321,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       city = data['city']?.toString() ?? 'Город';
       rank = data['sport_category']?.toString() ?? 'Разряд';
       birthYear = data['birthday']?.toString() ?? 'День рождения';
+      _trainerModeEnabled = data['trainer_mode_enabled'] == true;
       isLoading = false;
       _loadError = null;
     });
@@ -635,6 +639,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           city = updatedProfile.city;
                           rank = updatedProfile.sportCategory;
                           birthYear = updatedProfile.birthday;
+                          _trainerModeEnabled = updatedProfile.trainerModeEnabled ?? false;
                         });
                       }
                     },
@@ -651,6 +656,32 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       );
                     },
                   ),
+                  if (_trainerModeEnabled)
+                    ProfileActionCard(
+                      title: 'Мои ученики',
+                      icon: Icons.school,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TrainerStudentsScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  if (!_trainerModeEnabled)
+                    ProfileActionCard(
+                      title: 'Приглашения от тренеров',
+                      icon: Icons.mail,
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const TrainerInvitationsScreen(),
+                          ),
+                        );
+                      },
+                    ),
                   ProfileActionCard(
                     title: 'Заявленные',
                     icon: Icons.people,

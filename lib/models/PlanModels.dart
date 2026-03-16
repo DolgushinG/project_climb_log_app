@@ -442,6 +442,7 @@ class PlanDayResponse {
 class PlanDayExercise {
   final String? exerciseId;
   final String name;
+  final String? nameRu;
   final int sets;
   final String reps;
   /// Готовый текст дозировки («3 подхода по 12 повторений»). При наличии — приоритет над sets+reps.
@@ -458,6 +459,7 @@ class PlanDayExercise {
   PlanDayExercise({
     this.exerciseId,
     required this.name,
+    this.nameRu,
     required this.sets,
     required this.reps,
     this.dosage,
@@ -472,9 +474,14 @@ class PlanDayExercise {
   String get dosageDisplay =>
       (dosage != null && dosage!.isNotEmpty) ? dosage! : '$sets × $reps';
 
+  /// Русское название приоритетно.
+  String get displayName =>
+      (nameRu != null && nameRu!.isNotEmpty) ? nameRu! : name;
+
   factory PlanDayExercise.fromJson(Map<String, dynamic> json) => PlanDayExercise(
         exerciseId: json['exercise_id'] as String?,
         name: json['name'] as String? ?? '',
+        nameRu: json['name_ru'] as String?,
         sets: json['sets'] as int? ?? 3,
         reps: json['reps'] as String? ?? '',
         dosage: json['dosage'] as String?,
@@ -507,6 +514,7 @@ class WeakLink {
 /// Одно упражнение растяжки в зоне.
 class PlanStretchingExercise {
   final String name;
+  final String? nameRu;
   final String? exerciseId;
   final String? hint;
   final String? climbingBenefit;
@@ -519,6 +527,7 @@ class PlanStretchingExercise {
 
   PlanStretchingExercise({
     required this.name,
+    this.nameRu,
     this.exerciseId,
     this.hint,
     this.climbingBenefit,
@@ -526,6 +535,10 @@ class PlanStretchingExercise {
     this.holdSeconds,
     this.defaultSets,
   });
+
+  /// Русское название приоритетно.
+  String get displayName =>
+      (nameRu != null && nameRu!.isNotEmpty) ? nameRu! : name;
 
   /// Текст дозировки: «2×30 сек» или «30 сек» (если default_sets <= 1).
   String get dosageDisplay {
@@ -541,6 +554,7 @@ class PlanStretchingExercise {
     if (json is Map<String, dynamic>) {
       return PlanStretchingExercise(
         name: json['name'] as String? ?? '',
+        nameRu: json['name_ru'] as String?,
         exerciseId: json['exercise_id'] as String?,
         hint: json['hint'] as String?,
         climbingBenefit: json['climbing_benefit'] as String?,

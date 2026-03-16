@@ -1848,6 +1848,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     'СФП (план)': ['main', 'secondary', 'sfp'],
     'ОФП': ['antagonist', 'core', 'plan', 'ofp', 'other'],
     'Растяжка': ['cooldown', 'stretching'],
+    'Задания от тренера': ['trainer'],
   };
 
   Widget _buildWorkoutGroupedSections() {
@@ -1880,6 +1881,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
             icon: section.key == 'Разминка' ? Icons.whatshot
                 : section.key.startsWith('СФП') ? Icons.rocket_launch
                 : section.key == 'ОФП' ? Icons.fitness_center
+                : section.key == 'Задания от тренера' ? Icons.assignment_ind
                 : Icons.self_improvement,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -2651,7 +2653,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        d.name,
+                        d.displayName,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: unbounded(
@@ -2837,6 +2839,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
         weightKg: d.targetWeightKg,
       );
       if (mounted) setState(() => _approachDone.remove(key));
+      _startRestTimer(key, restSec);
     } else {
       _startRestTimer(key, restSec);
     }
@@ -2854,6 +2857,7 @@ class _ExerciseCompletionScreenState extends State<ExerciseCompletionScreen>
     if (allDone) {
       await _toggleOfpCompleted(e, true);
       if (mounted) setState(() => _approachDone.remove(key));
+      _startRestTimer(key, restSec);
     } else {
       _startRestTimer(key, restSec);
     }

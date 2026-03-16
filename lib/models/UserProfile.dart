@@ -10,6 +10,8 @@ class UserProfile {
   String email;
   /// Согласие на обработку данных AI-чата. null = не задано на сервере.
   bool? aiMemoryConsent;
+  /// Режим тренера включён (добавление учеников, назначение упражнений, просмотр их данных).
+  bool? trainerModeEnabled;
 
   UserProfile({
     required this.firstName,
@@ -22,6 +24,7 @@ class UserProfile {
     required this.gender,
     required this.email,
     this.aiMemoryConsent,
+    this.trainerModeEnabled,
   });
 
   // Метод для создания объекта UserProfile из JSON
@@ -37,6 +40,7 @@ class UserProfile {
       gender: json['gender'] ?? '',
       email: json['email'],
       aiMemoryConsent: json['ai_memory_consent'] as bool?,
+      trainerModeEnabled: json['trainer_mode_enabled'] as bool?,
     );
   }
 
@@ -52,6 +56,7 @@ class UserProfile {
       'sport_category': sportCategory,
       'gender': gender,
       'email': email,
+      if (trainerModeEnabled != null) 'trainer_mode_enabled': trainerModeEnabled!,
     };
   }
 }

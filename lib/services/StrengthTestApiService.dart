@@ -25,8 +25,10 @@ class StrengthTestApiService {
   Future<String?> _getToken() => getToken();
 
   static const _cacheTtl = Duration(seconds: 60);
+  static const _exercisesCacheTtl = Duration(minutes: 5);
   static final Map<String, _CacheEntry<List<ExerciseCompletion>>> _completionsCache = {};
   static final Map<String, _CacheEntry<List<ExerciseSkip>>> _skipsCache = {};
+  static final Map<String, _CacheEntry<List<CatalogExercise>>> _exercisesCache = {};
 
   static void _invalidateCompletionsCache([String? date]) {
     if (date != null) {
@@ -38,7 +40,7 @@ class StrengthTestApiService {
 
   /// Сбросить кэш выполнений за дату (после офлайн-добавления в очередь).
   static void invalidateCompletionsCacheForDate(String? date) {
-    _invalidateCompletionsCache(date);
+    _invalidateCompletionsCache();
   }
 
   static void _invalidateSkipsCache([String? date]) {
@@ -306,6 +308,14 @@ class StrengthTestApiService {
     String? tags,
     String? search,
   }) async {
+    // Кэш 5 мин (без search) для ускорения повторных загрузок
+    if (search == null || search.isEmpty) {
+      final cacheKey = '${level ?? ''}:${category ?? ''}:${sessionType ?? ''}:${limit ?? ''}:${dayOffset ?? ''}:${tags ?? ''}';
+      final cached = _exercisesCache[cacheKey];
+      if (cached != null && DateTime.now().difference(cached.cachedAt) < _exercisesCacheTtl) {
+        return cached.value;
+      }
+    }
     final token = await _getToken();
     if (token == null) return [];
     try {
@@ -324,9 +334,14 @@ class StrengthTestApiService {
       if (response.statusCode == 200) {
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final list = json?['exercises'] as List<dynamic>? ?? [];
-        return list
+        final result = list
             .map((e) => CatalogExercise.fromJson(Map<String, dynamic>.from(e as Map)))
             .toList();
+        if (search == null || search.isEmpty) {
+          final cacheKey = '${level ?? ''}:${category ?? ''}:${sessionType ?? ''}:${limit ?? ''}:${dayOffset ?? ''}:${tags ?? ''}';
+          _exercisesCache[cacheKey] = _CacheEntry(result, DateTime.now());
+        }
+        return result;
       }
     } catch (_) {}
     return [];
@@ -365,6 +380,23 @@ class StrengthTestApiService {
               setsDone: p['sets_done'] as int? ?? 1,
               weightKg: (p['weight_kg'] as num?)?.toDouble(),
             ));
+          }
+        } else if (periodDays != null) {
+          final pending = await PendingSyncService.getAllPendingExerciseCompletionsRaw();
+          final cutoff = DateTime.now().subtract(Duration(days: periodDays));
+          for (final p in pending) {
+            final d = p['date']?.toString();
+            if (d == null || d.isEmpty) continue;
+            final dt = DateTime.tryParse(d.length >= 10 ? d.substring(0, 10) : d);
+            if (dt != null && !dt.isBefore(cutoff)) {
+              result.add(ExerciseCompletion(
+                id: -1,
+                date: d,
+                exerciseId: p['exercise_id'] as String? ?? '',
+                setsDone: p['sets_done'] as int? ?? 1,
+                weightKg: (p['weight_kg'] as num?)?.toDouble(),
+              ));
+            }
           }
         }
         _completionsCache[key] = _CacheEntry(result, DateTime.now());
@@ -447,7 +479,7 @@ class StrengthTestApiService {
       );
       if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 201 || response.statusCode == 200) {
-        _invalidateCompletionsCache(date);
+        _invalidateCompletionsCache();
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final id = json?['id'];
         return id is int ? id : (id is num ? id.toInt() : null);
@@ -571,7 +603,7 @@ class StrengthTestApiService {
       );
       if (await redirectIfUnauthorized(response.statusCode)) return null;
       if (response.statusCode == 201 || response.statusCode == 200) {
-        _invalidateSkipsCache(date);
+        _invalidateSkipsCache();
         final json = jsonDecode(response.body) as Map<String, dynamic>?;
         final id = json?['id'];
         return id is int ? id : (id is num ? id.toInt() : null);
@@ -925,6 +957,7 @@ class ExerciseCompletion {
   final String date;
   final String exerciseId;
   final String? exerciseName;
+  final String? exerciseNameRu;
   final int setsDone;
   final double? weightKg;
 
@@ -933,6 +966,7 @@ class ExerciseCompletion {
     required this.date,
     required this.exerciseId,
     this.exerciseName,
+    this.exerciseNameRu,
     this.setsDone = 1,
     this.weightKg,
   });
@@ -942,9 +976,16 @@ class ExerciseCompletion {
         date: json['date'] as String? ?? '',
         exerciseId: json['exercise_id'] as String? ?? '',
         exerciseName: json['exercise_name'] as String?,
+        exerciseNameRu: json['exercise_name_ru'] as String?,
         setsDone: json['sets_done'] as int? ?? 1,
         weightKg: (json['weight_kg'] as num?)?.toDouble(),
       );
+
+  /// Русское название приоритетно везде.
+  String get displayName =>
+      (exerciseNameRu != null && exerciseNameRu!.isNotEmpty)
+          ? exerciseNameRu!
+          : (exerciseName ?? exerciseId);
 }
 
 /// Пропуск упражнения (не могу выполнить). Не идёт в exercise-completions.
@@ -953,6 +994,7 @@ class ExerciseSkip {
   final String date;
   final String exerciseId;
   final String? exerciseName;
+  final String? exerciseNameRu;
   final String? reason;
 
   ExerciseSkip({
@@ -960,6 +1002,7 @@ class ExerciseSkip {
     required this.date,
     required this.exerciseId,
     this.exerciseName,
+    this.exerciseNameRu,
     this.reason,
   });
 
@@ -968,8 +1011,14 @@ class ExerciseSkip {
         date: json['date'] as String? ?? '',
         exerciseId: json['exercise_id'] as String? ?? '',
         exerciseName: json['exercise_name'] as String?,
+        exerciseNameRu: json['exercise_name_ru'] as String?,
         reason: json['reason'] as String?,
       );
+
+  String get displayName =>
+      (exerciseNameRu != null && exerciseNameRu!.isNotEmpty)
+          ? exerciseNameRu!
+          : (exerciseName ?? exerciseId);
 }
 
 /// Уровень силы + грейда из GET /api/climbing-logs/strength-level.

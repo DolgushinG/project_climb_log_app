@@ -489,7 +489,7 @@ class _DayCard extends StatelessWidget {
   }
 
   Widget _buildCompletionsSection(BuildContext context) {
-    final names = day.completions.map((c) => c.exerciseName ?? c.exerciseId).whereType<String>().toSet().take(3).toList();
+    final names = day.completions.map((c) => c.displayName).whereType<String>().toSet().take(3).toList();
     final count = day.completions.length;
 
     return Container(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:login_app/main.dart';
 import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/models/PlanModels.dart';
 import 'package:login_app/models/ClimbingLog.dart';
@@ -7,6 +8,7 @@ import 'package:login_app/models/Workout.dart';
 import 'package:login_app/services/TrainingPlanApiService.dart';
 import 'package:login_app/services/ClimbingLogService.dart';
 import 'package:login_app/services/StrengthTestApiService.dart';
+import 'package:login_app/services/TrainerService.dart';
 import 'package:login_app/Screens/ExerciseCompletionScreen.dart';
 import 'package:login_app/Screens/ClimbingLogAddScreen.dart';
 
@@ -37,6 +39,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
   final TrainingPlanApiService _api = TrainingPlanApiService();
   final ClimbingLogService _climbingService = ClimbingLogService();
   final StrengthTestApiService _strengthApi = StrengthTestApiService();
+  final TrainerService _trainerService = TrainerService(baseUrl: DOMAIN);
 
   PlanDayResponse? _day;
   HistorySession? _climbingSessionForDate;
@@ -53,6 +56,8 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
   /// exerciseId для ОФП/СФП: выполнено / пропущено (для отображения на карточках)
   Set<String> _exerciseCompletedIds = {};
   Set<String> _exerciseSkippedIds = {};
+  /// Задания от тренера на выбранную дату.
+  List<Map<String, dynamic>> _trainerAssignments = [];
 
   int? _feeling;
   String? _focus;
@@ -128,6 +133,13 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       exerciseCompleted = completionIds.where((id) => planIds.contains(id)).toSet();
       exerciseSkipped = skips.map((s) => s.exerciseId).where((id) => planIds.contains(id)).toSet();
     }
+    final trainerAssignments = await _trainerService.getMyAssignments(context, date: _dateStr);
+    final trainerExIds = trainerAssignments
+        .map((a) => a['exercise_id']?.toString())
+        .whereType<String>()
+        .where((id) => id.isNotEmpty)
+        .toSet();
+    exerciseCompleted = exerciseCompleted.union(completionIds.where((id) => trainerExIds.contains(id)).toSet());
     if (mounted) {
       setState(() {
         _day = day;
@@ -135,6 +147,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
         _stretchingCompletedIds = stretchingCompleted;
         _exerciseCompletedIds = exerciseCompleted;
         _exerciseSkippedIds = exerciseSkipped;
+        _trainerAssignments = trainerAssignments;
         _loading = false;
       });
       if (day != null && !day.isRest && !canUseInitial) {
@@ -318,6 +331,10 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     const SizedBox(height: 20),
                     if (_hasCoachContent) ...[
                       _buildAnimatedCoachSection(),
+                      const SizedBox(height: 20),
+                    ],
+                    if (_trainerAssignments.isNotEmpty) ...[
+                      _buildTrainerAssignmentsBlock(),
                       const SizedBox(height: 20),
                     ],
                     if (_day!.isRest) ...[
@@ -1045,6 +1062,110 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
     );
   }
 
+  Widget _buildTrainerAssignmentsBlock() {
+    if (_trainerAssignments.isEmpty) return const SizedBox.shrink();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(Icons.assignment_ind, size: 18, color: AppColors.mutedGold),
+            const SizedBox(width: 8),
+            Text(
+              'Задания от тренера',
+              style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.mutedGold),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ..._trainerAssignments.map((a) {
+          final name = a['exercise_name_ru'] ?? a['exercise_name'] ?? a['exercise_id'] ?? '—';
+          final date = a['date']?.toString();
+          final sets = a['sets'] as int? ?? 3;
+          final reps = (a['reps'] ?? '?').toString();
+          final hold = a['hold_seconds'] as int?;
+          final rest = a['rest_seconds'] as int? ?? 90;
+          final status = a['status']?.toString() ?? 'pending';
+          final isCompleted = status == 'completed';
+          final exerciseId = a['exercise_id']?.toString() ?? '';
+          final completed = _exerciseCompletedIds.contains(exerciseId);
+          final dosage = hold != null
+              ? '$sets × ${hold}с'
+              : '$sets × $reps';
+          return Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: completed || isCompleted
+                  ? AppColors.cardDark.withOpacity(0.8)
+                  : AppColors.cardDark,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: completed || isCompleted
+                    ? AppColors.successMuted.withOpacity(0.4)
+                    : AppColors.mutedGold.withOpacity(0.4),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      completed || isCompleted ? Icons.check_circle : Icons.assignment_outlined,
+                      size: 20,
+                      color: completed || isCompleted ? AppColors.successMuted : AppColors.mutedGold,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: unbounded(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w600,
+                              color: completed || isCompleted ? Colors.white54 : Colors.white,
+                              decoration: completed || isCompleted ? TextDecoration.lineThrough : null,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            dosage,
+                            style: unbounded(fontSize: 13, color: AppColors.mutedGold),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (completed || isCompleted)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColors.successMuted.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          'Выполнено',
+                          style: unbounded(fontSize: 12, color: AppColors.successMuted, fontWeight: FontWeight.w500),
+                        ),
+                      )
+                    else
+                      TextButton.icon(
+                        onPressed: () => _openTrainerAssignmentsCompletion(),
+                        icon: const Icon(Icons.play_arrow, size: 18),
+                        label: Text('Выполнить', style: unbounded(fontSize: 13, color: AppColors.mutedGold)),
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
   Widget _buildExercises() {
     if (_day!.exercises.isEmpty) return const SizedBox.shrink();
     return Column(
@@ -1133,7 +1254,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            ex.name,
+                            ex.displayName,
                             style: unbounded(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -1228,11 +1349,11 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     if (ex.hint != null && ex.hint!.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      _buildHintBlock(ex.name, ex.hint!, isCompact: false),
+                      _buildHintBlock(ex.displayName, ex.hint!, isCompact: false),
                     ],
                     if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 8),
-                      _buildClimbingBenefitBlock(ex.name, ex.climbingBenefit!, isCompact: false),
+                      _buildClimbingBenefitBlock(ex.displayName, ex.climbingBenefit!, isCompact: false),
                     ],
                   ],
                 ),
@@ -1490,7 +1611,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            ex.name,
+                            ex.displayName,
                             style: unbounded(
                               fontSize: 13,
                               color: completed ? Colors.white54 : Colors.white70,
@@ -1531,11 +1652,11 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
                     ],
                     if (ex.hint != null && ex.hint!.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      _buildHintBlock(ex.name, ex.hint!, isCompact: true),
+                      _buildHintBlock(ex.displayName, ex.hint!, isCompact: true),
                     ],
                     if (ex.climbingBenefit != null && ex.climbingBenefit!.isNotEmpty) ...[
                       const SizedBox(height: 6),
-                      _buildClimbingBenefitBlock(ex.name, ex.climbingBenefit!, isCompact: true),
+                      _buildClimbingBenefitBlock(ex.displayName, ex.climbingBenefit!, isCompact: true),
                     ],
                   ],
                 ),
@@ -1589,7 +1710,7 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       final w = WorkoutBlockExercise(
         exerciseId: ex.exerciseId ?? 'plan_${e.key}_${ex.name.hashCode.abs()}',
         name: ex.name,
-        nameRu: ex.name,
+        nameRu: ex.displayName,
         category: category,
         comment: comment,
         hint: ex.hint,
@@ -1601,6 +1722,52 @@ class _PlanDayScreenState extends State<PlanDayScreen> {
       );
       return MapEntry(blockKey, w);
     }).toList();
+  }
+
+  Future<void> _openTrainerAssignmentsCompletion() async {
+    if (_trainerAssignments.isEmpty) return;
+    final entries = _trainerAssignments.asMap().entries.map((e) {
+      final a = e.value;
+      final exerciseId = a['exercise_id']?.toString() ?? 'trainer_${e.key}';
+      final name = a['exercise_name']?.toString() ?? 'Упражнение';
+      final nameRu = a['exercise_name_ru'] ?? a['exercise_name'] ?? name;
+      final sets = a['sets'] as int? ?? 3;
+      final reps = a['reps'] ?? '6';
+      final hold = a['hold_seconds'] as int?;
+      final rest = a['rest_seconds'] as int? ?? 90;
+      final hint = a['how_to_perform']?.toString();
+      final comment = a['climbing_benefits']?.toString();
+      final category = (a['category'] ?? 'ofp').toString();
+      final dosage = hold != null
+          ? '$sets × ${hold}с'
+          : '$sets × $reps';
+      final w = WorkoutBlockExercise(
+        exerciseId: exerciseId,
+        name: name,
+        nameRu: nameRu,
+        category: category,
+        comment: comment,
+        hint: hint,
+        dosage: dosage,
+        defaultSets: sets,
+        defaultReps: reps is int ? reps : (int.tryParse(reps.toString()) ?? 6),
+        holdSeconds: hold,
+        defaultRestSeconds: rest,
+      );
+      return MapEntry('trainer', w);
+    }).toList();
+    final completed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ExerciseCompletionScreen(
+          workoutExerciseEntries: entries,
+          date: widget.date,
+        ),
+      ),
+    );
+    if (mounted && completed == true) {
+      await _load();
+    }
   }
 
   Future<void> _openExerciseCompletion() async {

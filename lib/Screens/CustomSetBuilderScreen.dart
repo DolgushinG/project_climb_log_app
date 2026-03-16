@@ -71,18 +71,30 @@ class _CustomSetBuilderScreenState extends State<CustomSetBuilderScreen> {
       _error = null;
     });
     try {
-      // Выбранные упражнения показываем без фильтра по уровню — загружаем каталог целиком.
+      // Параллельная загрузка категорий (с кэшем в API) для ускорения.
       var levelStr = _filterLevel;
-      var ofp = await _strengthApi.getExercises(level: levelStr, category: 'ofp', limit: 50);
-      var sfp = await _strengthApi.getExercises(level: levelStr, category: 'sfp', limit: 50);
-      var stretching = await _strengthApi.getExercises(level: levelStr, category: 'stretching', limit: 50);
-      var other = await _strengthApi.getExercises(level: levelStr, category: 'other', limit: 50);
+      var results = await Future.wait([
+        _strengthApi.getExercises(level: levelStr, category: 'ofp', limit: 50),
+        _strengthApi.getExercises(level: levelStr, category: 'sfp', limit: 50),
+        _strengthApi.getExercises(level: levelStr, category: 'stretching', limit: 50),
+        _strengthApi.getExercises(level: levelStr, category: 'other', limit: 50),
+      ]);
+      var ofp = results[0];
+      var sfp = results[1];
+      var stretching = results[2];
+      var other = results[3];
       if (ofp.isEmpty && sfp.isEmpty && stretching.isEmpty && other.isEmpty && levelStr == null) {
         levelStr = 'intermediate';
-        ofp = await _strengthApi.getExercises(level: levelStr, category: 'ofp', limit: 50);
-        sfp = await _strengthApi.getExercises(level: levelStr, category: 'sfp', limit: 50);
-        stretching = await _strengthApi.getExercises(level: levelStr, category: 'stretching', limit: 50);
-        other = await _strengthApi.getExercises(level: levelStr, category: 'other', limit: 50);
+        results = await Future.wait([
+          _strengthApi.getExercises(level: levelStr, category: 'ofp', limit: 50),
+          _strengthApi.getExercises(level: levelStr, category: 'sfp', limit: 50),
+          _strengthApi.getExercises(level: levelStr, category: 'stretching', limit: 50),
+          _strengthApi.getExercises(level: levelStr, category: 'other', limit: 50),
+        ]);
+        ofp = results[0];
+        sfp = results[1];
+        stretching = results[2];
+        other = results[3];
       }
       final seen = <String>{};
       final all = <CatalogExercise>[];
@@ -211,7 +223,11 @@ class _CustomSetBuilderScreenState extends State<CustomSetBuilderScreen> {
       backgroundColor: AppColors.anthracite,
       appBar: AppBar(
         backgroundColor: AppColors.anthracite,
-        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          tooltip: 'Назад',
+          onPressed: () => Navigator.maybeOf(context)?.pop(),
+        ),
         title: Text(
           'Собственный сет упражнений',
           style: unbounded(fontSize: 16, fontWeight: FontWeight.w600, color: Colors.white),

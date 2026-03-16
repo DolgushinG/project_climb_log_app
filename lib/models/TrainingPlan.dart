@@ -43,6 +43,7 @@ class TrainingPlan {
 /// Упражнение в плане.
 class TrainingDrill {
   final String name;
+  final String? nameRu;
   final double? targetWeightKg;
   final int sets;
   final String reps;
@@ -54,6 +55,7 @@ class TrainingDrill {
 
   TrainingDrill({
     required this.name,
+    this.nameRu,
     this.targetWeightKg,
     required this.sets,
     required this.reps,
@@ -72,8 +74,12 @@ class TrainingDrill {
         if (exerciseId != null) 'exercise_id': exerciseId,
       };
 
+  /// Русское название приоритетно.
+  String get displayName => (nameRu != null && nameRu!.isNotEmpty) ? nameRu! : name;
+
   factory TrainingDrill.fromJson(Map<String, dynamic> json) => TrainingDrill(
         name: json['name'] as String? ?? '',
+        nameRu: json['name_ru'] as String?,
         targetWeightKg: (json['target_weight_kg'] as num?)?.toDouble(),
         sets: json['sets'] as int? ?? 3,
         reps: json['reps'] as String? ?? '5s hold',

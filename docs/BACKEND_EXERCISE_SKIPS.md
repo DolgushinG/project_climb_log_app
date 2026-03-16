@@ -33,11 +33,14 @@ Query:
       "date": "2025-02-13",
       "exercise_id": "max_hangs_3_5_7",
       "exercise_name": "Max Hangs 3-5-7",
+      "exercise_name_ru": "Макс. висы 3-5-7",
       "reason": "no_equipment"
     }
   ]
 }
 ```
+
+Рекомендуется возвращать `exercise_name_ru` — в приложении приоритетно русское название.
 
 ### 2.2 Записать пропуск
 

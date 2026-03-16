@@ -91,6 +91,9 @@ class SavedCustomSetExercise {
         description: json['description'] as String? ?? json['climbing_benefit'] as String?,
       );
 
+  /// Русское название приоритетно везде.
+  String get displayName => (nameRu != null && nameRu!.isNotEmpty) ? nameRu! : (name ?? exerciseId);
+
   /// Синтетический CatalogExercise из данных API — когда упражнения нет в локальном каталоге.
   CatalogExercise? toCatalogExerciseIfEnriched() {
     final n = name ?? nameRu;
