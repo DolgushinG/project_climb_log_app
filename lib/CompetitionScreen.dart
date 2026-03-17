@@ -27,6 +27,7 @@ import 'package:login_app/theme/app_theme.dart';
 import 'package:login_app/utils/app_snackbar.dart';
 import 'package:login_app/utils/network_error_helper.dart';
 import 'package:login_app/utils/session_error_helper.dart';
+import 'package:login_app/utils/competition_detail_button_logic.dart';
 import 'package:login_app/widgets/top_notification_banner.dart';
 String _normalizePosterPath(String path) {
   if (path.isEmpty) return path;
@@ -1992,23 +1993,26 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                 Builder(
                   builder: (context) {
                     final bool registered = _competitionDetails.is_participant;
-                    // для платных: нужна подтверждённая оплата; для бесплатных: считаем, что ок
-                    final bool paymentConfirmed = !_competitionDetails.is_need_pay_for_reg ||
-                        _competitionDetails.is_participant_paid;
-                    // есть ли уже результат
+                    final bool paymentConfirmed =
+                        CompetitionDetailButtonLogic.isPaymentConfirmed(
+                      isNeedPayForReg: _competitionDetails.is_need_pay_for_reg,
+                      isParticipantPaid: _competitionDetails.is_participant_paid,
+                    );
                     final bool resultExists =
                         _jsonToBool(_competitionDetails.is_participant_active);
-                    // флаг разрешения редактировать существующий результат
                     final bool editAllowed =
                         _jsonToBool(_competitionDetails.is_access_user_edit_result);
+                    final bool sendResultState =
+                        _jsonToBool(_competitionDetails.is_send_result_state);
 
-                    final bool baseConditionsOk = registered && paymentConfirmed;
-
-                    // по правилам:
-                    // - если нет результата → достаточно baseConditionsOk
-                    // - если есть результат → нужен ещё editAllowed
-                    final bool canShowResultButton = baseConditionsOk &&
-                        (!resultExists || (resultExists && editAllowed));
+                    final bool canShowResultButton =
+                        CompetitionDetailButtonLogic.canShowResultButton(
+                      isParticipant: registered,
+                      paymentConfirmed: paymentConfirmed,
+                      sendResultState: sendResultState,
+                      resultExists: resultExists,
+                      editAllowed: editAllowed,
+                    );
 
                     if (widget.isGuest) return const SizedBox.shrink();
 
@@ -2032,11 +2036,26 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                                 onResultSubmitted: _refreshParticipationStatus,
                               ),
                             if (_competitionDetails.is_routes_exists &&
-                                _competitionDetails.is_access_user_cancel_take_part == 1 &&
-                                !_competitionDetails.is_participant_paid)
+                                CompetitionDetailButtonLogic
+                                    .canShowCancelRegistrationButton(
+                                  isAccessUserCancelTakePart:
+                                      _competitionDetails
+                                          .is_access_user_cancel_take_part,
+                                  isParticipantPaid:
+                                      _competitionDetails.is_participant_paid,
+                                  resultExists: resultExists,
+                                  hasBill: _checkoutData?['has_bill'] == true,
+                                ))
                               const SizedBox(width: 10),
-                            if (_competitionDetails.is_access_user_cancel_take_part == 1 &&
-                                !_competitionDetails.is_participant_paid)
+                            if (CompetitionDetailButtonLogic
+                                .canShowCancelRegistrationButton(
+                              isAccessUserCancelTakePart: _competitionDetails
+                                  .is_access_user_cancel_take_part,
+                              isParticipantPaid:
+                                  _competitionDetails.is_participant_paid,
+                              resultExists: resultExists,
+                              hasBill: _checkoutData?['has_bill'] == true,
+                            ))
                               Expanded(
                                 child: OutlinedButton(
                                   style: OutlinedButton.styleFrom(

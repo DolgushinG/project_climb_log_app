@@ -66,6 +66,29 @@ void main() {
     expect(find.text('Результаты добавлены'), findsOneWidget);
   });
 
+  testWidgets('ResultEntryButton is enabled when no result even without edit access', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Row(
+            children: [
+              ResultEntryButton(
+                eventId: 1,
+                isParticipantActive: false,
+                isAccessUserEditResult: false,
+                isRoutesExists: true,
+                onResultSubmitted: () async {},
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    final button = tester.widget<ElevatedButton>(find.byType(ElevatedButton));
+    expect(button.onPressed, isNotNull);
+    expect(find.text('Внести результаты'), findsOneWidget);
+  });
+
   testWidgets('ResultEntryButton is disabled when no routes', (tester) async {
     await tester.pumpWidget(
       MaterialApp(

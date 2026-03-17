@@ -26,8 +26,11 @@ class ResultEntryButton extends StatelessWidget {
     this.isHideGrades = false,
   });
 
-  /// Кнопка активна, когда есть доступ на редактирование результатов (is_access_user_edit_result) и есть трассы.
-  bool get _canEdit => isAccessUserEditResult && isRoutesExists;
+  /// Кнопка активна:
+  /// - Нет результата → можно вносить (is_send_result_state проверяется в родителе)
+  /// - Есть результат → нужен is_access_user_edit_result для обновления
+  bool get _canEdit =>
+      isRoutesExists && (!isParticipantActive || isAccessUserEditResult);
 
   String get _buttonText {
     if (!isParticipantActive) return 'Внести результаты';
