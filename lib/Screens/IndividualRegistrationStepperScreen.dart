@@ -391,7 +391,8 @@ class _IndividualRegistrationStepperScreenState
       return;
     }
 
-    if (_allSetsBusy) {
+    // Лист ожидания применим только когда есть сеты (is_input_set == 0)
+    if (_competition.is_input_set == 0 && _allSetsBusy) {
       final ok = await _showWaitlistConfirmDialog(
         'Все сеты заняты. Добавить вас в лист ожидания? Если освободится место, вы получите уведомление.',
       );
@@ -1107,7 +1108,7 @@ class _IndividualRegistrationStepperScreenState
             'Дата рождения',
             DateFormat('dd.MM.yyyy').format(_birthdayForTakePart!),
           ),
-        if (_allSetsBusy)
+        if (_competition.is_input_set == 0 && _allSetsBusy)
           Padding(
             padding: const EdgeInsets.only(top: 8),
             child: Text(
@@ -1115,7 +1116,8 @@ class _IndividualRegistrationStepperScreenState
               style: unbounded(fontSize: 14, color: Colors.white70),
             ),
           ),
-        if (!_allSetsBusy &&
+        if (_competition.is_input_set == 0 &&
+            !_allSetsBusy &&
             _needSetStep &&
             _effectiveSelectedNumberSet != null &&
             _effectiveSelectedNumberSet!.free <= 0)
