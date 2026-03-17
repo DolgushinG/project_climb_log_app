@@ -110,6 +110,8 @@ class Competition {
   final bool is_hide_grades;
   final bool is_in_list_pending;
   final List<int>? list_pending_number_sets;
+  final bool is_registration_state;
+  final bool is_group_registration;
 
   Competition({
     required this.id,
@@ -142,6 +144,8 @@ class Competition {
     this.is_need_pay_for_reg = false,
     this.is_in_list_pending = false,
     this.list_pending_number_sets,
+    required this.is_registration_state,
+    required this.is_group_registration,
     this.is_zone_show = true,
     this.is_hide_color = false,
     this.is_hide_grades = false,
@@ -206,6 +210,8 @@ class Competition {
       is_hide_color: _jsonToBool(json['is_hide_color']),
       is_hide_grades: _jsonToBool(json['is_hide_grades']),
       list_pending_number_sets: _parseListPendingNumberSets(json['list_pending_number_sets']),
+      is_registration_state: _jsonToBool(json['is_registration_state']),
+      is_group_registration: _jsonToBool(json['is_group_registration']),
       description: json['description'] ?? '',
       categories: (categoriesRaw is List)
           ? categoriesRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
@@ -789,7 +795,30 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   }
 
   Widget _buildTakePartButtons() {
-    final showTakePart = !_competitionDetails.is_participant && !_competitionDetails.is_in_list_pending;
+    final showTakePart = !_competitionDetails.is_participant &&
+        !_competitionDetails.is_in_list_pending &&
+        _competitionDetails.is_registration_state;
+
+    if (!_competitionDetails.is_registration_state &&
+        !_competitionDetails.isCompleted &&
+        !_competitionDetails.is_participant) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        margin: const EdgeInsets.only(bottom: 12),
+        decoration: BoxDecoration(
+          color: Colors.grey.withOpacity(0.15),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.withOpacity(0.3)),
+        ),
+        child: Center(
+          child: Text(
+            'Регистрация закрыта',
+            style: unbounded(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.white70),
+          ),
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1790,26 +1819,50 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                           if (_competitionDetails.is_in_list_pending) const SizedBox(height: 8),
                           if (!_needsBirthdayButNotFilled)
                             widget.isGuest
-                                ? ElevatedButton(
-                                    onPressed: () {
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (context) => LoginScreen(),
+                                ? (!_competitionDetails.is_registration_state &&
+                                        !_competitionDetails.isCompleted)
+                                    ? Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 20),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.grey.withOpacity(0.3)),
                                         ),
-                                      ).then((_) => fetchCompetition());
-                                    },
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: AppColors.mutedGold,
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                      padding: const EdgeInsets.symmetric(vertical: 14),
-                                    ),
-                                    child: Text(
-                                      'Войти чтобы принять участие',
-                                      style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-                                    ),
-                                  )
+                                        child: Center(
+                                          child: Text(
+                                            'Регистрация закрыта',
+                                            style: unbounded(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.w500,
+                                                color: Colors.white70),
+                                          ),
+                                        ),
+                                      )
+                                    : ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (context) => LoginScreen(),
+                                            ),
+                                          ).then((_) => fetchCompetition());
+                                        },
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: AppColors.mutedGold,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius: BorderRadius.circular(12)),
+                                          padding: const EdgeInsets.symmetric(vertical: 14),
+                                        ),
+                                        child: Text(
+                                          'Войти чтобы принять участие',
+                                          style: unbounded(
+                                              color: Colors.white,
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600),
+                                        ),
+                                      )
                                 : needsPayment
                                     ? ElevatedButton(
                                         onPressed: () {
@@ -1862,7 +1915,9 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                               ),
                             ),
                           ),
-                          if (!widget.isGuest) ...[
+                          if (!widget.isGuest &&
+                              _competitionDetails.is_registration_state &&
+                              _competitionDetails.is_group_registration) ...[
                             const SizedBox(height: 8),
                             SizedBox(
                               width: double.infinity,

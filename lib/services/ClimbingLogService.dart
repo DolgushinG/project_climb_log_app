@@ -9,8 +9,11 @@ import 'package:login_app/utils/session_error_helper.dart';
 
 /// Сервис API трекера трасс Climbing Log.
 /// Все методы с авторизацией требуют Bearer token.
+/// [client] — опциональный HTTP-клиент для тестов (инъекция мока).
 class ClimbingLogService {
-  ClimbingLogService();
+  final http.Client _client;
+
+  ClimbingLogService({http.Client? client}) : _client = client ?? http.Client();
 
   Future<String?> _getToken() => getToken();
 
@@ -56,7 +59,7 @@ class ClimbingLogService {
       return _gradesCache!;
     }
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$DOMAIN/api/climbing-logs/grades'),
         headers: {'Accept': 'application/json'},
       );
@@ -81,7 +84,7 @@ class ClimbingLogService {
       return _gradesWithGroupsCache!;
     }
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$DOMAIN/api/climbing-logs/grades'),
         headers: {'Accept': 'application/json'},
       );
@@ -105,7 +108,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return false;
     try {
-      final response = await http.post(
+      final response = await _client.post(
         Uri.parse('$DOMAIN/api/climbing-logs'),
         headers: {
           'Accept': 'application/json',
@@ -127,7 +130,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return false;
     try {
-      final response = await http.put(
+      final response = await _client.put(
         Uri.parse('$DOMAIN/api/climbing-logs/$id'),
         headers: {
           'Accept': 'application/json',
@@ -149,7 +152,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return false;
     try {
-      final response = await http.delete(
+      final response = await _client.delete(
         Uri.parse('$DOMAIN/api/climbing-logs/$id'),
         headers: {
           'Accept': 'application/json',
@@ -168,7 +171,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return [];
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$DOMAIN/api/climbing-logs/used-gyms'),
         headers: {
           'Accept': 'application/json',
@@ -210,7 +213,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return null;
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$DOMAIN/api/climbing-logs/progress'),
         headers: {
           'Accept': 'application/json',
@@ -234,7 +237,7 @@ class ClimbingLogService {
       final uri = Uri.parse('$DOMAIN/api/climbing-logs/summary').replace(
         queryParameters: {'period': period},
       );
-      final response = await http.get(
+      final response = await _client.get(
         uri,
         headers: {
           'Accept': 'application/json',
@@ -264,7 +267,7 @@ class ClimbingLogService {
           'period_days': periodDays.toString(),
         },
       );
-      final response = await http.get(
+      final response = await _client.get(
         uri,
         headers: {
           'Accept': 'application/json',
@@ -285,7 +288,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return [];
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$DOMAIN/api/climbing-logs/recommendations'),
         headers: {
           'Accept': 'application/json',
@@ -318,7 +321,7 @@ class ClimbingLogService {
     final token = await _getToken();
     if (token == null) return [];
     try {
-      final response = await http.get(
+      final response = await _client.get(
         Uri.parse('$DOMAIN/api/climbing-logs/history'),
         headers: {
           'Accept': 'application/json',
