@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>E2E Test Runner — Climbing Events</title>
+  <style>
+    :root {
+      --anthracite: #0A0A0C;
+      --surface-dark: #121214;
+      --muted-gold: #B59D7E;
+      --card-dark: #1A1A1E;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: var(--anthracite);
+      color: #fff;
+      min-height: 100vh;
+      padding: 24px;
+    }
+    .container {
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 24px;
+      margin-bottom: 8px;
+      color: var(--muted-gold);
+    }
+    .subtitle {
+      color: rgba(255,255,255,0.6);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+    .card {
+      background: var(--card-dark);
+      border-radius: 12px;
+      padding: 24px;
+      margin-bottom: 16px;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    label {
+      display: block;
+      font-size: 12px;
+      color: rgba(255,255,255,0.6);
+      margin-bottom: 6px;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.15);
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      font-size: 14px;
+      margin-bottom: 16px;
+    }
+    button {
+      width: 100%;
+      padding: 14px;
+      background: var(--muted-gold);
+      color: var(--anthracite);
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    .link {
+      display: block;
+      margin-top: 16px;
+      color: var(--muted-gold);
+      font-size: 14px;
+      text-decoration: none;
+    }
+    .link:hover { text-decoration: underline; }
+    .hint {
+      font-size: 12px;
+      color: rgba(255,255,255,0.5);
+      margin-top: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>E2E Test Runner</h1>
+    <p class="subtitle">Запуск E2E тестов против localhost (Playwright)</p>
+
+    <div class="card">
+      <form id="form">
+        <label for="branch">Ветка</label>
+        <input type="text" id="branch" name="branch" value="main" placeholder="main">
+
+        <button type="submit" id="submitBtn">Запустить E2E тесты</button>
+      </form>
+      <p class="hint">Откроется страница GitHub Actions. Нажмите «Run workflow» для запуска.</p>
+    </div>
+
+    <div class="card">
+      <p style="font-size: 14px; margin-bottom: 8px;">Локальный запуск:</p>
+      <pre style="font-size: 12px; color: rgba(255,255,255,0.7); overflow-x: auto; white-space: pre-wrap;">flutter build web --dart-define=USE_DEV_API=true --dart-define=E2E_MODE=true --no-web-resources-cdn --web-renderer html
+npx serve build/web -p 8080 &
+cd e2e && npm install && npx playwright test</pre>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      var form = document.getElementById('form');
+      var submitBtn = document.getElementById('submitBtn');
+      var repo = 'project_climb_log_app';
+      var owner = 'dolgushin_georgii'; // обновите при необходимости
+      
+      form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        var branch = document.getElementById('branch').value.trim() || 'main';
+        var url = 'https://github.com/' + owner + '/' + repo + '/actions/workflows/e2e-web.yml';
+        window.open(url, '_blank', 'noopener');
+        submitBtn.textContent = 'Открыто';
+        setTimeout(function() { submitBtn.textContent = 'Запустить E2E тесты'; }, 2000);
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,3 +1,5 @@
+# Playwright E2E: основной сценарий — локально (см. e2e/README.md).
+# В CI не гоняем на каждый push/PR; при необходимости — только вручную.
 name: E2E Web Tests
 
 on:
@@ -7,10 +9,6 @@ on:
         description: 'Branch to test'
         required: false
         default: 'main'
-  push:
-    branches: [main, master]
-  pull_request:
-    branches: [main, master]
 
 jobs:
   e2e:
