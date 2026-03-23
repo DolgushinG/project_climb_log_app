@@ -57,16 +57,37 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     return profile;
   }
 
+  /// Учитывает выбор в диалоге и данные с сервера (OAuth часто приходит без пола — пустая строка).
+  String _effectiveGender(UserProfile profile) =>
+      (selectedGender != null && selectedGender!.isNotEmpty)
+          ? selectedGender!
+          : profile.gender;
+
+  bool _hasGender(UserProfile profile) {
+    final g = _effectiveGender(profile);
+    return g == 'male' || g == 'female';
+  }
+
+  String _genderFieldLabel(UserProfile profile) {
+    final g = _effectiveGender(profile);
+    if (g == 'male') return 'Мужской';
+    if (g == 'female') return 'Женский';
+    if (g.isEmpty) return 'Выберите пол';
+    return displayValue(g);
+  }
+
   // Обновление профиля
   _saveChanges(UserProfile profile) async {
-    if(selectedGender == null && profile.gender == null){
+    if (!_hasGender(profile)) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Заполните пол'),
+          content: Text('Укажите пол в профиле'),
           backgroundColor: Colors.red,
           duration: Duration(seconds: 2),
         ),
       );
+      return;
     }
     if(selectedSportCategory != null){
       profile.sportCategory = (selectedSportCategory)!;
@@ -74,7 +95,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
     if (_selectedDate != null) {
       profile.birthday = DateFormat('yyyy-MM-dd').format(_selectedDate!);
     }
-    profile.gender = (selectedGender ?? profile.gender);
+    profile.gender = _effectiveGender(profile);
     profile.trainerModeEnabled = _trainerModeEnabled;
     final profileService = ProfileService(baseUrl: DOMAIN);
     // Обновляем значения полей
@@ -123,8 +144,9 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
   }
 
   // Функция для открытия попапа выбора пола
-  Future<void> _showGenderSelectionDialog() async {
-    String? tempSelectedGender = selectedGender;
+  Future<void> _showGenderSelectionDialog(UserProfile profile) async {
+    String? tempSelectedGender = selectedGender ??
+        (profile.gender.isNotEmpty ? profile.gender : null);
 
     await showDialog(
       context: context,
@@ -317,7 +339,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                       Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10),
                         child: GestureDetector(
-                          onTap: _showGenderSelectionDialog,
+                          onTap: () => _showGenderSelectionDialog(profile),
                           child: InputDecorator(
                             decoration: InputDecoration(
                               labelText: 'Пол',
@@ -328,11 +350,7 @@ class _ProfileEditScreenState extends State<ProfileEditScreen> {
                               prefixIcon: Icon(Icons.wc, color: AppColors.mutedGold),
                             ),
                             child: Text(
-                              profile.gender == 'male'
-                                  ? 'Мужской'
-                                  : profile.gender == 'female'
-                                      ? 'Женский'
-                                      : displayValue(profile.gender),
+                              _genderFieldLabel(profile),
                               style: unbounded(color: Colors.white),
                             ),
                           ),

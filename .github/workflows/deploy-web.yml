@@ -45,6 +45,11 @@ jobs:
           cp web/premium/success/index.html build/web/premium/success/
           cp web/premium/fail/index.html build/web/premium/fail/
 
+      - name: Copy test-runner page
+        run: |
+          mkdir -p build/web/test-runner
+          cp web/test-runner/index.html build/web/test-runner/
+
       - name: Deploy to server
         id: deploy
         env:

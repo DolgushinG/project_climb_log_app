@@ -155,7 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      TextFormField(
+                      Semantics(
+                        identifier: 'login_email',
+                        label: 'Email',
+                        child: TextFormField(
                         controller: _emailController,
                         style: unbounded(color: Colors.white),
                         keyboardType: TextInputType.emailAddress,
@@ -169,8 +172,12 @@ class _LoginScreenState extends State<LoginScreen> {
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
                       ),
+                      ),
                       const SizedBox(height: 16),
-                      TextFormField(
+                      Semantics(
+                        identifier: 'login_password',
+                        label: 'Пароль',
+                        child: TextFormField(
                         controller: _passwordController,
                         obscureText: true,
                         style: unbounded(color: Colors.white),
@@ -183,6 +190,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
                           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         ),
+                      ),
                       ),
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
@@ -202,7 +210,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      SizedBox(
+                      Semantics(
+                        identifier: 'login_submit',
+                        button: true,
+                        child: SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: _isLoading ? null : _login,
@@ -220,6 +231,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 )
                               : Text('Вход', style: unbounded(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
+                      ),
                       ),
                       const SizedBox(height: 12),
                       SizedBox(

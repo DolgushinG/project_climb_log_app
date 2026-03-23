@@ -1,0 +1,65 @@
+name: E2E Web Tests
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to test'
+        required: false
+        default: 'main'
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch || github.ref }}
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.24.4'
+          channel: 'stable'
+          cache: true
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Enable web
+        run: flutter config --enable-web
+
+      - name: Build web (dev API for E2E, HTML renderer for Playwright)
+        run: flutter build web --release --dart-define=USE_DEV_API=true --dart-define=E2E_MODE=true --no-web-resources-cdn --web-renderer html
+
+      - name: Install serve
+        run: npm install -g serve
+
+      - name: Start server
+        run: |
+          npx serve build/web -p 8080 &
+          sleep 5
+          curl -s -o /dev/null -w "%{http_code}" http://localhost:8080 || true
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install E2E dependencies
+        run: |
+          cd e2e
+          npm install
+          npx playwright install --with-deps chromium
+
+      - name: Run E2E tests
+        run: |
+          cd e2e
+          BASE_URL=http://localhost:8080 npx playwright test
+        env:
+          BASE_URL: http://localhost:8080

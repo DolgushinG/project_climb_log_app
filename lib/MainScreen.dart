@@ -136,7 +136,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
       });
       if (!online) await _checkOfflineCache();
     });
-    if (widget.showPasskeyPrompt) {
+    if (widget.showPasskeyPrompt && !const bool.fromEnvironment('E2E_MODE', defaultValue: false)) {
       WidgetsBinding.instance.addPostFrameCallback((_) => _maybeShowPasskeyPrompt());
     }
     WidgetsBinding.instance.addPostFrameCallback((_) => prefetchCompetitionsAndRating());

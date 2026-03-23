@@ -58,8 +58,16 @@ Future<void> main() async {
 const String _prodDomain = "https://climbing-events.ru";
 const String _devDomain = "https://climbing-events.ru.tuna.am";
 
-/// Для релиза — прод, для дебага/локально — dev
-const String DOMAIN = kReleaseMode ? _prodDomain : _devDomain;
+/// Флаг для E2E: использовать dev-бэкенд даже в release-сборке (--dart-define=USE_DEV_API=true)
+const bool _useDevApi = bool.fromEnvironment('USE_DEV_API', defaultValue: false);
+
+/// Локальный API (--dart-define=API_URL=http://127.0.0.1:8000) — когда туннель tuna.am даёт 502
+const String _apiUrlOverride = String.fromEnvironment('API_URL', defaultValue: ' ');
+
+/// Для релиза — прод, для дебага/локально — dev. API_URL переопределяет всё (непустой).
+const String DOMAIN = (_apiUrlOverride.length > 1)
+    ? _apiUrlOverride
+    : ((kReleaseMode && !_useDevApi) ? _prodDomain : _devDomain);
 
 Future<void> saveToken(String token) async {
   final prefs = await SharedPreferences.getInstance();
