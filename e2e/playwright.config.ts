@@ -18,7 +18,8 @@ export default defineConfig({
     trace: 'on',
     screenshot: 'on',
     video: 'on',
-    headless: process.env.HEADED === '1',
+    // По умолчанию headless; окно браузера: HEADED=1 npm run test:all
+    headless: process.env.HEADED !== '1',
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
