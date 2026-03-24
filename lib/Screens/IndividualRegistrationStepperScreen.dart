@@ -170,6 +170,26 @@ class _IndividualRegistrationStepperScreenState
     return busySets.map((s) => s.number_set).toList();
   }
 
+  /// Занятые сеты из карточки события (без available-sets), если снимок после диалога пуст из‑за гонки с API.
+  List<NumberSets> _busySetsFallbackFromCompetition() {
+    final all = _competition.number_sets
+        .map((j) => NumberSets.fromJson(Map<String, dynamic>.from(j)))
+        .toList();
+    final birthYear = _userBirthYear;
+    List<NumberSets> filtered;
+    if (birthYear != null) {
+      filtered = all.where((s) => s.matchesBirthYear(birthYear)).toList();
+    } else {
+      final (catFrom, catTo) = _getCategoryYearRange();
+      if (catFrom != null || catTo != null) {
+        filtered = all.where((s) => s.matchesCategoryYearRange(catFrom, catTo)).toList();
+      } else {
+        filtered = all;
+      }
+    }
+    return filtered.where((s) => s.free <= 0).toList();
+  }
+
   NumberSets? get _effectiveSelectedNumberSet {
     final s = _selectedNumberSet;
     if (s == null) return null;
@@ -226,7 +246,7 @@ class _IndividualRegistrationStepperScreenState
       if (list.isEmpty) {
         if (mounted) {
           setState(() {
-            _availableSetsFromApi = [];
+            _availableSetsFromApi = null;
             _availableSetsDob = dobStr;
           });
         }
@@ -393,10 +413,12 @@ class _IndividualRegistrationStepperScreenState
 
     // Лист ожидания применим только когда есть сеты (is_input_set == 0)
     if (_competition.is_input_set == 0 && _allSetsBusy) {
+      // Снимок до await: пока открыт диалог, available-sets может обнулить список — иначе в sheet не будет сетов.
+      final waitlistBusySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
       final ok = await _showWaitlistConfirmDialog(
         'Все сеты заняты. Добавить вас в лист ожидания? Если освободится место, вы получите уведомление.',
       );
-      if (ok == true && mounted) _showWaitlistSheet();
+      if (ok == true && mounted) _showWaitlistSheet(busySetsSnapshot: waitlistBusySets);
       return;
     }
 
@@ -404,11 +426,12 @@ class _IndividualRegistrationStepperScreenState
     if (_needSetStep &&
         _effectiveSelectedNumberSet != null &&
         (_effectiveSelectedNumberSet!.free) <= 0) {
+      final waitlistBusySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
       final ok = await _showWaitlistConfirmDialog(
         'Выбранный сет занят. Добавить вас в лист ожидания? Если освободится место, вы получите уведомление.',
       );
       if (ok == true && mounted) {
-        _showWaitlistSheet();
+        _showWaitlistSheet(busySetsSnapshot: waitlistBusySets);
       } else if (ok == false && mounted) {
         setState(() => _currentStepIndex = _effectiveSteps.indexOf(_StepType.set));
       }
@@ -489,12 +512,16 @@ class _IndividualRegistrationStepperScreenState
     }
   }
 
-  void _showWaitlistSheet() {
+  void _showWaitlistSheet({List<NumberSets>? busySetsSnapshot}) {
     if (_cannotParticipateByAge) {
       _showSnack('В вашей группе ваш возраст не подходит для участия', isError: true);
       return;
     }
-    final busySets = _setsFilteredByAge.where((s) => s.free <= 0).toList();
+    var busySets = busySetsSnapshot ??
+        _setsFilteredByAge.where((s) => s.free <= 0).toList();
+    if (busySets.isEmpty && _competition.is_input_set == 0) {
+      busySets = _busySetsFallbackFromCompetition();
+    }
     final categoryList = _competition.categories
         .map((json) => Category.fromJson(Map<String, dynamic>.from(json)))
         .toList();

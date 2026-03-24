@@ -175,9 +175,19 @@ class Competition {
       setsList = setsRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList();
     } else if (setsRaw is Map && setsRaw['sets'] is List) {
       setsList = (setsRaw['sets'] as List).map((item) => Map<String, dynamic>.from(item as Map)).toList();
+    } else if (setsRaw is Map && setsRaw['busy_sets'] is List) {
+      setsList = (setsRaw['busy_sets'] as List).map((item) => Map<String, dynamic>.from(item as Map)).toList();
     } else {
       setsList = [];
     }
+    final numberSetsFallback = json['number_sets'];
+    final List<Map<String, dynamic>> setsListFinal = setsList.isNotEmpty
+        ? setsList
+        : (numberSetsFallback is List)
+            ? numberSetsFallback
+                .map((item) => Map<String, dynamic>.from(item as Map))
+                .toList()
+            : [];
 
     return Competition(
       id: json['id'],
@@ -220,7 +230,7 @@ class Competition {
       sport_categories: (sportCategoriesRaw is List)
           ? sportCategoriesRaw.map((item) => Map<String, dynamic>.from(item as Map)).toList()
           : [],
-      number_sets: setsList,
+      number_sets: setsListFinal,
       info_payment: json['info_payment'] ?? '',
       address: json['address'] ?? '',
       climbing_gym_name: (json['climbing_gym_name'] ?? json['climbing_gym'] ?? '').toString(),
@@ -2956,10 +2966,11 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
       final body = json.decode(r.body);
       final raw = body['availableSets'] ?? body['available_sets'];
       final list = raw is List ? raw : [];
+      // Пустой список не затирает сеты: иначе шаг «Сет» исчезает, хотя в карточке события сеты есть.
       if (list.isEmpty) {
         if (mounted) {
           setState(() {
-            _availableSetsFromApi = [];
+            _availableSetsFromApi = null;
             _availableSetsDob = dobStr;
           });
         }
