@@ -958,8 +958,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
             _buildHasPaymentCard(cardCheckoutAvailable: cardCheckoutAvailable),
         ] else ...[
           if (showCardCheckout) _buildTbankPayButton(),
-          if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
-          if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
+          if (!cardCheckoutAvailable && linkPayment != null && linkPayment.isNotEmpty)
+            _buildPaymentLink(linkPayment),
+          if (!cardCheckoutAvailable && imgPayment != null && imgPayment.isNotEmpty)
+            _buildQrCode(imgPayment),
           if (!showCardCheckout) _buildReceiptUpload(),
           if (isPayCashToPlace) _buildPayOnPlaceButton(),
         ],

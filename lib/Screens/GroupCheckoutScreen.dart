@@ -625,8 +625,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
                             ),
                             const SizedBox(height: 12),
                           ],
-                          if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
-                          if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
+                          if (!cardCheckoutAvailable && linkPayment != null && linkPayment.isNotEmpty)
+                            _buildPaymentLink(linkPayment),
+                          if (!cardCheckoutAvailable && imgPayment != null && imgPayment.isNotEmpty)
+                            _buildQrCode(imgPayment),
                           if (!cardCheckoutAvailable) _buildReceiptUpload(groupReceipt: groupReceipt),
                           if (isPayCashToPlace) _buildPayOnPlaceButton(),
                         ],

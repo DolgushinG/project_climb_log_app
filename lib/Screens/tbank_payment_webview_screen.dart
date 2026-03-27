@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../theme/app_theme.dart';
+import '../utils/payment_return_url.dart';
 import 'tbank_iframe_stub.dart'
     if (dart.library.html) 'tbank_iframe_web.dart' as tbank_iframe;
 
@@ -58,6 +59,8 @@ class TbankPaymentWebViewScreen extends StatefulWidget {
 class _TbankPaymentWebViewScreenState extends State<TbankPaymentWebViewScreen> {
   late final WebViewController _controller;
   bool _completed = false;
+  /// После редиректа на return URL не показываем HTML страницы сайта — только Flutter.
+  bool _awaitingBankConfirmation = false;
 
   void _finish(bool? success) {
     if (_completed || !mounted) return;
@@ -65,15 +68,12 @@ class _TbankPaymentWebViewScreenState extends State<TbankPaymentWebViewScreen> {
     Navigator.of(context).pop(success);
   }
 
-  /// true — success, false — fail/cancel по URL (T‑Банк и Точка).
-  static bool? _parseTbankResult(String url) {
-    try {
-      final uri = Uri.parse(url);
-      final p = uri.path.toLowerCase();
-      if (p.contains('/payment/tbank/success') || p.contains('/payment/tochka/success')) return true;
-      if (p.contains('/payment/tbank/fail') || p.contains('/payment/tochka/fail')) return false;
-    } catch (_) {}
-    return null;
+  void _onReturnUrlDetected(bool? success) {
+    if (_completed) return;
+    setState(() => _awaitingBankConfirmation = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _finish(success);
+    });
   }
 
   @override
@@ -84,18 +84,16 @@ class _TbankPaymentWebViewScreenState extends State<TbankPaymentWebViewScreen> {
       ..setNavigationDelegate(
         NavigationDelegate(
           onNavigationRequest: (NavigationRequest request) {
-            final r = _parseTbankResult(request.url);
+            final r = parsePaymentReturnUrl(request.url);
             if (r != null) {
-              WidgetsBinding.instance.addPostFrameCallback((_) {
-                if (mounted) _finish(r);
-              });
+              _onReturnUrlDetected(r);
               return NavigationDecision.prevent;
             }
             return NavigationDecision.navigate;
           },
           onPageFinished: (String url) {
-            final r = _parseTbankResult(url);
-            if (r != null) _finish(r);
+            final r = parsePaymentReturnUrl(url);
+            if (r != null) _onReturnUrlDetected(r);
           },
         ),
       )
@@ -116,7 +114,37 @@ class _TbankPaymentWebViewScreenState extends State<TbankPaymentWebViewScreen> {
           style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
         ),
       ),
-      body: WebViewWidget(controller: _controller),
+      body: Stack(
+        children: [
+          WebViewWidget(controller: _controller),
+          if (_awaitingBankConfirmation)
+            Positioned.fill(
+              child: ColoredBox(
+                color: AppColors.anthracite.withOpacity(0.96),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(color: AppColors.mutedGold),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Подтверждаем оплату…',
+                        textAlign: TextAlign.center,
+                        style: unbounded(fontSize: 15, fontWeight: FontWeight.w500, color: Colors.white),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Не закрывайте приложение',
+                        textAlign: TextAlign.center,
+                        style: unbounded(fontSize: 12, color: Colors.white60),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }
