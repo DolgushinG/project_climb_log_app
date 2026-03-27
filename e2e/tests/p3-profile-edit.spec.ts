@@ -14,11 +14,12 @@ test.describe('P3 — Профиль: редактирование', () => {
     await logPageState(page, 'BEFORE_CLICK_PROFILE_EDIT');
     await logElements(page, 'BEFORE_CLICK', [
       { name: 'Изменить данные', locator: page.getByText('Изменить данные') },
-      { name: 'Изменить данные (no list)', locator: page.getByText('Изменить данные').filter({ hasNot: page.getByText('в листе ожидания') }) },
+      { name: 'Изменить данные (exact)', locator: page.getByText('Изменить данные', { exact: true }) },
       { name: 'в листе ожидания', locator: page.getByText('в листе ожидания') },
     ]);
     await logParagraphsWithText(page, 'BEFORE', 'Изменить');
-    const btn = page.getByText('Изменить данные').filter({ hasNot: page.getByText('в листе ожидания') }).first();
+    // exact: на соревновании — «Изменить данные в листе ожидания»; в профиле карточка — только «Изменить данные».
+    const btn = page.getByText('Изменить данные', { exact: true }).first();
     const coords = await btn.evaluate((el: HTMLElement) => {
       let target: Element | null = el;
       while (target && target.tagName !== 'BODY') {
@@ -57,11 +58,11 @@ test.describe('P3 — Профиль: редактирование', () => {
     await logPageState(page, 'OPEN_TEST_BEFORE_CLICK');
     await logElements(page, 'OPEN_BEFORE', [
       { name: 'Изменить данные', locator: page.getByText('Изменить данные') },
-      { name: 'Изменить данные (no list)', locator: page.getByText('Изменить данные').filter({ hasNot: page.getByText('в листе ожидания') }) },
+      { name: 'Изменить данные (exact)', locator: page.getByText('Изменить данные', { exact: true }) },
       { name: 'Город', locator: page.getByText('Город') },
     ]);
     await logParagraphsWithText(page, 'OPEN_BEFORE', 'Изменить');
-    const btn = page.getByText('Изменить данные').filter({ hasNot: page.getByText('в листе ожидания') }).first();
+    const btn = page.getByText('Изменить данные', { exact: true }).first();
     let btnInfo = 'none';
     try {
       btnInfo = await btn.evaluate((el) => `${el.tagName}: "${(el as HTMLElement).textContent?.slice(0, 50)}"`);

@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../main.dart';
 import '../theme/app_theme.dart';
 import '../models/GroupDocumentsModels.dart';
+import 'GroupCheckoutScreen.dart' deferred as group_checkout;
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
 
@@ -260,6 +261,54 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                 child: Text(
                   eventTitle,
                   style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
+              ),
+            if (data.tbankCheckoutAvailable)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: Material(
+                  color: AppColors.cardDark,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.credit_card, color: AppColors.mutedGold, size: 22),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Доступна оплата банковской картой на экране оформления группы.',
+                                style: unbounded(color: Colors.white70, fontSize: 14),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: () async {
+                            await group_checkout.loadLibrary();
+                            if (!mounted) return;
+                            await Navigator.of(context).push<void>(
+                              MaterialPageRoute<void>(
+                                builder: (_) => group_checkout.GroupCheckoutScreen(eventId: widget.eventId),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.mutedGold,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child: Text('Перейти к оформлению', style: unbounded(fontWeight: FontWeight.w600)),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             if (data.documents.isNotEmpty)

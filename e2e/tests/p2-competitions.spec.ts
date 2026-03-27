@@ -19,7 +19,11 @@ test.describe('P2 — Соревнования', () => {
   test('деталь соревнования — тап по карточке', async ({ page }) => {
     await page.getByText('Соревнования').last().click({ force: true });
     await page.waitForTimeout(3000);
-    const cards = page.locator('div[role="button"]').filter({ hasText: /[А-Яа-я]{5,}/ });
+    // Нижняя навигация тоже с role="button" (Semantics) — исключаем подписи вкладок.
+    const cards = page
+      .locator('[role="button"]')
+      .filter({ hasText: /[А-Яа-я]{5,}/ })
+      .filter({ hasNotText: /^(Тренировки|Рейтинг|Соревнования|Скалодромы|Профиль)$/ });
     const count = await cards.count();
     if (count > 0) {
       await cards.first().click();

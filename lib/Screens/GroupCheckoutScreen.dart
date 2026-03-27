@@ -1,6 +1,8 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -9,12 +11,16 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
+import '../services/tbank_event_payment_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_snackbar.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
 import '../widgets/error_report_modal.dart';
+import '../widgets/tbank_payment_success_dialog.dart';
+import '../widgets/tbank_payment_confirming_overlay.dart';
 import 'GroupDocumentsScreen.dart';
+import 'tbank_payment_webview_screen.dart';
 
 class GroupCheckoutScreen extends StatefulWidget {
   final int eventId;
@@ -25,7 +31,7 @@ class GroupCheckoutScreen extends StatefulWidget {
   State<GroupCheckoutScreen> createState() => _GroupCheckoutScreenState();
 }
 
-class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
+class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
@@ -38,11 +44,146 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
   final Map<int, String?> _selectedPackageByUser = {};
   final Map<int, Map<String, String>> _selectedSizesByUser = {};
   bool _showingErrorModal = false;
+  bool _isTbankConfirming = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadData();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_isTbankConfirming) return;
+      _loadData(silent: true);
+    }
+  }
+
+  bool _groupPaymentLooksComplete(Map<String, dynamic>? data) {
+    if (data == null) return false;
+    final g = data['group'];
+    if (g is! List || g.isEmpty) return false;
+    for (final row in g) {
+      if (row is! Map) continue;
+      if (row['is_paid'] != true) return false;
+    }
+    return true;
+  }
+
+  Future<void> _pollGroupCheckoutAfterTbank({String? orderId}) async {
+    const maxAttempts = 8;
+    const interval = Duration(seconds: 2);
+    String? statusPollId = orderId;
+    for (var i = 0; i < maxAttempts; i++) {
+      await Future<void>.delayed(interval);
+      if (!mounted) return;
+      final token = await getToken();
+      if (statusPollId != null && statusPollId.isNotEmpty) {
+        final st = await TbankEventPaymentService.fetchStatusOnce(
+          eventId: widget.eventId,
+          orderId: statusPollId,
+          token: token,
+        );
+        if (st.needsAuthRedirect) {
+          if (mounted) {
+            Navigator.of(context).pop();
+            redirectToLoginOnSessionError(context);
+          }
+          return;
+        }
+        if (st.notFound) statusPollId = null;
+        if (st.isPaid) {
+          await _loadData(silent: true);
+          if (!mounted) return;
+          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+          if (mounted) await showTbankPaymentSuccessDialog(context);
+          return;
+        }
+        if (st.paymentFailed) {
+          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+          if (!mounted) return;
+          await showTbankPaymentFailureDialog(
+            context,
+            message: st.failureMessage ?? 'Оплата не прошла.',
+          );
+          return;
+        }
+      }
+      await _loadData(silent: true);
+      if (!mounted) return;
+      if (_groupPaymentLooksComplete(_data)) {
+        if (!mounted) return;
+        if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+        if (mounted) await showTbankPaymentSuccessDialog(context);
+        return;
+      }
+    }
+  }
+
+  Future<void> _payWithTbankGroup() async {
+    await _loadData(silent: true);
+    if (!mounted) return;
+    final event = _data?['event'];
+    final packagesRaw = event is Map ? event['packages'] : null;
+    final packages = packagesRaw is List ? packagesRaw : <dynamic>[];
+    if (packages.isNotEmpty && !_hasAllUnpaidParticipantsReady(packages)) {
+      _showSnack('Выберите пакет и размеры мерча для всех неоплаченных участников', isError: true);
+      return;
+    }
+    final participantIds = _unpaidParticipantUserIds();
+    if (participantIds.isEmpty) {
+      _showSnack('Нет участников для оплаты', isError: true);
+      return;
+    }
+    final token = await getToken();
+    // scope=individual: один плательщик (Bearer); group_payment + participant_user_ids — за кого закрываем оплату.
+    final result = await TbankEventPaymentService.init(
+      eventId: widget.eventId,
+      scope: TbankPaymentScope.individual,
+      token: token,
+      groupPayment: true,
+      participantUserIds: participantIds,
+      groupRegistrationId: _groupRegistrationIdFromData(),
+      clientOrigin: kIsWeb ? Uri.base.origin : null,
+    );
+    if (!mounted) return;
+    if (result.needsAuthRedirect) {
+      Navigator.of(context).pop();
+      redirectToLoginOnSessionError(context);
+      return;
+    }
+    if (!result.isSuccess) {
+      _showSnack(result.userMessage, isError: true);
+      return;
+    }
+    final uri = Uri.tryParse(result.paymentUrl!);
+    if (uri == null) {
+      _showSnack('Некорректная ссылка оплаты', isError: true);
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _isTbankConfirming = true);
+    try {
+      if (kIsWeb) {
+        final pollFuture = _pollGroupCheckoutAfterTbank(orderId: result.orderId);
+        await openTbankPaymentUrl(context, result.paymentUrl!);
+        await pollFuture;
+      } else {
+        await openTbankPaymentUrl(context, result.paymentUrl!);
+        if (!mounted) return;
+        await _pollGroupCheckoutAfterTbank(orderId: result.orderId);
+      }
+    } finally {
+      if (mounted) setState(() => _isTbankConfirming = false);
+    }
   }
 
   String get _baseUrl => DOMAIN.startsWith('http') ? DOMAIN : 'https://$DOMAIN';
@@ -341,6 +482,34 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
     return true;
   }
 
+  /// Участники (user_id), по которым в заявке ещё не отмечена оплата — для `POST .../payment/tbank/init`.
+  List<int> _unpaidParticipantUserIds() {
+    final groupRaw = _data?['group'];
+    if (groupRaw is! List) return [];
+    final ids = <int>[];
+    for (final g in groupRaw) {
+      if (g is! Map) continue;
+      if (g['is_paid'] == true) continue;
+      final userId = g['user_id'];
+      final uid = userId is int ? userId : int.tryParse(userId?.toString() ?? '');
+      if (uid != null) ids.add(uid);
+    }
+    return ids;
+  }
+
+  /// Идентификатор групповой заявки в ответе group-checkout (если бэкенд отдаёт).
+  int? _groupRegistrationIdFromData() {
+    final d = _data;
+    if (d == null) return null;
+    for (final key in ['group_registration_id', 'group_id', 'registration_id']) {
+      final v = d[key];
+      if (v is int) return v;
+      if (v is num) return v.toInt();
+      if (v is String) return int.tryParse(v);
+    }
+    return null;
+  }
+
   void _showSnack(String msg, {bool isError = false}) {
     if (!mounted) return;
     if (isError) {
@@ -355,65 +524,89 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
     final linkPayment = event is Map ? (event['link_payment'] ?? event['link_payment_dynamic'])?.toString() : null;
     final imgPayment = event is Map ? (event['img_payment_dynamic'] ?? event['img_payment'])?.toString() : null;
     final isPayCashToPlace = event is Map && event['is_pay_cash_to_place'] == true;
+    final tbankAvailable =
+        _data?['tbank_checkout_available'] == true || _data?['tbank_checkout_available'] == 1;
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (ctx) => Container(
-        decoration: const BoxDecoration(
-          color: AppColors.cardDark,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: DraggableScrollableSheet(
-          initialChildSize: 0.6,
-          minChildSize: 0.4,
-          maxChildSize: 0.95,
-          expand: false,
-          builder: (_, scrollController) => SafeArea(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 12, bottom: 8),
-                  child: Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white24,
-                      borderRadius: BorderRadius.circular(2),
+      builder: (sheetContext) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: AppColors.cardDark,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: DraggableScrollableSheet(
+            initialChildSize: 0.6,
+            minChildSize: 0.4,
+            maxChildSize: 0.95,
+            expand: false,
+            builder: (_, scrollController) => SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 12, bottom: 8),
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white24,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
                     ),
                   ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                  child: Text(
-                    'Оплата и прикрепление чека',
-                    style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
-                  ),
-                ),
-                Flexible(
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        if (linkPayment != null && linkPayment.isNotEmpty)
-                          _buildPaymentLink(linkPayment),
-                        if (imgPayment != null && imgPayment.isNotEmpty)
-                          _buildQrCode(imgPayment),
-                        _buildReceiptUpload(groupReceipt: groupReceipt),
-                        if (isPayCashToPlace) _buildPayOnPlaceButton(),
-                      ],
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Text(
+                      tbankAvailable ? 'Оплата' : 'Оплата и прикрепление чека',
+                      style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                   ),
-                ),
-              ],
+                  Expanded(
+                    child: SingleChildScrollView(
+                      controller: scrollController,
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          if (tbankAvailable) ...[
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton.icon(
+                                onPressed: () async {
+                                  Navigator.pop(sheetContext);
+                                  await _payWithTbankGroup();
+                                },
+                                icon: const Icon(Icons.credit_card),
+                                label: Text(
+                                  'Оплатить картой (группа)',
+                                  style: unbounded(fontWeight: FontWeight.w600),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.mutedGold,
+                                  foregroundColor: Colors.white,
+                                  padding: const EdgeInsets.symmetric(vertical: 14),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+                          if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
+                          if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
+                          if (!tbankAvailable) _buildReceiptUpload(groupReceipt: groupReceipt),
+                          if (isPayCashToPlace) _buildPayOnPlaceButton(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1104,15 +1297,17 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
         backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isTbankConfirming ? null : () => Navigator.pop(context),
         ),
         actions: const [],
       ),
-      body: Container(
-        color: AppColors.anthracite,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+      body: Stack(
+        children: [
+          Container(
+            color: AppColors.anthracite,
+            child: ListView(
+              padding: const EdgeInsets.all(16),
+              children: [
             if (eventTitle.isNotEmpty)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
@@ -1221,7 +1416,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> {
               ),
             ],
           ],
-        ),
+            ),
+          ),
+          if (_isTbankConfirming) const TbankPaymentConfirmingOverlay(),
+        ],
       ),
     );
   }

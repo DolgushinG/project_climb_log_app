@@ -198,6 +198,18 @@ void main() {
           isFalse,
         );
       });
+
+      test('НЕ показывать когда has_payment (онлайн-оплата)', () {
+        expect(
+          CompetitionDetailButtonLogic.canShowCancelRegistrationButton(
+            isAccessUserCancelTakePart: 1,
+            isParticipantPaid: false,
+            resultExists: false,
+            hasPayment: true,
+          ),
+          isFalse,
+        );
+      });
     });
 
     group('isPaymentConfirmed', () {

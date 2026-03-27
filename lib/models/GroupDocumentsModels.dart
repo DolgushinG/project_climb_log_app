@@ -5,12 +5,15 @@ class GroupDocumentsResponse {
   final List<DocumentInfo> documents;
   final List<UserDocuments> users;
   final String linkBackToEvent;
+  /// Совпадает с признаком на group-checkout (подсказки UI).
+  final bool tbankCheckoutAvailable;
 
   GroupDocumentsResponse({
     required this.event,
     required this.documents,
     required this.users,
     required this.linkBackToEvent,
+    this.tbankCheckoutAvailable = false,
   });
 
   factory GroupDocumentsResponse.fromJson(Map<String, dynamic> json) {
@@ -25,6 +28,8 @@ class GroupDocumentsResponse {
               .toList() ??
           [],
       linkBackToEvent: json['link_back_to_event'] as String? ?? '',
+      tbankCheckoutAvailable:
+          json['tbank_checkout_available'] == true || json['tbank_checkout_available'] == 1,
     );
   }
 }

@@ -735,6 +735,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   Map<String, dynamic>? _checkoutData;
   Timer? _paymentTimer;
   bool _checkout404Received = false; // предотвращает цикл при 404
+  /// Один раз показываем «время оплаты истекло», пока бэк снова не даст remaining > 0 или участие не сбросится.
+  bool _checkoutExpiryDialogShown = false;
   bool _isRefreshing = false;
   Map<String, dynamic>? _competitionStats;
   bool _statsLoading = false;
@@ -1275,12 +1277,18 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
       children: [
         if (isYearOrAge && _userCategoryFromApi != null) ...[
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.groups_outlined, size: 14, color: AppColors.mutedGold),
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(Icons.groups_outlined, size: 14, color: AppColors.mutedGold),
+              ),
               const SizedBox(width: 6),
-              Text(
-                'Ваша группа: ${_userCategoryFromApi!}',
-                style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+              Expanded(
+                child: Text(
+                  'Ваша группа: ${_userCategoryFromApi!}',
+                  style: unbounded(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+                ),
               ),
             ],
           ),
@@ -1776,17 +1784,23 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
             ] else ...[
               Builder(
                 builder: (context) {
-                  // Показывать «Продолжить оплату» только после загрузки checkout и только если сервер вернул, что оплата нужна (есть время и нет чека).
-                  final needsPayment = _checkoutData != null &&
-                      _checkoutRemainingSeconds > 0 &&
-                      _competitionDetails.is_participant &&
+                  // Оплата по карточке события: участник, нужна оплата, не оплачено, чек не на проверке.
+                  // Таймер и _checkoutData — только для баннера; кнопку показываем даже если checkout ещё не подгрузился или remaining=0 (иначе остаётся мёртвая «Вы участник»).
+                  final checkoutHasPayment =
+                      _checkoutData?['has_payment'] == true || _checkoutData?['has_payment'] == 1;
+                  final unpaidNeedsCheckout = _competitionDetails.is_participant &&
                       _competitionDetails.is_need_pay_for_reg &&
                       !_competitionDetails.is_participant_paid &&
-                      !_receiptPending;
+                      !_receiptPending &&
+                      !checkoutHasPayment;
+                  final showPaymentTimerBanner = unpaidNeedsCheckout &&
+                      _checkoutData != null &&
+                      _checkoutRemainingSeconds > 0 &&
+                      !checkoutHasPayment;
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      if (needsPayment && _checkoutRemainingSeconds > 0)
+                      if (showPaymentTimerBanner)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
@@ -1857,7 +1871,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                                             MaterialPageRoute(
                                               builder: (context) => LoginScreen(),
                                             ),
-                                          ).then((_) => fetchCompetition());
+                                          );
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.mutedGold,
@@ -1874,7 +1888,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                                               fontWeight: FontWeight.w600),
                                         ),
                                       )
-                                : needsPayment
+                                : unpaidNeedsCheckout
                                     ? ElevatedButton(
                                         onPressed: () {
                                           Navigator.push(
@@ -1885,7 +1899,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                                                 initialData: _checkoutData,
                                               ),
                                             ),
-                                          ).then((_) => fetchCompetition());
+                                          );
                                         },
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor: AppColors.mutedGold,
@@ -2055,6 +2069,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                                       _competitionDetails.is_participant_paid,
                                   resultExists: resultExists,
                                   hasBill: _checkoutData?['has_bill'] == true,
+                                  hasPayment: _checkoutData?['has_payment'] == true ||
+                                      _checkoutData?['has_payment'] == 1,
                                 ))
                               const SizedBox(width: 10),
                             if (CompetitionDetailButtonLogic
@@ -2065,6 +2081,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
                                   _competitionDetails.is_participant_paid,
                               resultExists: resultExists,
                               hasBill: _checkoutData?['has_bill'] == true,
+                              hasPayment: _checkoutData?['has_payment'] == true ||
+                                  _checkoutData?['has_payment'] == 1,
                             ))
                               Expanded(
                                 child: OutlinedButton(
@@ -2751,6 +2769,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         _checkoutData = null;
         _paymentTimer?.cancel();
         _checkout404Received = false;
+        _checkoutExpiryDialogShown = false;
       });
       return;
     }
@@ -2763,23 +2782,33 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         headers: {'Authorization': 'Bearer $token', 'Accept': 'application/json'},
       );
       if (!mounted) return;
-      if (r.statusCode == 404 || r.statusCode != 200) {
-        // Регистрации нет (404) — сбрасываем состояние, НЕ вызываем fetchCompetition (избегаем цикла)
+      if (r.statusCode == 404) {
+        // Регистрации нет — только явный 404; 502/503 не смешиваем с отменой заявки
         setState(() {
           _checkoutData = null;
           _checkoutRemainingSeconds = 0;
           _paymentTimer?.cancel();
           _checkout404Received = true;
+          _checkoutExpiryDialogShown = false;
         });
+        return;
+      }
+      if (r.statusCode != 200) {
+        // Сеть, 5xx, 401 — сохраняем прежний таймер/checkout, иначе ложный «срок истёк» и баннер по кругу
         return;
       }
       final raw = json.decode(r.body);
       final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
       if (data == null) return;
       final hasBill = data['has_bill'] == true;
+      final hasPayment = data['has_payment'] == true || data['has_payment'] == 1;
+      final payTimeExpired = data['pay_time_expired'];
       int remaining = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
-      if (data['pay_time_expired'] == 1) remaining = 0;
+      if (payTimeExpired == 1 && !hasPayment) remaining = 0;
       if (mounted) {
+        if (remaining > 0 || hasBill || hasPayment) {
+          _checkoutExpiryDialogShown = false;
+        }
         setState(() {
           _receiptPending = hasBill;
           _checkoutData = data;
@@ -2787,11 +2816,16 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
           _checkout404Received = false;
         });
         _paymentTimer?.cancel();
-        if (hasBill) return;
+        if (hasBill || hasPayment) return;
+        // 3 — не «не успел оплатить», окно оплаты закрыто (часто после онлайн-оплаты); без диалога «время истекло»
+        if (payTimeExpired == 3) return;
         if (remaining <= 0) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (mounted) _cancelTakePartFromEvent();
-          });
+          if (!_checkoutExpiryDialogShown) {
+            _checkoutExpiryDialogShown = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) _cancelTakePartFromEvent();
+            });
+          }
         } else {
           _startPaymentTimer();
         }
@@ -2812,7 +2846,8 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
           shouldCancel = true;
         }
       });
-      if (shouldCancel && mounted) {
+      if (shouldCancel && mounted && !_checkoutExpiryDialogShown) {
+        _checkoutExpiryDialogShown = true;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted) _cancelTakePartFromEvent();
         });
@@ -2820,29 +2855,53 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     });
   }
 
+  /// Диалог при нуле таймера: не отменяем участие без явного выбора — можно снова открыть checkout.
   Future<void> _cancelTakePartFromEvent() async {
     if (!mounted) return;
-    setState(() {
-      _checkoutRemainingSeconds = 0;
-      _checkoutData = null;
-    });
-    final ok = await showDialog<bool>(
+    final d = _checkoutData;
+    if (d != null) {
+      final hp = d['has_payment'] == true || d['has_payment'] == 1;
+      if (hp || d['pay_time_expired'] == 3) {
+        _checkoutExpiryDialogShown = false;
+        return;
+      }
+    }
+    final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Время оплаты истекло'),
+        title: const Text('Время на оплату истекло'),
         content: const Text(
-          'Оплата не была произведена. Регистрация отменена. Зарегистрируйтесь заново.',
+          'Таймер оплаты обнулился. Вы можете снова открыть оформление и попробовать оплатить или отменить участие в событии.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Ок'),
+            onPressed: () => Navigator.pop(ctx, 'pay'),
+            child: const Text('Перейти к оплате'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'cancel'),
+            child: Text('Отменить участие', style: unbounded(color: Colors.orange)),
           ),
         ],
       ),
     );
-    if (ok == true && mounted) {
+    if (!mounted) return;
+    if (result == 'pay') {
+      await fetchCompetition();
+      if (!mounted) return;
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => CheckoutScreen(
+            eventId: _competitionDetails.id,
+            initialData: _checkoutData,
+          ),
+        ),
+      );
+      return;
+    }
+    if (result == 'cancel') {
       try {
         final token = await getToken();
         await http.post(
@@ -2874,11 +2933,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         if (data is Map) {
           final comp = Competition.fromJson(Map<String, dynamic>.from(data));
           setState(() => _competitionDetails = comp);
-          _loadCheckoutDataIfNeeded(comp);
-          final ac = comp.auto_categories;
-          if (ac == AUTO_CATEGORIES_YEAR || ac == AUTO_CATEGORIES_AGE || comp.is_input_set == 0) {
-            _loadUserBirthday();
-          }
+          // checkout и профиль подгружаются после ответа сети (Future.wait), иначе дубли запросов
         }
       } catch (_) {}
     }

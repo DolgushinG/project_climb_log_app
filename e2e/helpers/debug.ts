@@ -2,7 +2,9 @@ import { Locator, Page } from '@playwright/test';
 
 /** Ожидание загрузки Flutter-приложения */
 export async function waitForAppReady(page: Page) {
-  await page.waitForLoadState('networkidle');
+  // Не используем networkidle: у Flutter Web фоновые запросы/шрифты держат сеть «живой» —
+  // ожидание может не завершиться или быть нестабильным в CI.
+  await page.waitForLoadState('domcontentloaded');
   // index.html: после first-frame / fallback #loading получает .hidden и через ~400ms remove().
   // Считать только opacity:0 «скрытым» ненадёжно — ждём исчезновения узла из DOM.
   await page.waitForFunction(() => !document.getElementById('loading'), {

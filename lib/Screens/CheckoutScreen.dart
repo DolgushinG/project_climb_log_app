@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
@@ -10,10 +11,14 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
+import '../services/tbank_event_payment_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_report_modal.dart';
+import '../widgets/tbank_payment_success_dialog.dart';
+import '../widgets/tbank_payment_confirming_overlay.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
+import 'tbank_payment_webview_screen.dart';
 
 class CheckoutScreen extends StatefulWidget {
   final int eventId;
@@ -25,7 +30,7 @@ class CheckoutScreen extends StatefulWidget {
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
-class _CheckoutScreenState extends State<CheckoutScreen> {
+class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObserver {
   Map<String, dynamic>? _data;
   bool _isLoading = true;
   String? _error;
@@ -42,10 +47,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   bool _isApplyingPromo = false;
   int _currentStep = 0; // 0 = package selection, 1 = payment & receipt
   bool _showingErrorModal = false;
+  bool _isTbankInitializing = false;
+  /// После закрытия WebView — polling status/checkout; экран перекрыт лоадером.
+  bool _isTbankConfirming = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     if (widget.initialData != null) {
       _applyData(widget.initialData!);
     } else {
@@ -54,11 +63,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 
   void _applyData(Map<String, dynamic> data) {
+    // has_payment: true/1; pay_time_expired: 1=не успел оплатить, 3=окно закрыто (часто онлайн-оплата) — не путать с «истекло»
+    final hasPayment = data['has_payment'] == true || data['has_payment'] == 1;
+    final payTimeExpired = data['pay_time_expired'];
     setState(() {
       _data = data;
       _remainingSeconds = (data['remaining_seconds'] is num) ? (data['remaining_seconds'] as num).toInt() : 0;
-      // pay_time_expired=1 означает, что время уже истекло на бэке
-      if (data['pay_time_expired'] == 1) _remainingSeconds = 0;
+      if (payTimeExpired == 1 && !hasPayment) _remainingSeconds = 0;
       _isLoading = false;
       // Синхронизируем выбранный пакет с бэком
       _selectedPackageName = null;
@@ -94,14 +105,134 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         }
       }
     });
+    if (hasPayment || payTimeExpired == 3) {
+      _timer?.cancel();
+      return;
+    }
     _startTimer();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _promoController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_isTbankConfirming) return;
+      _loadCheckout(silent: true);
+    }
+  }
+
+  Future<void> _payWithTbank() async {
+    if (_isTbankInitializing) return;
+    setState(() => _isTbankInitializing = true);
+    try {
+      final token = await getToken();
+      final result = await TbankEventPaymentService.init(
+        eventId: widget.eventId,
+        scope: TbankPaymentScope.individual,
+        token: token,
+        clientOrigin: kIsWeb ? Uri.base.origin : null,
+      );
+      if (!mounted) return;
+      if (result.needsAuthRedirect) {
+        redirectToLoginOnSessionError(context, 'Ошибка сессии. Войдите снова.');
+        return;
+      }
+      if (!result.isSuccess) {
+        _showSnack(result.userMessage, isError: true);
+        return;
+      }
+      final uri = Uri.tryParse(result.paymentUrl!);
+      if (uri == null) {
+        _showSnack('Некорректная ссылка оплаты', isError: true);
+        return;
+      }
+      if (!mounted) return;
+      setState(() {
+        _isTbankInitializing = false;
+        _isTbankConfirming = true;
+      });
+      try {
+        if (kIsWeb) {
+          final pollFuture = _pollCheckoutAfterTbank(orderId: result.orderId);
+          await openTbankPaymentUrl(context, result.paymentUrl!);
+          await pollFuture;
+        } else {
+          await openTbankPaymentUrl(context, result.paymentUrl!);
+          if (!mounted) return;
+          await _pollCheckoutAfterTbank(orderId: result.orderId);
+        }
+      } finally {
+        if (mounted) setState(() => _isTbankConfirming = false);
+      }
+    } finally {
+      if (mounted) setState(() => _isTbankInitializing = false);
+    }
+  }
+
+  /// После оплаты: при наличии [orderId] — polling `GET .../payment/tbank/status` до `paid`,
+  /// плюс обновление checkout (в т.ч. по `has_bill`, если бэкенд ещё не выставил paid в status).
+  Future<void> _pollCheckoutAfterTbank({String? orderId}) async {
+    const maxAttempts = 8;
+    const interval = Duration(seconds: 2);
+    String? statusPollId = orderId;
+    for (var i = 0; i < maxAttempts; i++) {
+      await Future<void>.delayed(interval);
+      if (!mounted) return;
+      final token = await getToken();
+      if (statusPollId != null && statusPollId.isNotEmpty) {
+        final st = await TbankEventPaymentService.fetchStatusOnce(
+          eventId: widget.eventId,
+          orderId: statusPollId,
+          token: token,
+        );
+        if (st.needsAuthRedirect) {
+          if (mounted) redirectToLoginOnSessionError(context, 'Ошибка сессии. Войдите снова.');
+          return;
+        }
+        if (st.notFound) statusPollId = null;
+        if (st.isPaid) {
+          await _loadCheckout(silent: true);
+          if (!mounted) return;
+          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+          if (mounted) await showTbankPaymentSuccessDialog(context);
+          return;
+        }
+        if (st.paymentFailed) {
+          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+          if (!mounted) return;
+          await showTbankPaymentFailureDialog(
+            context,
+            message: st.failureMessage ?? 'Оплата не прошла.',
+          );
+          return;
+        }
+      }
+      await _loadCheckout(silent: true);
+      if (!mounted) return;
+      final d = _data;
+      if (d != null &&
+          (d['has_bill'] == true || d['has_payment'] == true || d['has_payment'] == 1)) {
+        if (mounted) {
+          final online =
+              d['has_payment'] == true || d['has_payment'] == 1;
+          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+          if (!mounted) return;
+          if (online) {
+            await showTbankPaymentSuccessDialog(context);
+          } else {
+            _showSnack('Оплата учтена');
+          }
+        }
+        return;
+      }
+    }
   }
 
   String get _baseUrl => DOMAIN.startsWith('http') ? DOMAIN : 'https://$DOMAIN';
@@ -231,13 +362,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
   void _startTimer() {
     _timer?.cancel();
-    if (_remainingSeconds <= 0) {
-      // Время уже истекло — отменяем регистрацию после следующего кадра
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _cancelTakePart();
-      });
-      return;
-    }
+    // Не показывать диалог «отмена» при входе с нулём таймера — пользователь открыл экран через «Продолжить оплату».
+    if (_remainingSeconds <= 0) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       bool shouldCancel = false;
@@ -256,25 +382,40 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     });
   }
 
+  /// Срабатывает только когда таймер дошёл с положительного значения до нуля — не отменяем участие без явного выбора.
   Future<void> _cancelTakePart() async {
     if (!mounted) return;
-    final ok = await showDialog<bool>(
+    final d = _data;
+    if (d != null) {
+      final hp = d['has_payment'] == true || d['has_payment'] == 1;
+      if (hp || d['pay_time_expired'] == 3) return;
+    }
+    final result = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text('Время оплаты истекло'),
+        title: const Text('Время на оплату истекло'),
         content: const Text(
-          'Оплата не была произведена. Регистрация отменена. Зарегистрируйтесь заново.',
+          'Таймер обнулился. Обновите данные и попробуйте оплатить снова или отмените участие.',
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Ок'),
+            onPressed: () => Navigator.pop(ctx, 'refresh'),
+            child: const Text('Обновить и продолжить'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, 'cancel'),
+            child: const Text('Отменить участие'),
           ),
         ],
       ),
     );
-    if (ok == true && mounted) {
+    if (!mounted) return;
+    if (result == 'refresh') {
+      await _loadCheckout();
+      return;
+    }
+    if (result == 'cancel') {
       try {
         final token = await getToken();
         await http.post(
@@ -584,6 +725,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     final eventRaw = _data?['event'];
     final event = eventRaw is Map ? Map<String, dynamic>.from(eventRaw) : <String, dynamic>{};
     final hasBill = _data?['has_bill'] == true;
+    final hasPayment = _data?['has_payment'] == true || _data?['has_payment'] == 1;
+    final tbankCheckoutAvailable = _data?['tbank_checkout_available'] == true || _data?['tbank_checkout_available'] == 1;
+    final showTbankOnStep = tbankCheckoutAvailable && !hasBill && !hasPayment;
+    final paymentComplete = hasBill || hasPayment;
     final isPayCashToPlace = event['is_pay_cash_to_place'] == true;
     final packagesRaw = event['packages'];
     final packages = packagesRaw is List ? List.from(packagesRaw) : [];
@@ -639,47 +784,60 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     return Scaffold(
       appBar: AppBar(
         title: Text(
-          _currentStep == 0 ? 'Оформление' : 'Оплата и чек',
+          _currentStep == 0
+              ? 'Оформление'
+              : (showTbankOnStep ? 'Оплата' : 'Оплата и чек'),
           style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
         ),
         backgroundColor: AppColors.cardDark,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            if (_currentStep == 1) {
-              setState(() => _currentStep = 0);
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onPressed: _isTbankConfirming
+              ? null
+              : () {
+                  if (_currentStep == 1) {
+                    setState(() => _currentStep = 0);
+                  } else {
+                    Navigator.pop(context);
+                  }
+                },
           tooltip: _currentStep == 1 ? 'Назад к выбору пакета' : 'Вернуться к событию',
         ),
         actions: const [],
       ),
-      body: Container(
-        color: AppColors.anthracite,
-        child: _currentStep == 0
-            ? _buildStep0(
-                numberSet: numberSet,
-                yourGroup: yourGroup,
-                isAddToListPending: isAddToListPending,
-                merchGallery: merchGallery,
-                packages: packages,
-                merchAvailability: merchAvailability,
-                showPromoCode: showPromoCode,
-                amountStartPrice: amountStartPrice,
-                selectedPackage: selectedPackage,
-                hasBill: hasBill,
-                linkPayment: linkPayment?.toString(),
-                imgPayment: imgPayment?.toString(),
-                isPayCashToPlace: isPayCashToPlace,
-              )
-            : _buildStep1(
-                linkPayment: linkPayment?.toString(),
-                imgPayment: imgPayment?.toString(),
-                isPayCashToPlace: isPayCashToPlace,
-                hasBill: hasBill,
-              ),
+      body: Stack(
+        children: [
+          Container(
+            color: AppColors.anthracite,
+            child: _currentStep == 0
+                ? _buildStep0(
+                    numberSet: numberSet,
+                    yourGroup: yourGroup,
+                    isAddToListPending: isAddToListPending,
+                    merchGallery: merchGallery,
+                    packages: packages,
+                    merchAvailability: merchAvailability,
+                    showPromoCode: showPromoCode,
+                    amountStartPrice: amountStartPrice,
+                    selectedPackage: selectedPackage,
+                    hasBill: hasBill,
+                    hasPayment: hasPayment,
+                    linkPayment: linkPayment?.toString(),
+                    imgPayment: imgPayment?.toString(),
+                    isPayCashToPlace: isPayCashToPlace,
+                  )
+                : _buildStep1(
+                    linkPayment: linkPayment?.toString(),
+                    imgPayment: imgPayment?.toString(),
+                    isPayCashToPlace: isPayCashToPlace,
+                    hasBill: hasBill,
+                    hasPayment: hasPayment,
+                    paymentComplete: paymentComplete,
+                    tbankCheckoutAvailable: tbankCheckoutAvailable,
+                  ),
+          ),
+          if (_isTbankConfirming) const TbankPaymentConfirmingOverlay(),
+        ],
       ),
     );
   }
@@ -695,6 +853,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     required int amountStartPrice,
     required List selectedPackage,
     required bool hasBill,
+    required bool hasPayment,
     required String? linkPayment,
     required String? imgPayment,
     required bool isPayCashToPlace,
@@ -706,7 +865,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         if (yourGroup.isNotEmpty) _buildInfoChip('Группа', yourGroup),
         const SizedBox(height: 8),
         _buildCollapsibleHowToPay(),
-        if (!isAddToListPending && _remainingSeconds > 0) ...[
+        if (!isAddToListPending && _remainingSeconds > 0 && !hasPayment) ...[
           const SizedBox(height: 16),
           _buildTimer(),
         ],
@@ -728,6 +887,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         const SizedBox(height: 20),
         if (hasBill)
           _buildHasBillCard()
+        else if (hasPayment)
+          _buildHasPaymentCard()
         else
           _buildPayButton(
             onTap: () {
@@ -752,19 +913,46 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     required String? imgPayment,
     required bool isPayCashToPlace,
     required bool hasBill,
+    required bool hasPayment,
+    required bool paymentComplete,
+    required bool tbankCheckoutAvailable,
   }) {
+    final showTbank = tbankCheckoutAvailable && !hasBill && !hasPayment;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
-        if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
-        if (hasBill)
-          _buildHasBillCard()
-        else ...[
-          _buildReceiptUpload(),
+        if (paymentComplete) ...[
+          if (hasBill) _buildHasBillCard() else _buildHasPaymentCard(),
+        ] else ...[
+          if (showTbank) _buildTbankPayButton(),
+          if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
+          if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
+          if (!showTbank) _buildReceiptUpload(),
           if (isPayCashToPlace) _buildPayOnPlaceButton(),
         ],
       ],
+    );
+  }
+
+  Widget _buildTbankPayButton() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: _isTbankInitializing ? null : _payWithTbank,
+          icon: _isTbankInitializing
+              ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+              : const Icon(Icons.credit_card),
+          label: Text('Оплатить картой', style: unbounded(fontWeight: FontWeight.w600)),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.mutedGold,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        ),
+      ),
     );
   }
 
@@ -1344,6 +1532,29 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           Expanded(
             child: Text(
               'Чек уже загружен! Ожидайте подтверждения администратором.',
+              style: unbounded(color: Colors.white, fontSize: 16),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Онлайн-оплата (T‑Банк и т.д.): чек не требуется.
+  Widget _buildHasPaymentCard() {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.green.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle, color: Colors.green, size: 32),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Text(
+              'Оплата получена. Прикреплять чек не нужно.',
               style: unbounded(color: Colors.white, fontSize: 16),
             ),
           ),

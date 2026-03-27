@@ -241,47 +241,51 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     final isActive = _selectedIndex == index;
     final color = isActive ? AppColors.mutedGold : Colors.white.withOpacity(0.4);
     return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        clipBehavior: Clip.hardEdge,
-        child: InkWell(
-          onTap: () => _onItemTapped(index),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  isActive ? iconActive : icon,
-                  size: 22,
-                  color: color,
-                ),
-                const SizedBox(height: 4),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    return SizedBox(
-                      width: constraints.maxWidth,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        alignment: Alignment.center,
-                        child: Text(
-                          label,
-                          style: unbounded(
-                            fontSize: 9,
-                            fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                            color: color,
+      child: Semantics(
+        button: true,
+        label: label,
+        child: Material(
+          color: Colors.transparent,
+          clipBehavior: Clip.hardEdge,
+          child: InkWell(
+            onTap: () => _onItemTapped(index),
+            borderRadius: BorderRadius.circular(12),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 8),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isActive ? iconActive : icon,
+                    size: 22,
+                    color: color,
+                  ),
+                  const SizedBox(height: 4),
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      return SizedBox(
+                        width: constraints.maxWidth,
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          alignment: Alignment.center,
+                          child: Text(
+                            label,
+                            style: unbounded(
+                              fontSize: 9,
+                              fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                              color: color,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.center,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          textAlign: TextAlign.center,
                         ),
-                      ),
-                    );
-                  },
-                ),
-              ],
+                      );
+                    },
+                  ),
+                ],
+              ),
             ),
           ),
         ),

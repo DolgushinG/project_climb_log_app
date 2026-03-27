@@ -40,18 +40,42 @@ export async function scrollFlutterView(page: Page, deltaY: number) {
   await page.waitForTimeout(250);
 }
 
-/** Flutter HTML: inputs создаются при фокусе. Кликаем по области Email/Пароль чтобы создать input. */
+/**
+ * LoginScreen: два TextFormField. На Flutter Web native `<input>` часто появляются после клика по подписи.
+ * Пароль — всегда `input.nth(1)`, не `first()` (иначе снова email; при скрытии первого поля fill зависает).
+ */
 export async function getLoginEmailInput(page: Page): Locator {
-  const emailArea = page.getByText('Email').first();
-  await emailArea.click({ force: true });
-  await page.waitForTimeout(300);
-  return page.locator('input').first();
+  for (let i = 0; i < 25; i++) {
+    await page.getByText('Email').first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
+    const n = await page.locator('input').count();
+    if (n >= 1) {
+      const email = page.locator('input').nth(0);
+      await email.waitFor({ state: 'attached', timeout: 10000 });
+      return email;
+    }
+  }
+  throw new Error('Login: поле Email не появилось в DOM');
 }
 
 export async function getLoginPasswordInput(page: Page): Locator {
-  await page.getByText('Пароль').first().click({ force: true });
-  await page.waitForTimeout(300);
-  return page.locator('input').first();
+  const passwordByType = page.locator('input[type="password"]');
+  for (let i = 0; i < 30; i++) {
+    await page.getByText('Пароль').first().click({ force: true }).catch(() => {});
+    await page.waitForTimeout(250);
+    if ((await passwordByType.count()) >= 1) {
+      const pwd = passwordByType.first();
+      await pwd.waitFor({ state: 'attached', timeout: 10000 });
+      return pwd;
+    }
+    const n = await page.locator('input').count();
+    if (n >= 2) {
+      const pwd = page.locator('input').nth(1);
+      await pwd.waitFor({ state: 'attached', timeout: 10000 });
+      return pwd;
+    }
+  }
+  throw new Error('Login: поле Пароль не появилось в DOM');
 }
 
 /** Кнопка «Войти» на лендинге. Для гостя: вкладка Профиль показывает экран входа без скролла. */

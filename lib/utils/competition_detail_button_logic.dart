@@ -42,21 +42,24 @@ class CompetitionDetailButtonLogic {
   /// Единая логика с backend (cancel_take_part.blade.php):
   /// - is_access_user_cancel_take_part == 1
   /// - !has_bill — после прикрепления чека отмена невозможна
+  /// - !has_payment — после онлайн-оплаты (T‑Банк и т.д.) отмена невозможна
   /// - !is_participant_paid — после подтверждения оплаты отмена невозможна
   /// - !resultExists — после внесения результатов отмена невозможна никогда
   ///
-  /// [hasBill] — из checkout API; при true кнопка не показывается.
+  /// [hasBill] / [hasPayment] — из checkout API; при true кнопка не показывается.
   /// Для бесплатных событий и когда checkout не загружен — передать false или null.
   static bool canShowCancelRegistrationButton({
     required int isAccessUserCancelTakePart,
     required bool isParticipantPaid,
     required bool resultExists,
     bool? hasBill,
+    bool? hasPayment,
   }) {
     return isAccessUserCancelTakePart == 1 &&
         !resultExists &&
         !isParticipantPaid &&
-        (hasBill != true);
+        (hasBill != true) &&
+        (hasPayment != true);
   }
 
   /// Оплата подтверждена: для бесплатных — всегда true, для платных — isParticipantPaid.
