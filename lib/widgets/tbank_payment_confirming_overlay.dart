@@ -25,7 +25,7 @@ class TbankPaymentConfirmingOverlay extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Это займёт несколько секунд',
+                  'Ждём ответ банка. Обычно это несколько секунд, иногда дольше.',
                   textAlign: TextAlign.center,
                   style: unbounded(fontSize: 13, color: Colors.white70),
                 ),

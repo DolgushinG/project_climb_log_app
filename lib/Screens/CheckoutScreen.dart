@@ -179,18 +179,20 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     }
   }
 
-  /// После оплаты: при наличии [orderId] — polling `GET .../payment/{tbank|tochka}/status` до `paid`,
-  /// плюс обновление checkout (в т.ч. по `has_bill`, если бэкенд ещё не выставил paid в status).
+  /// После оплаты: при наличии [orderId] — polling `GET .../payment/{tbank|tochka}/status` раз в секунду,
+  /// пока `paid` / терминальный отказ или таймаут; при `pending`/`NEW` продолжаем (лоадер на экране).
+  /// Checkout дергаем реже, чтобы не дублировать нагрузку.
   Future<void> _pollCheckoutAfterTbank({
     String? orderId,
     required CardPaymentProvider cardPaymentProvider,
   }) async {
-    const maxAttempts = 8;
-    const interval = Duration(seconds: 2);
+    final deadline = DateTime.now().add(CardPaymentStatusPoll.maxDuration);
     String? statusPollId = orderId;
-    for (var i = 0; i < maxAttempts; i++) {
-      await Future<void>.delayed(interval);
+    var pollIndex = 0;
+    while (mounted && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(CardPaymentStatusPoll.interval);
       if (!mounted) return;
+      pollIndex++;
       final token = await getToken();
       if (statusPollId != null && statusPollId.isNotEmpty) {
         final st = await TbankEventPaymentService.fetchStatusOnce(
@@ -221,24 +223,43 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           return;
         }
       }
-      await _loadCheckout(silent: true);
-      if (!mounted) return;
-      final d = _data;
-      if (d != null &&
-          (d['has_bill'] == true || d['has_payment'] == true || d['has_payment'] == 1)) {
-        if (mounted) {
-          final online =
-              d['has_payment'] == true || d['has_payment'] == 1;
-          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
-          if (!mounted) return;
-          if (online) {
-            await showTbankPaymentSuccessDialog(context);
-          } else {
-            _showSnack('Оплата учтена');
+      final shouldRefreshCheckout =
+          pollIndex == 1 || pollIndex % CardPaymentStatusPoll.checkoutEveryPolls == 0;
+      if (shouldRefreshCheckout) {
+        await _loadCheckout(silent: true);
+        if (!mounted) return;
+        final d = _data;
+        if (d != null &&
+            (d['has_bill'] == true || d['has_payment'] == true || d['has_payment'] == 1)) {
+          if (mounted) {
+            final online = d['has_payment'] == true || d['has_payment'] == 1;
+            if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+            if (!mounted) return;
+            if (online) {
+              await showTbankPaymentSuccessDialog(context);
+            } else {
+              _showSnack('Оплата учтена');
+            }
           }
+          return;
         }
-        return;
       }
+    }
+    if (!mounted) return;
+    await _loadCheckout(silent: true);
+    if (!mounted) return;
+    final d = _data;
+    if (d != null && (d['has_payment'] == true || d['has_payment'] == 1)) {
+      if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+      if (mounted) await showTbankPaymentSuccessDialog(context);
+      return;
+    }
+    if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+    if (mounted) {
+      _showSnack(
+        'Не удалось дождаться подтверждения банка. Проверьте оплату позже или обновите экран.',
+        isError: true,
+      );
     }
   }
 
@@ -734,7 +755,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     final hasBill = _data?['has_bill'] == true;
     final hasPayment = _data?['has_payment'] == true || _data?['has_payment'] == 1;
     final cardCheckoutAvailable = isCardCheckoutAvailable(_data);
-    final showCardCheckoutOnStep = cardCheckoutAvailable && !hasBill && !hasPayment;
     final paymentComplete = hasBill || hasPayment;
     final isPayCashToPlace = event['is_pay_cash_to_place'] == true;
     final packagesRaw = event['packages'];
@@ -793,7 +813,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         title: Text(
           _currentStep == 0
               ? 'Оформление'
-              : (showCardCheckoutOnStep ? 'Оплата' : 'Оплата и чек'),
+              : (cardCheckoutAvailable ? 'Оплата' : 'Оплата и чек'),
           style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
         ),
         backgroundColor: AppColors.cardDark,
@@ -829,6 +849,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
                     selectedPackage: selectedPackage,
                     hasBill: hasBill,
                     hasPayment: hasPayment,
+                    cardCheckoutAvailable: cardCheckoutAvailable,
                     linkPayment: linkPayment?.toString(),
                     imgPayment: imgPayment?.toString(),
                     isPayCashToPlace: isPayCashToPlace,
@@ -861,6 +882,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     required List selectedPackage,
     required bool hasBill,
     required bool hasPayment,
+    required bool cardCheckoutAvailable,
     required String? linkPayment,
     required String? imgPayment,
     required bool isPayCashToPlace,
@@ -874,7 +896,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         _buildCollapsibleHowToPay(),
         if (!isAddToListPending && _remainingSeconds > 0 && !hasPayment) ...[
           const SizedBox(height: 16),
-          _buildTimer(),
+          _buildTimer(cardCheckoutAvailable: cardCheckoutAvailable),
         ],
         if (merchGallery.isNotEmpty) ...[
           const SizedBox(height: 20),
@@ -893,9 +915,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         _buildTotalPrice(amountStartPrice, selectedPackage, packages, _selectedPackageName),
         const SizedBox(height: 20),
         if (hasBill)
-          _buildHasBillCard()
+          _buildHasBillCard(cardCheckoutAvailable: cardCheckoutAvailable)
         else if (hasPayment)
-          _buildHasPaymentCard()
+          _buildHasPaymentCard(cardCheckoutAvailable: cardCheckoutAvailable)
         else
           _buildPayButton(
             onTap: () {
@@ -909,7 +931,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
               }
               setState(() => _currentStep = 1);
             },
-            label: 'Далее → Оплата и чек',
+            label: cardCheckoutAvailable ? 'Далее → Оплата' : 'Далее → Оплата и чек',
+            cardCheckoutAvailable: cardCheckoutAvailable,
           ),
       ],
     );
@@ -929,7 +952,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
       padding: const EdgeInsets.all(16),
       children: [
         if (paymentComplete) ...[
-          if (hasBill) _buildHasBillCard() else _buildHasPaymentCard(),
+          if (hasBill)
+            _buildHasBillCard(cardCheckoutAvailable: cardCheckoutAvailable)
+          else
+            _buildHasPaymentCard(cardCheckoutAvailable: cardCheckoutAvailable),
         ] else ...[
           if (showCardCheckout) _buildTbankPayButton(),
           if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
@@ -1025,10 +1051,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     );
   }
 
-  Widget _buildTimer() {
+  Widget _buildTimer({required bool cardCheckoutAvailable}) {
     final mins = _remainingSeconds ~/ 60;
     final secs = _remainingSeconds % 60;
     final isUrgent = _remainingSeconds <= 300;
+    final timeStr = '${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}';
+    final message = cardCheckoutAvailable
+        ? 'Успейте оплатить до истечения времени: $timeStr'
+        : 'Оплатите и прикрепите чек до истечения времени: $timeStr';
     return Container(
       decoration: BoxDecoration(
         color: isUrgent ? Colors.red.withOpacity(0.2) : AppColors.cardDark,
@@ -1041,7 +1071,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Оплатите и прикрепите чек до истечения времени: ${mins.toString().padLeft(2, '0')}:${secs.toString().padLeft(2, '0')}',
+              message,
               style: unbounded(color: isUrgent ? Colors.red : Colors.white, fontWeight: FontWeight.w500),
             ),
           ),
@@ -1406,7 +1436,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     );
   }
 
-  Widget _buildPayButton({required VoidCallback onTap, String? label}) {
+  Widget _buildPayButton({required VoidCallback onTap, String? label, bool cardCheckoutAvailable = false}) {
+    final fallback = cardCheckoutAvailable ? 'Перейти к оплате' : 'Перейти к оплате или прикрепить чек';
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
@@ -1417,7 +1448,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           padding: const EdgeInsets.symmetric(vertical: 14),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
-        child: Text(label ?? 'Перейти к оплате или прикрепить чек', style: unbounded(fontWeight: FontWeight.w600)),
+        child: Text(label ?? fallback, style: unbounded(fontWeight: FontWeight.w600)),
       ),
     );
   }
@@ -1525,7 +1556,10 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     );
   }
 
-  Widget _buildHasBillCard() {
+  Widget _buildHasBillCard({required bool cardCheckoutAvailable}) {
+    final text = cardCheckoutAvailable
+        ? 'Ожидайте подтверждения администратором.'
+        : 'Чек уже загружен! Ожидайте подтверждения администратором.';
     return Container(
       decoration: BoxDecoration(
         color: Colors.green.withOpacity(0.2),
@@ -1538,7 +1572,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Чек уже загружен! Ожидайте подтверждения администратором.',
+              text,
               style: unbounded(color: Colors.white, fontSize: 16),
             ),
           ),
@@ -1547,8 +1581,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     );
   }
 
-  /// Онлайн-оплата (T‑Банк и т.д.): чек не требуется.
-  Widget _buildHasPaymentCard() {
+  /// Онлайн-оплата (карта): без ручной загрузки подтверждения.
+  Widget _buildHasPaymentCard({required bool cardCheckoutAvailable}) {
+    final text = cardCheckoutAvailable ? 'Оплата получена.' : 'Оплата получена. Прикреплять чек не нужно.';
     return Container(
       decoration: BoxDecoration(
         color: Colors.green.withOpacity(0.2),
@@ -1561,7 +1596,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           const SizedBox(width: 16),
           Expanded(
             child: Text(
-              'Оплата получена. Прикреплять чек не нужно.',
+              text,
               style: unbounded(color: Colors.white, fontSize: 16),
             ),
           ),

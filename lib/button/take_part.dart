@@ -38,6 +38,8 @@ class TakePartButtonScreen extends StatefulWidget {
   final bool needSportCategory;
   /// Требуется выбор сета (если доступны)
   final bool needNumberSet;
+  /// Оплата регистрации подтверждена (с платным участием).
+  final bool is_participant_paid;
 
   TakePartButtonScreen(
       this.event_id,
@@ -48,6 +50,7 @@ class TakePartButtonScreen extends StatefulWidget {
       this.number_set,
       this.onParticipationStatusChanged, {
       this.is_need_pay_for_reg = false,
+      this.is_participant_paid = false,
       this.onNeedCheckout,
       this.allSetsBusy = false,
       this.hasAnyBusySet = false,
@@ -295,12 +298,47 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
     });
   }
 
+  Widget _takePartElevatedChild(TextStyle labelStyle) {
+    final showPaidBadge = widget.is_participant &&
+        widget.is_need_pay_for_reg &&
+        widget.is_participant_paid &&
+        _buttonText == 'Вы участник';
+    if (!showPaidBadge) {
+      return Text(_buttonText, style: labelStyle);
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(
+          child: Text(_buttonText, style: labelStyle, overflow: TextOverflow.ellipsis),
+        ),
+        const SizedBox(width: 10),
+        Icon(Icons.payments_outlined, size: 18, color: AppColors.mutedGold),
+        const SizedBox(width: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+          decoration: BoxDecoration(
+            color: Colors.green.withOpacity(0.28),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: Colors.green.shade400.withOpacity(0.45)),
+          ),
+          child: Text(
+            'оплачено',
+            style: unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white70),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool showTakePart = !widget.allSetsBusy;
     /// Показываем кнопку листа ожидания только когда все сеты заняты (нет свободных мест)
     final bool showWaitlist = widget.allSetsBusy && !widget.is_participant && !widget.is_in_list_pending;
     final bool canPressTakePart = !widget.is_participant;
+    final takePartLabelStyle = unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600);
 
     if (showTakePart && showWaitlist) {
       return Column(
@@ -333,10 +371,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
-              child: Text(
-                _buttonText,
-                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-              ),
+              child: _takePartElevatedChild(takePartLabelStyle),
             ),
           ),
         ],
@@ -392,10 +427,7 @@ class _MyButtonScreenState extends State<TakePartButtonScreen> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
               ),
               onPressed: widget.is_participant ? null : (canPressTakePart ? _makeRequest : null),
-              child: Text(
-                _buttonText,
-                style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
-              ),
+              child: _takePartElevatedChild(takePartLabelStyle),
             ),
           ),
       ],

@@ -32,3 +32,13 @@ CardPaymentProvider resolveCardPaymentProvider(Map<String, dynamic>? data) {
   if (cardAvail && !tbank) return CardPaymentProvider.tochka;
   return CardPaymentProvider.tbank;
 }
+
+/// Polling `GET .../payment/{provider}/status` после возврата с оплаты (pending → paid).
+class CardPaymentStatusPoll {
+  CardPaymentStatusPoll._();
+
+  static const Duration interval = Duration(seconds: 1);
+  static const Duration maxDuration = Duration(minutes: 5);
+  /// Реже дергаем checkout/group-checkout, пока ждём `paid` по status.
+  static const int checkoutEveryPolls = 5;
+}

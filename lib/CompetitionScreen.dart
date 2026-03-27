@@ -909,23 +909,56 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
             ),
           ),
         if (!showTakePart && _competitionDetails.is_participant)
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.graphite,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                padding: const EdgeInsets.symmetric(vertical: 14),
-              ),
+          _buildParticipantRegisteredButton(),
+      ],
+    );
+  }
+
+  /// Кнопка «Вы участник»; при подтверждённой оплате — иконка и бейдж «оплачено».
+  Widget _buildParticipantRegisteredButton() {
+    final showPaidBadge = _competitionDetails.is_need_pay_for_reg &&
+        _competitionDetails.is_participant_paid;
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: null,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.graphite,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
               child: Text(
                 'Вы участник',
                 style: unbounded(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w600),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
-      ],
+            if (showPaidBadge) ...[
+              const SizedBox(width: 10),
+              Icon(Icons.payments_outlined, size: 18, color: AppColors.mutedGold),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.28),
+                  borderRadius: BorderRadius.circular(4),
+                  border: Border.all(color: Colors.green.shade400.withOpacity(0.45)),
+                ),
+                child: Text(
+                  'оплачено',
+                  style: unbounded(fontSize: 10, fontWeight: FontWeight.w600, color: Colors.white70),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 

@@ -83,12 +83,13 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
     String? orderId,
     required CardPaymentProvider cardPaymentProvider,
   }) async {
-    const maxAttempts = 8;
-    const interval = Duration(seconds: 2);
+    final deadline = DateTime.now().add(CardPaymentStatusPoll.maxDuration);
     String? statusPollId = orderId;
-    for (var i = 0; i < maxAttempts; i++) {
-      await Future<void>.delayed(interval);
+    var pollIndex = 0;
+    while (mounted && DateTime.now().isBefore(deadline)) {
+      await Future<void>.delayed(CardPaymentStatusPoll.interval);
       if (!mounted) return;
+      pollIndex++;
       final token = await getToken();
       if (statusPollId != null && statusPollId.isNotEmpty) {
         final st = await TbankEventPaymentService.fetchStatusOnce(
@@ -122,14 +123,33 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
           return;
         }
       }
-      await _loadData(silent: true);
-      if (!mounted) return;
-      if (_groupPaymentLooksComplete(_data)) {
+      final shouldRefreshGroup =
+          pollIndex == 1 || pollIndex % CardPaymentStatusPoll.checkoutEveryPolls == 0;
+      if (shouldRefreshGroup) {
+        await _loadData(silent: true);
         if (!mounted) return;
-        if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
-        if (mounted) await showTbankPaymentSuccessDialog(context);
-        return;
+        if (_groupPaymentLooksComplete(_data)) {
+          if (!mounted) return;
+          if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+          if (mounted) await showTbankPaymentSuccessDialog(context);
+          return;
+        }
       }
+    }
+    if (!mounted) return;
+    await _loadData(silent: true);
+    if (!mounted) return;
+    if (_groupPaymentLooksComplete(_data)) {
+      if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+      if (mounted) await showTbankPaymentSuccessDialog(context);
+      return;
+    }
+    if (kIsWeb) await closeTbankWebPaymentIframeRouteIfOpen(context);
+    if (mounted) {
+      showAppError(
+        context,
+        'Не удалось дождаться подтверждения банка. Проверьте оплату позже или обновите экран.',
+      );
     }
   }
 
