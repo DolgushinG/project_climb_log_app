@@ -11,6 +11,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
+import '../models/card_checkout.dart';
 import '../services/tbank_event_payment_service.dart';
 import '../theme/app_theme.dart';
 import '../utils/app_snackbar.dart';
@@ -78,7 +79,10 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
     return true;
   }
 
-  Future<void> _pollGroupCheckoutAfterTbank({String? orderId}) async {
+  Future<void> _pollGroupCheckoutAfterTbank({
+    String? orderId,
+    required CardPaymentProvider cardPaymentProvider,
+  }) async {
     const maxAttempts = 8;
     const interval = Duration(seconds: 2);
     String? statusPollId = orderId;
@@ -91,6 +95,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
           eventId: widget.eventId,
           orderId: statusPollId,
           token: token,
+          cardPaymentProvider: cardPaymentProvider,
         );
         if (st.needsAuthRedirect) {
           if (mounted) {
@@ -143,12 +148,14 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
       _showSnack('Нет участников для оплаты', isError: true);
       return;
     }
+    final provider = resolveCardPaymentProvider(_data);
     final token = await getToken();
     // scope=individual: один плательщик (Bearer); group_payment + participant_user_ids — за кого закрываем оплату.
     final result = await TbankEventPaymentService.init(
       eventId: widget.eventId,
       scope: TbankPaymentScope.individual,
       token: token,
+      cardPaymentProvider: provider,
       groupPayment: true,
       participantUserIds: participantIds,
       groupRegistrationId: _groupRegistrationIdFromData(),
@@ -173,13 +180,19 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
     setState(() => _isTbankConfirming = true);
     try {
       if (kIsWeb) {
-        final pollFuture = _pollGroupCheckoutAfterTbank(orderId: result.orderId);
+        final pollFuture = _pollGroupCheckoutAfterTbank(
+          orderId: result.orderId,
+          cardPaymentProvider: provider,
+        );
         await openTbankPaymentUrl(context, result.paymentUrl!);
         await pollFuture;
       } else {
         await openTbankPaymentUrl(context, result.paymentUrl!);
         if (!mounted) return;
-        await _pollGroupCheckoutAfterTbank(orderId: result.orderId);
+        await _pollGroupCheckoutAfterTbank(
+          orderId: result.orderId,
+          cardPaymentProvider: provider,
+        );
       }
     } finally {
       if (mounted) setState(() => _isTbankConfirming = false);
@@ -482,7 +495,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
     return true;
   }
 
-  /// Участники (user_id), по которым в заявке ещё не отмечена оплата — для `POST .../payment/tbank/init`.
+  /// Участники (user_id), по которым в заявке ещё не отмечена оплата — для `POST .../payment/{tbank|tochka}/init`.
   List<int> _unpaidParticipantUserIds() {
     final groupRaw = _data?['group'];
     if (groupRaw is! List) return [];
@@ -524,8 +537,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
     final linkPayment = event is Map ? (event['link_payment'] ?? event['link_payment_dynamic'])?.toString() : null;
     final imgPayment = event is Map ? (event['img_payment_dynamic'] ?? event['img_payment'])?.toString() : null;
     final isPayCashToPlace = event is Map && event['is_pay_cash_to_place'] == true;
-    final tbankAvailable =
-        _data?['tbank_checkout_available'] == true || _data?['tbank_checkout_available'] == 1;
+    final cardCheckoutAvailable = isCardCheckoutAvailable(_data);
 
     await showModalBottomSheet(
       context: context,
@@ -559,7 +571,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                     child: Text(
-                      tbankAvailable ? 'Оплата' : 'Оплата и прикрепление чека',
+                      cardCheckoutAvailable ? 'Оплата' : 'Оплата и прикрепление чека',
                       style: unbounded(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -570,7 +582,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          if (tbankAvailable) ...[
+                          if (cardCheckoutAvailable) ...[
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
@@ -595,7 +607,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
                           ],
                           if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
                           if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
-                          if (!tbankAvailable) _buildReceiptUpload(groupReceipt: groupReceipt),
+                          if (!cardCheckoutAvailable) _buildReceiptUpload(groupReceipt: groupReceipt),
                           if (isPayCashToPlace) _buildPayOnPlaceButton(),
                         ],
                       ),

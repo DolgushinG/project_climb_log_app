@@ -11,6 +11,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../main.dart';
+import '../models/card_checkout.dart';
 import '../services/tbank_event_payment_service.dart';
 import '../theme/app_theme.dart';
 import '../widgets/error_report_modal.dart';
@@ -132,11 +133,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     if (_isTbankInitializing) return;
     setState(() => _isTbankInitializing = true);
     try {
+      final provider = resolveCardPaymentProvider(_data);
       final token = await getToken();
       final result = await TbankEventPaymentService.init(
         eventId: widget.eventId,
         scope: TbankPaymentScope.individual,
         token: token,
+        cardPaymentProvider: provider,
         clientOrigin: kIsWeb ? Uri.base.origin : null,
       );
       if (!mounted) return;
@@ -160,13 +163,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
       });
       try {
         if (kIsWeb) {
-          final pollFuture = _pollCheckoutAfterTbank(orderId: result.orderId);
+          final pollFuture = _pollCheckoutAfterTbank(orderId: result.orderId, cardPaymentProvider: provider);
           await openTbankPaymentUrl(context, result.paymentUrl!);
           await pollFuture;
         } else {
           await openTbankPaymentUrl(context, result.paymentUrl!);
           if (!mounted) return;
-          await _pollCheckoutAfterTbank(orderId: result.orderId);
+          await _pollCheckoutAfterTbank(orderId: result.orderId, cardPaymentProvider: provider);
         }
       } finally {
         if (mounted) setState(() => _isTbankConfirming = false);
@@ -176,9 +179,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     }
   }
 
-  /// После оплаты: при наличии [orderId] — polling `GET .../payment/tbank/status` до `paid`,
+  /// После оплаты: при наличии [orderId] — polling `GET .../payment/{tbank|tochka}/status` до `paid`,
   /// плюс обновление checkout (в т.ч. по `has_bill`, если бэкенд ещё не выставил paid в status).
-  Future<void> _pollCheckoutAfterTbank({String? orderId}) async {
+  Future<void> _pollCheckoutAfterTbank({
+    String? orderId,
+    required CardPaymentProvider cardPaymentProvider,
+  }) async {
     const maxAttempts = 8;
     const interval = Duration(seconds: 2);
     String? statusPollId = orderId;
@@ -191,6 +197,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           eventId: widget.eventId,
           orderId: statusPollId,
           token: token,
+          cardPaymentProvider: cardPaymentProvider,
         );
         if (st.needsAuthRedirect) {
           if (mounted) redirectToLoginOnSessionError(context, 'Ошибка сессии. Войдите снова.');
@@ -726,8 +733,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     final event = eventRaw is Map ? Map<String, dynamic>.from(eventRaw) : <String, dynamic>{};
     final hasBill = _data?['has_bill'] == true;
     final hasPayment = _data?['has_payment'] == true || _data?['has_payment'] == 1;
-    final tbankCheckoutAvailable = _data?['tbank_checkout_available'] == true || _data?['tbank_checkout_available'] == 1;
-    final showTbankOnStep = tbankCheckoutAvailable && !hasBill && !hasPayment;
+    final cardCheckoutAvailable = isCardCheckoutAvailable(_data);
+    final showCardCheckoutOnStep = cardCheckoutAvailable && !hasBill && !hasPayment;
     final paymentComplete = hasBill || hasPayment;
     final isPayCashToPlace = event['is_pay_cash_to_place'] == true;
     final packagesRaw = event['packages'];
@@ -786,7 +793,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         title: Text(
           _currentStep == 0
               ? 'Оформление'
-              : (showTbankOnStep ? 'Оплата' : 'Оплата и чек'),
+              : (showCardCheckoutOnStep ? 'Оплата' : 'Оплата и чек'),
           style: unbounded(fontWeight: FontWeight.w500, fontSize: 18, color: Colors.white),
         ),
         backgroundColor: AppColors.cardDark,
@@ -833,7 +840,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
                     hasBill: hasBill,
                     hasPayment: hasPayment,
                     paymentComplete: paymentComplete,
-                    tbankCheckoutAvailable: tbankCheckoutAvailable,
+                    cardCheckoutAvailable: cardCheckoutAvailable,
                   ),
           ),
           if (_isTbankConfirming) const TbankPaymentConfirmingOverlay(),
@@ -915,19 +922,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     required bool hasBill,
     required bool hasPayment,
     required bool paymentComplete,
-    required bool tbankCheckoutAvailable,
+    required bool cardCheckoutAvailable,
   }) {
-    final showTbank = tbankCheckoutAvailable && !hasBill && !hasPayment;
+    final showCardCheckout = cardCheckoutAvailable && !hasBill && !hasPayment;
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
         if (paymentComplete) ...[
           if (hasBill) _buildHasBillCard() else _buildHasPaymentCard(),
         ] else ...[
-          if (showTbank) _buildTbankPayButton(),
+          if (showCardCheckout) _buildTbankPayButton(),
           if (linkPayment != null && linkPayment.isNotEmpty) _buildPaymentLink(linkPayment),
           if (imgPayment != null && imgPayment.isNotEmpty) _buildQrCode(imgPayment),
-          if (!showTbank) _buildReceiptUpload(),
+          if (!showCardCheckout) _buildReceiptUpload(),
           if (isPayCashToPlace) _buildPayOnPlaceButton(),
         ],
       ],

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../main.dart';
+import '../models/card_checkout.dart';
 import '../utils/network_error_helper.dart';
 
 /// Scope для [TbankEventPaymentService.init].
@@ -127,17 +128,20 @@ class TbankEventPaymentService {
 
   /// [token] — JWT; при null вернётся ошибка.
   ///
+  /// **Провайдер:** [cardPaymentProvider] — `tbank` или `tochka` (из `card_checkout_provider` в checkout).
+  ///
   /// **Групповая оплата** (один плательщик за нескольких): передайте [groupPayment] = true,
   /// [participantUserIds] — id участников из `group-checkout` (обычно неоплаченные),
   /// при наличии — [groupRegistrationId] из ответа group-checkout.
   ///
   /// **Веб (PWA, в т.ч. iOS Safari):** [clientOrigin] — `Uri.base.origin` SPA (например `https://app.climbing-events.ru`).
-  /// Нужен бэкенду, чтобы success/fail редиректы T‑Банка вели на тот же origin, где открыто приложение
+  /// Нужен бэкенду, чтобы success/fail редиректы банка вели на тот же origin, где открыто приложение
   /// (иначе после оплаты открывается другой домен → «логин», пока в исходной вкладке уже «оплачено»).
   static Future<TbankEventPaymentInitResult> init({
     required int eventId,
     required TbankPaymentScope scope,
     required String? token,
+    CardPaymentProvider cardPaymentProvider = CardPaymentProvider.tbank,
     bool groupPayment = false,
     List<int>? participantUserIds,
     int? groupRegistrationId,
@@ -150,7 +154,8 @@ class TbankEventPaymentService {
         needsAuthRedirect: true,
       );
     }
-    final uri = Uri.parse('$DOMAIN/api/event/$eventId/payment/tbank/init');
+    final seg = cardPaymentProvider.apiPathSegment;
+    final uri = Uri.parse('$DOMAIN/api/event/$eventId/payment/$seg/init');
     final body = <String, dynamic>{
       'scope': _scopeJson(scope),
     };
@@ -216,18 +221,20 @@ class TbankEventPaymentService {
     }
   }
 
-  /// Один запрос `GET .../payment/tbank/status?order_id=`.
+  /// Один запрос `GET .../payment/{tbank|tochka}/status?order_id=`.
   /// При 200: `paid == true` — оплачено; `bank.status` в терминальном отказе (REJECTED и т.д.) — [TbankStatusOnceResult.paymentFailed].
   /// 401 — needsAuthRedirect, 404 — notFound.
   static Future<TbankStatusOnceResult> fetchStatusOnce({
     required int eventId,
     required String orderId,
     required String? token,
+    CardPaymentProvider cardPaymentProvider = CardPaymentProvider.tbank,
   }) async {
     if (token == null || token.isEmpty) {
       return TbankStatusOnceResult(needsAuthRedirect: true);
     }
-    final uri = Uri.parse('$DOMAIN/api/event/$eventId/payment/tbank/status').replace(
+    final seg = cardPaymentProvider.apiPathSegment;
+    final uri = Uri.parse('$DOMAIN/api/event/$eventId/payment/$seg/status').replace(
       queryParameters: {'order_id': orderId},
     );
     try {

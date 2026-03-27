@@ -263,7 +263,7 @@ class _GroupDocumentsScreenState extends State<GroupDocumentsScreen> {
                   style: unbounded(fontSize: 18, fontWeight: FontWeight.w600, color: Colors.white),
                 ),
               ),
-            if (data.tbankCheckoutAvailable)
+            if (data.cardCheckoutAvailable)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
                 child: Material(

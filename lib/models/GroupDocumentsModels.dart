@@ -1,3 +1,5 @@
+import 'card_checkout.dart';
+
 /// Модели для API групповой загрузки документов участников.
 
 class GroupDocumentsResponse {
@@ -5,15 +7,15 @@ class GroupDocumentsResponse {
   final List<DocumentInfo> documents;
   final List<UserDocuments> users;
   final String linkBackToEvent;
-  /// Совпадает с признаком на group-checkout (подсказки UI).
-  final bool tbankCheckoutAvailable;
+  /// Совпадает с признаком на group-checkout (`card_checkout_available` / legacy `tbank_checkout_available`).
+  final bool cardCheckoutAvailable;
 
   GroupDocumentsResponse({
     required this.event,
     required this.documents,
     required this.users,
     required this.linkBackToEvent,
-    this.tbankCheckoutAvailable = false,
+    this.cardCheckoutAvailable = false,
   });
 
   factory GroupDocumentsResponse.fromJson(Map<String, dynamic> json) {
@@ -28,8 +30,7 @@ class GroupDocumentsResponse {
               .toList() ??
           [],
       linkBackToEvent: json['link_back_to_event'] as String? ?? '',
-      tbankCheckoutAvailable:
-          json['tbank_checkout_available'] == true || json['tbank_checkout_available'] == 1,
+      cardCheckoutAvailable: isCardCheckoutAvailable(json),
     );
   }
 }

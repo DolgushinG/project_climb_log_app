@@ -65,13 +65,13 @@ class _TbankPaymentWebViewScreenState extends State<TbankPaymentWebViewScreen> {
     Navigator.of(context).pop(success);
   }
 
-  /// true — success, false — fail/cancel по URL.
+  /// true — success, false — fail/cancel по URL (T‑Банк и Точка).
   static bool? _parseTbankResult(String url) {
     try {
       final uri = Uri.parse(url);
       final p = uri.path.toLowerCase();
-      if (p.contains('/payment/tbank/success')) return true;
-      if (p.contains('/payment/tbank/fail')) return false;
+      if (p.contains('/payment/tbank/success') || p.contains('/payment/tochka/success')) return true;
+      if (p.contains('/payment/tbank/fail') || p.contains('/payment/tochka/fail')) return false;
     } catch (_) {}
     return null;
   }
