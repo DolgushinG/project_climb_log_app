@@ -17,6 +17,7 @@ import '../theme/app_theme.dart';
 import '../widgets/error_report_modal.dart';
 import '../widgets/tbank_payment_success_dialog.dart';
 import '../widgets/tbank_payment_confirming_overlay.dart';
+import '../widgets/tbank_fiscal_receipt_block.dart';
 import '../utils/network_error_helper.dart';
 import '../utils/session_error_helper.dart';
 import 'tbank_payment_webview_screen.dart';
@@ -53,6 +54,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
   bool _isTbankConfirming = false;
   /// После неудачного cancel-take-part — один пропуск повторной автоотмены при _loadCheckout.
   bool _skipNextExpiryAutoCancel = false;
+  bool _sendFiscalReceipt = false;
+  final _receiptEmailController = TextEditingController();
+  final _receiptPhoneController = TextEditingController();
 
   @override
   void initState() {
@@ -60,6 +64,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     WidgetsBinding.instance.addObserver(this);
     if (widget.initialData != null) {
       _applyData(widget.initialData!);
+      _prefillReceiptContactsFromProfile();
     } else {
       _loadCheckout();
     }
@@ -130,7 +135,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
     WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _promoController.dispose();
+    _receiptEmailController.dispose();
+    _receiptPhoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _prefillReceiptContactsFromProfile() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return;
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (r.statusCode != 200 || !mounted) return;
+      final raw = jsonDecode(r.body);
+      if (raw is! Map) return;
+      final email = raw['email']?.toString().trim();
+      final phone = raw['contact']?.toString().trim();
+      setState(() {
+        if (_receiptEmailController.text.isEmpty && email != null && email.isNotEmpty) {
+          _receiptEmailController.text = email;
+        }
+        if (_receiptPhoneController.text.isEmpty && phone != null && phone.isNotEmpty) {
+          _receiptPhoneController.text = phone;
+        }
+      });
+    } catch (_) {}
   }
 
   @override
@@ -143,6 +177,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
 
   Future<void> _payWithTbank() async {
     if (_isTbankInitializing) return;
+    final email = _receiptEmailController.text.trim();
+    final phone = _receiptPhoneController.text.trim();
+    if (_sendFiscalReceipt && email.isEmpty && phone.isEmpty) {
+      _showSnack('Укажите email или телефон для фискального чека', isError: true);
+      return;
+    }
     setState(() => _isTbankInitializing = true);
     try {
       final provider = resolveCardPaymentProvider(_data);
@@ -153,6 +193,9 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         token: token,
         cardPaymentProvider: provider,
         clientOrigin: kIsWeb ? Uri.base.origin : null,
+        sendReceipt: _sendFiscalReceipt,
+        receiptEmail: email.isNotEmpty ? email : null,
+        receiptPhone: phone.isNotEmpty ? phone : null,
       );
       if (!mounted) return;
       if (result.needsAuthRedirect) {
@@ -368,6 +411,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
         final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
         if (data != null) {
           _applyData(data);
+          _prefillReceiptContactsFromProfile();
           final spRaw = data['selected_package'];
           final hasSelectedPackage = spRaw is List && spRaw.isNotEmpty;
           if (!hasSelectedPackage && data['event'] != null) {
@@ -976,7 +1020,16 @@ class _CheckoutScreenState extends State<CheckoutScreen> with WidgetsBindingObse
           else
             _buildHasPaymentCard(cardCheckoutAvailable: cardCheckoutAvailable),
         ] else ...[
-          if (showCardCheckout) _buildTbankPayButton(),
+          if (showCardCheckout) ...[
+            TbankFiscalReceiptBlock(
+              sendReceipt: _sendFiscalReceipt,
+              onSendReceiptChanged: (v) => setState(() => _sendFiscalReceipt = v),
+              emailController: _receiptEmailController,
+              phoneController: _receiptPhoneController,
+            ),
+            const SizedBox(height: 12),
+            _buildTbankPayButton(),
+          ],
           if (!cardCheckoutAvailable && linkPayment != null && linkPayment.isNotEmpty)
             _buildPaymentLink(linkPayment),
           if (!cardCheckoutAvailable && imgPayment != null && imgPayment.isNotEmpty)

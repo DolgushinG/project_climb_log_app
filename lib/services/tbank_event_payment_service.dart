@@ -66,6 +66,31 @@ class TbankEventPaymentInitResult {
 class TbankEventPaymentService {
   TbankEventPaymentService._();
 
+  /// Ошибки init оплаты: `message`, иначе первый текст по `receipt_email` / `receipt_phone`, иначе общий разбор errors.
+  static String? _paymentInitMessageFromBody(String body) {
+    if (body.isEmpty) return null;
+    try {
+      final raw = jsonDecode(body);
+      if (raw is Map) {
+        final msg = raw['message']?.toString();
+        if (msg != null && msg.isNotEmpty && msg != 'The given data was invalid.') {
+          return msg;
+        }
+        final errors = raw['errors'];
+        if (errors is Map) {
+          for (final key in ['receipt_email', 'receipt_phone']) {
+            final v = errors[key];
+            if (v is List && v.isNotEmpty) {
+              final first = v.first?.toString();
+              if (first != null && first.isNotEmpty) return first;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return _messageFromBody(body);
+  }
+
   /// Текст ошибки из JSON (Laravel: message / errors; кастом: error строкой или объектом).
   static String? _messageFromBody(String body) {
     if (body.isEmpty) return null;
@@ -134,6 +159,9 @@ class TbankEventPaymentService {
   /// [participantUserIds] — id участников из `group-checkout` (обычно неоплаченные),
   /// при наличии — [groupRegistrationId] из ответа group-checkout.
   ///
+  /// **Фискальный чек:** при [sendReceipt] == `true` передайте [receiptEmail] и/или [receiptPhone] (хотя бы одно).
+  /// Старые клиенты без `send_receipt` в теле запроса ведут себя как раньше.
+  ///
   /// **Веб (PWA, в т.ч. iOS Safari):** [clientOrigin] — `Uri.base.origin` SPA (например `https://app.climbing-events.ru`).
   /// Нужен бэкенду, чтобы success/fail редиректы банка вели на тот же origin, где открыто приложение
   /// (иначе после оплаты открывается другой домен → «логин», пока в исходной вкладке уже «оплачено»).
@@ -146,6 +174,9 @@ class TbankEventPaymentService {
     List<int>? participantUserIds,
     int? groupRegistrationId,
     String? clientOrigin,
+    bool sendReceipt = false,
+    String? receiptEmail,
+    String? receiptPhone,
   }) async {
     if (token == null || token.isEmpty) {
       return TbankEventPaymentInitResult.failure(
@@ -171,6 +202,13 @@ class TbankEventPaymentService {
     final origin = clientOrigin?.trim();
     if (origin != null && origin.isNotEmpty) {
       body['client_origin'] = origin;
+    }
+    if (sendReceipt) {
+      body['send_receipt'] = true;
+      final em = receiptEmail?.trim();
+      final ph = receiptPhone?.trim();
+      if (em != null && em.isNotEmpty) body['receipt_email'] = em;
+      if (ph != null && ph.isNotEmpty) body['receipt_phone'] = ph;
     }
     try {
       final r = await http.post(
@@ -208,7 +246,8 @@ class TbankEventPaymentService {
           needsAuthRedirect: true,
         );
       }
-      final fromBody = _messageFromBody(r.body);
+      final fromBody =
+          r.statusCode == 422 ? _paymentInitMessageFromBody(r.body) : _messageFromBody(r.body);
       return TbankEventPaymentInitResult.failure(
         statusCode: r.statusCode,
         userMessage: fromBody ?? _defaultMessage(r.statusCode),

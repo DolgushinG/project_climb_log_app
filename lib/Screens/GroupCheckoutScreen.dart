@@ -20,6 +20,7 @@ import '../utils/session_error_helper.dart';
 import '../widgets/error_report_modal.dart';
 import '../widgets/tbank_payment_success_dialog.dart';
 import '../widgets/tbank_payment_confirming_overlay.dart';
+import '../widgets/tbank_fiscal_receipt_block.dart';
 import 'GroupDocumentsScreen.dart';
 import 'tbank_payment_webview_screen.dart';
 
@@ -46,6 +47,9 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
   final Map<int, Map<String, String>> _selectedSizesByUser = {};
   bool _showingErrorModal = false;
   bool _isTbankConfirming = false;
+  bool _sendFiscalReceipt = false;
+  final _receiptEmailController = TextEditingController();
+  final _receiptPhoneController = TextEditingController();
 
   @override
   void initState() {
@@ -57,7 +61,36 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _receiptEmailController.dispose();
+    _receiptPhoneController.dispose();
     super.dispose();
+  }
+
+  Future<void> _prefillReceiptContactsFromProfile() async {
+    try {
+      final token = await getToken();
+      if (token == null || token.isEmpty) return;
+      final r = await http.get(
+        Uri.parse('$DOMAIN/api/profile'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+        },
+      );
+      if (r.statusCode != 200 || !mounted) return;
+      final raw = jsonDecode(r.body);
+      if (raw is! Map) return;
+      final email = raw['email']?.toString().trim();
+      final phone = raw['contact']?.toString().trim();
+      setState(() {
+        if (_receiptEmailController.text.isEmpty && email != null && email.isNotEmpty) {
+          _receiptEmailController.text = email;
+        }
+        if (_receiptPhoneController.text.isEmpty && phone != null && phone.isNotEmpty) {
+          _receiptPhoneController.text = phone;
+        }
+      });
+    } catch (_) {}
   }
 
   @override
@@ -154,6 +187,12 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
   }
 
   Future<void> _payWithTbankGroup() async {
+    final email = _receiptEmailController.text.trim();
+    final phone = _receiptPhoneController.text.trim();
+    if (_sendFiscalReceipt && email.isEmpty && phone.isEmpty) {
+      _showSnack('Укажите email или телефон для фискального чека', isError: true);
+      return;
+    }
     await _loadData(silent: true);
     if (!mounted) return;
     final event = _data?['event'];
@@ -180,6 +219,9 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
       participantUserIds: participantIds,
       groupRegistrationId: _groupRegistrationIdFromData(),
       clientOrigin: kIsWeb ? Uri.base.origin : null,
+      sendReceipt: _sendFiscalReceipt,
+      receiptEmail: email.isNotEmpty ? email : null,
+      receiptPhone: phone.isNotEmpty ? phone : null,
     );
     if (!mounted) return;
     if (result.needsAuthRedirect) {
@@ -260,6 +302,7 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
         final data = raw is Map ? Map<String, dynamic>.from(raw) : null;
         if (data != null) {
           _applyData(data);
+          _prefillReceiptContactsFromProfile();
           if (mounted) setState(() {});
         } else if (!silent) {
           setState(() => _error = 'Неверный формат ответа');
@@ -603,6 +646,13 @@ class _GroupCheckoutScreenState extends State<GroupCheckoutScreen> with WidgetsB
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           if (cardCheckoutAvailable) ...[
+                            TbankFiscalReceiptBlock(
+                              sendReceipt: _sendFiscalReceipt,
+                              onSendReceiptChanged: (v) => setState(() => _sendFiscalReceipt = v),
+                              emailController: _receiptEmailController,
+                              phoneController: _receiptPhoneController,
+                            ),
+                            const SizedBox(height: 12),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
