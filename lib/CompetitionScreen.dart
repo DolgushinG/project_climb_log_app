@@ -735,8 +735,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
   Map<String, dynamic>? _checkoutData;
   Timer? _paymentTimer;
   bool _checkout404Received = false; // предотвращает цикл при 404
-  /// Один раз показываем «время оплаты истекло», пока бэк снова не даст remaining > 0 или участие не сбросится.
+  /// Один раз запускаем автоотмену при нуле таймера; сбрасывается при успехе/новых данных.
   bool _checkoutExpiryDialogShown = false;
+  /// После неудачного cancel-take-part — один пропуск повторной автоотмены (иначе цикл с fetchCompetition).
+  bool _skipNextCheckoutExpiryAutoCancel = false;
   bool _isRefreshing = false;
   Map<String, dynamic>? _competitionStats;
   bool _statsLoading = false;
@@ -2853,6 +2855,10 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         // 3 — не «не успел оплатить», окно оплаты закрыто (часто после онлайн-оплаты); без диалога «время истекло»
         if (payTimeExpired == 3) return;
         if (remaining <= 0) {
+          if (_skipNextCheckoutExpiryAutoCancel) {
+            _skipNextCheckoutExpiryAutoCancel = false;
+            return;
+          }
           if (!_checkoutExpiryDialogShown) {
             _checkoutExpiryDialogShown = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -2888,7 +2894,7 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
     });
   }
 
-  /// Диалог при нуле таймера: не отменяем участие без явного выбора — можно снова открыть checkout.
+  /// По нулю таймера оплаты — отмена участия на бэке (как и задуман таймер).
   Future<void> _cancelTakePartFromEvent() async {
     if (!mounted) return;
     final d = _checkoutData;
@@ -2899,51 +2905,42 @@ class _CompetitionDetailScreenState extends State<CompetitionDetailScreen> with 
         return;
       }
     }
-    final result = await showDialog<String>(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Время на оплату истекло'),
-        content: const Text(
-          'Таймер оплаты обнулился. Вы можете снова открыть оформление и попробовать оплатить или отменить участие в событии.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'pay'),
-            child: const Text('Перейти к оплате'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, 'cancel'),
-            child: Text('Отменить участие', style: unbounded(color: Colors.orange)),
-          ),
-        ],
-      ),
-    );
-    if (!mounted) return;
-    if (result == 'pay') {
-      await fetchCompetition();
-      if (!mounted) return;
-      await Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => CheckoutScreen(
-            eventId: _competitionDetails.id,
-            initialData: _checkoutData,
-          ),
-        ),
-      );
-      return;
-    }
-    if (result == 'cancel') {
-      try {
-        final token = await getToken();
-        await http.post(
+    var cancelOk = false;
+    try {
+      final token = await getToken();
+      if (token == null) {
+        _skipNextCheckoutExpiryAutoCancel = true;
+      } else {
+        final r = await http.post(
           Uri.parse('$DOMAIN/api/event/${_competitionDetails.id}/cancel-take-part'),
           headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
         );
-      } catch (_) {}
-      if (mounted) fetchCompetition();
+        cancelOk = r.statusCode >= 200 && r.statusCode < 300;
+        if (!cancelOk) {
+          _skipNextCheckoutExpiryAutoCancel = true;
+        }
+        if (mounted && cancelOk) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Время на оплату истекло. Регистрация отменена.')),
+          );
+        } else if (mounted && !cancelOk) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Не удалось отменить регистрацию. Попробуйте позже.')),
+          );
+        }
+      }
+    } catch (_) {
+      _skipNextCheckoutExpiryAutoCancel = true;
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось отменить регистрацию. Проверьте сеть.')),
+        );
+      }
     }
+    if (mounted) {
+      setState(() => _checkoutExpiryDialogShown = false);
+    }
+    await fetchCompetition();
   }
 
   @override
